@@ -27,6 +27,7 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 	
 	private boolean dragging = false;
 	
+	private PropertyPanel propertyPanel;	
 	
 	private final int GRID_SIZE = 25;
 	
@@ -57,9 +58,11 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 	}
 	
 	//グリッド
-	public CanvasPanel(EquipmentPanel equipmentPanel) {
+	public CanvasPanel(EquipmentPanel equipmentPanel,
+						PropertyPanel propertyPanel) {
 		
 		this.equipmentPanel = equipmentPanel;
+		this.propertyPanel = propertyPanel;
 		
 		setBackground(Color.WHITE);
 		
@@ -134,6 +137,8 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 		
 		selectedItem = findItem(e.getX(), e.getY());
 		
+		propertyPanel.displayItem(selectedItem);
+		
 		if(selectedItem != null) {
 			
 			repaint();
@@ -155,6 +160,8 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 		
 		selectedItem = newItem;
 		
+		propertyPanel.displayItem(selectedItem);
+		
 		repaint();
 	}
 	
@@ -167,6 +174,8 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 		}
 		
 		selectedItem = findItem(e.getX(), e.getY());
+		
+		propertyPanel.displayItem(selectedItem);
 		
 		if(selectedItem != null) {
 			dragging = true;
