@@ -8,6 +8,10 @@ public class LayoutItem {
 	
 	private int y;
 	
+	private int quantity = 1;
+	
+	private String memo = "";
+	
 	public LayoutItem(Equipment equipment, int x, int y) {
 		
 		this.equipment = equipment;
@@ -33,6 +37,22 @@ public class LayoutItem {
 	
 	public void setY(int y) {
 		this.y = y;
+	}
+	
+	public int getQuantity() {
+	    return quantity;
+	}
+
+	public void setQuantity(int quantity) {
+	    this.quantity = quantity;
+	}
+
+	public String getMemo() {
+	    return memo;
+	}
+
+	public void setMemo(String memo) {
+	    this.memo = memo;
 	}
 
 }

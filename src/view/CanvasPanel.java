@@ -2,15 +2,19 @@ package view;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 
 import model.Equipment;
+import model.EquipmentFactory;
 import model.LayoutItem;
 
 public class CanvasPanel extends JPanel implements MouseListener, MouseMotionListener {
@@ -23,17 +27,43 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 	
 	private boolean dragging = false;
 	
-	//グリッド
+	
 	private final int GRID_SIZE = 25;
 	
+	private void showPopupMenu(MouseEvent e){
+
+	    JPopupMenu menu = new JPopupMenu();
+
+	    JMenuItem deleteItem = new JMenuItem("削除");
+
+	    deleteItem.addActionListener(event -> {
+
+	        if(selectedItem != null){
+
+	            items.remove(selectedItem);
+
+	            selectedItem = null;
+
+	            repaint();
+
+	        }
+
+	    });
+
+	    menu.add(deleteItem);
+
+	    menu.show(this,e.getX(),e.getY());
+
+	}
 	
+	//グリッド
 	public CanvasPanel(EquipmentPanel equipmentPanel) {
 		
 		this.equipmentPanel = equipmentPanel;
 		
 		setBackground(Color.WHITE);
 		
-		Equipment mic = new Equipment("マイク");
+		Equipment mic = EquipmentFactory.create("マイク");
 
 		items.add(new LayoutItem(mic,100,100));
 
@@ -44,6 +74,7 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 		addMouseListener(this);
 		addMouseMotionListener(this);
 	}
+	
 	
 	@Override
 	protected void paintComponent(Graphics g) {
@@ -70,14 +101,29 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
         		if(item == selectedItem) {
         			g.setColor(Color.RED);
         		}else {
-        			g.setColor(Color.BLACK);
+        			g.setColor(item.getEquipment().getColor());
         		}
+        		//四角を描く
+        		Equipment equipment = item.getEquipment();
 
-            g.fillOval(item.getX(), item.getY(), 20, 20);
-
-            g.drawString(item.getEquipment().getName(),
-                    item.getX()+25,
-                    item.getY()+15);
+        		g.fillRect(
+        		        item.getX(),
+        		        item.getY(),
+        		        equipment.getWidth(),
+        		        equipment.getHeight());
+            
+            //枠線を描く
+            g.setColor(Color.BLACK);
+            g.drawRect(
+            	    item.getX(),
+            	    item.getY(),
+            	    equipment.getWidth(),
+            	    equipment.getHeight());
+            //文字
+            g.drawString(
+            	    item.getEquipment().getName(),
+            	    item.getX() + 8,
+            	    item.getY() + 20);
 
         }
         
@@ -86,28 +132,19 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		
-		selectedItem = null;
+		selectedItem = findItem(e.getX(), e.getY());
 		
-		for(LayoutItem item : items) {
+		if(selectedItem != null) {
 			
-			int dx = e.getX() - item.getX();
-			int dy = e.getY() - item.getY();
+			repaint();
 			
-			if(dx * dx + dy * dy < 100) {
-				
-				selectedItem = item;
-				
-				dragging = true;
-				
-				repaint();
-				
-				return;
-			}
- 		}
+			return;
+		}
 		
 		String name = equipmentPanel.getSelectedEquipment();
 		
-		Equipment equipment = new Equipment(name);
+		
+		Equipment equipment = EquipmentFactory.create(name);
 		
 		LayoutItem newItem = new LayoutItem(
 				equipment,
@@ -124,28 +161,27 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 	@Override
 	public void mousePressed(MouseEvent e) {
 		
-		selectedItem = null;
-		
-		for(LayoutItem item : items) {
-			
-			int dx = e.getX() - item.getX();
-			int dy = e.getY() - item.getY();
-			
-			if(dx * dx + dy * dy < 100) {
-				
-				selectedItem = item;
-				
-				dragging = true;
-				
-				repaint();
-				
-				return;
-			}
+		if (e.isPopupTrigger()) {
+			showPopupMenu(e);
+			return;
 		}
+		
+		selectedItem = findItem(e.getX(), e.getY());
+		
+		if(selectedItem != null) {
+			dragging = true;
+		}
+		
+		repaint();
 	}
 	
 	@Override
 	public void mouseReleased(MouseEvent e) {
+		
+		if (e.isPopupTrigger()) {
+			showPopupMenu(e);
+			return;
+		}
 		
 		dragging = false;
 		
@@ -171,5 +207,26 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 	
 	@Override
 	public void mouseMoved(MouseEvent e) {}
+	
+	private LayoutItem findItem(int x, int y) {
+		
+		for (LayoutItem item : items) {
+			
+			Equipment equipment = item.getEquipment();
+			
+			Rectangle rect = new Rectangle(
+					item.getX(),
+					item.getY(),
+					equipment.getWidth(),
+					equipment.getHeight());
+			
+			if(rect.contains(x, y)) {
+				return item;
+				
+			}
+		}
+		
+		return null;
+	}
 
 }
