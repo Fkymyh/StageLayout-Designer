@@ -25,7 +25,9 @@ public class MainFrame extends JFrame {
         splitPane.setDividerLocation(250);
         
         add(splitPane, BorderLayout.CENTER);
-        add(new PropertyPanel(), BorderLayout.SOUTH);		
+        add(new PropertyPanel(), BorderLayout.SOUTH);
+        
+        setJMenuBar(new MenuBar());
 
     }
 

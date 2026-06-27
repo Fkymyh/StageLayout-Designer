@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,16 +13,19 @@ import javax.swing.JPanel;
 import model.Equipment;
 import model.LayoutItem;
 
-public class CanvasPanel extends JPanel implements MouseListener {
+public class CanvasPanel extends JPanel implements MouseListener, MouseMotionListener {
 	
 	private EquipmentPanel equipmentPanel;
 	
 	private List<LayoutItem> items = new ArrayList<>();
 	
+	private LayoutItem selectedItem;
 	
+	private boolean dragging = false;
 	
-	//グリッド1マスの大きさ
+	//グリッド
 	private final int GRID_SIZE = 25;
+	
 	
 	public CanvasPanel(EquipmentPanel equipmentPanel) {
 		
@@ -38,6 +42,7 @@ public class CanvasPanel extends JPanel implements MouseListener {
 		items.add(new LayoutItem(mic,450,250));
 		
 		addMouseListener(this);
+		addMouseMotionListener(this);
 	}
 	
 	@Override
@@ -57,10 +62,16 @@ public class CanvasPanel extends JPanel implements MouseListener {
         for(int y = 0; y < getHeight(); y += GRID_SIZE) {
             g.drawLine(0,y,getWidth(),y);
         }
-        // 機材描画
+     // 機材描画
         g.setColor(Color.BLACK);
 
         for(LayoutItem item : items){
+        	
+        		if(item == selectedItem) {
+        			g.setColor(Color.RED);
+        		}else {
+        			g.setColor(Color.BLACK);
+        		}
 
             g.fillOval(item.getX(), item.getY(), 20, 20);
 
@@ -75,27 +86,90 @@ public class CanvasPanel extends JPanel implements MouseListener {
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		
+		selectedItem = null;
+		
+		for(LayoutItem item : items) {
+			
+			int dx = e.getX() - item.getX();
+			int dy = e.getY() - item.getY();
+			
+			if(dx * dx + dy * dy < 100) {
+				
+				selectedItem = item;
+				
+				dragging = true;
+				
+				repaint();
+				
+				return;
+			}
+ 		}
+		
 		String name = equipmentPanel.getSelectedEquipment();
 		
 		Equipment equipment = new Equipment(name);
 		
-		items.add(new LayoutItem(
+		LayoutItem newItem = new LayoutItem(
 				equipment,
 				e.getX(),
-				e.getY()));
+				e.getY());
+		
+		items.add(newItem);
+		
+		selectedItem = newItem;
+		
 		repaint();
 	}
 	
 	@Override
-	public void mousePressed(MouseEvent e) {}
+	public void mousePressed(MouseEvent e) {
+		
+		selectedItem = null;
+		
+		for(LayoutItem item : items) {
+			
+			int dx = e.getX() - item.getX();
+			int dy = e.getY() - item.getY();
+			
+			if(dx * dx + dy * dy < 100) {
+				
+				selectedItem = item;
+				
+				dragging = true;
+				
+				repaint();
+				
+				return;
+			}
+		}
+	}
 	
 	@Override
-	public void mouseReleased(MouseEvent e) {}
+	public void mouseReleased(MouseEvent e) {
+		
+		dragging = false;
+		
+	}
 	
 	@Override
 	public void mouseEntered(MouseEvent e) {}
 	
 	@Override
 	public void mouseExited(MouseEvent e) {}
+	
+	@Override
+	public void mouseDragged(MouseEvent e) {
+		
+		if(selectedItem != null && dragging) {
+			
+			selectedItem.setX(e.getX());
+			selectedItem.setY(e.getY());
+			
+			repaint();
+		}
+	}
+	
+	@Override
+	public void mouseMoved(MouseEvent e) {}
 
 }
