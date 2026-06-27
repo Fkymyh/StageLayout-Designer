@@ -15,7 +15,13 @@ public class MainFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         EquipmentPanel equipmentPanel = new EquipmentPanel();
-        CanvasPanel canvasPanel = new CanvasPanel(equipmentPanel);
+        
+        PropertyPanel propertyPanel = new PropertyPanel();
+        
+        CanvasPanel canvasPanel = 
+        		new CanvasPanel(
+        				equipmentPanel,
+        				propertyPanel);
         
         JSplitPane splitPane = new JSplitPane(
         		JSplitPane.HORIZONTAL_SPLIT,
@@ -25,7 +31,7 @@ public class MainFrame extends JFrame {
         splitPane.setDividerLocation(250);
         
         add(splitPane, BorderLayout.CENTER);
-        add(new PropertyPanel(), BorderLayout.SOUTH);
+        add(propertyPanel, BorderLayout.SOUTH);
         
         setJMenuBar(new MenuBar());
 
