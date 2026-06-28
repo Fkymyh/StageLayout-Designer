@@ -1,6 +1,7 @@
 package model;
 
 import java.awt.Color;
+import java.awt.Image;
 
 
 public class Equipment {
@@ -13,16 +14,20 @@ public class Equipment {
 	
 	private int height;
 	
+	private Image image;
+	
 	
 	public Equipment(String name,
 					Color color,
 					int width,
-					int height) {
+					int height,
+					Image image) {
 		
 		this.name = name;
 		this.color = color;
 		this.width = width;
 		this.height = height;
+		this.image = image;
 	}
 	
 	public Color getColor() {
@@ -40,5 +45,8 @@ public class Equipment {
 	public int getHeight() {
 		return height;
 	}
-
+	
+	public Image getImage() {
+	    return image;
+	}
 }

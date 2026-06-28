@@ -6,14 +6,22 @@ import javax.swing.JMenuItem;
 
 public class MenuBar extends JMenuBar{
 	
+	private JMenuItem saveItem;
+	private JMenuItem openItem;
+	
 	public MenuBar() {
 		
 		//ファイル
 		JMenu fileMenu = new JMenu("ファイル");
 		
 		fileMenu.add(new JMenuItem("新規"));
-		fileMenu.add(new JMenuItem("開く"));
-		fileMenu.add(new JMenuItem("保存"));
+		
+		openItem = new JMenuItem("開く");
+		fileMenu.add(openItem);
+		
+		saveItem = new JMenuItem("保存");
+		fileMenu.add(saveItem);
+		
 		fileMenu.addSeparator();
 		fileMenu.add(new JMenuItem("印刷"));
 		fileMenu.addSeparator();
@@ -36,6 +44,14 @@ public class MenuBar extends JMenuBar{
 		viewMenu.add(new JMenuItem("グリッド表示"));
 		
 		add(viewMenu);
+	}
+	
+	public JMenuItem getSaveItem() {
+		return saveItem;
+	}
+	
+	public JMenuItem getOpenItem() {
+	    return openItem;
 	}
 
 }

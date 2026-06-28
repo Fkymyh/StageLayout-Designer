@@ -58,7 +58,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	            selectedItem = null;
 	            
-	            propertyPanel.displayItem(null);
+	            refreshPanels();
 
 	            repaint();
 
@@ -96,6 +96,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		addMouseMotionListener(this);
 		addKeyListener(this);
 		
+		refreshPanels();
+		
 	}
 	
 	
@@ -129,14 +131,33 @@ public class CanvasPanel extends JPanel implements MouseListener,
         		//四角を描く
         		Equipment equipment = item.getEquipment();
 
-        		g.fillRect(
-        		        item.getX(),
-        		        item.getY(),
-        		        equipment.getWidth(),
-        		        equipment.getHeight());
+        		if(equipment.getImage() != null) {
+
+        		    g.drawImage(
+        		            equipment.getImage(),
+        		            item.getX(),
+        		            item.getY(),
+        		            equipment.getWidth(),
+        		            equipment.getHeight(),
+        		            this);
+
+        		} else {
+
+        		    g.setColor(equipment.getColor());
+
+        		    g.fillRect(
+        		            item.getX(),
+        		            item.getY(),
+        		            equipment.getWidth(),
+        		            equipment.getHeight());
+        		}
             
             //枠線を描く
-            g.setColor(Color.BLACK);
+        		if(item == selectedItem) {
+        		    g.setColor(Color.RED);
+        		} else {
+        		    g.setColor(Color.BLACK);
+        		}
             g.drawRect(
             	    item.getX(),
             	    item.getY(),
@@ -146,7 +167,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
             g.drawString(
             	    item.getEquipment().getName(),
             	    item.getX() + 8,
-            	    item.getY() + 20);
+            	    item.getY() + equipment.getHeight() + 15);
 
         }
         
@@ -157,7 +178,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		selectedItem = findItem(e.getX(), e.getY());
 		
-		propertyPanel.displayItem(selectedItem);
+		refreshPanels();
 		
 		if(selectedItem != null) {
 			
@@ -180,7 +201,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		selectedItem = newItem;
 		
-		propertyPanel.displayItem(selectedItem);
+		refreshPanels();
 		
 		repaint();
 	}
@@ -205,7 +226,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 			dragging = true;
 		}
 		
-		propertyPanel.displayItem(selectedItem);
+		refreshPanels();
 		
 		
 		repaint();
@@ -296,7 +317,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	            selectedItem = item;
 
-	            propertyPanel.displayItem(item);
+	            refreshPanels();
 
 	            repaint();
 
@@ -310,6 +331,13 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	@Override
 	public void keyTyped(KeyEvent e){}
+	
+	private void refreshPanels() {
+
+		propertyPanel.displayItem(selectedItem);
+
+	    propertyPanel.displaySummary(items);
+	}
 	
 	private LayoutItem findItem(int x, int y) {
 		
@@ -330,6 +358,21 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		}
 		
 		return null;
+	}
+	public List<LayoutItem> getItems(){
+
+	    return items;
+	}
+	
+	public void setItems(List<LayoutItem> items) {
+
+	    this.items = items;
+
+	    selectedItem = null;
+
+	    refreshPanels();
+
+	    repaint();
 	}
 
 }

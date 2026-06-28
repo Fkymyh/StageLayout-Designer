@@ -1,10 +1,15 @@
 package view;
 
+import java.awt.BorderLayout;
 import java.awt.GridLayout;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
 import model.LayoutItem;
@@ -17,32 +22,46 @@ public class PropertyPanel extends JPanel {
 	
 	private JTextArea memoArea;
 	
+	private JTextArea summaryArea;
+	
 	private LayoutItem currentItem;
+	
+	private List<LayoutItem> allItems;
 	
 	
 	public PropertyPanel() {
+		
+		setLayout(new BorderLayout());
 
-        setLayout(new GridLayout(7, 1));
+        JPanel editPanel = new JPanel(new GridLayout(7, 1));
         
         equipmentArea = new JTextArea();
         quantityArea = new JTextArea();
         memoArea = new JTextArea(4, 20);
         
-        JButton saveButton = new JButton("更新");
-        
-
         equipmentArea.setEditable(false);
+        
+        JButton saveButton = new JButton("更新");
+      
 
         add(new JLabel("使用機材"));
-        add(equipmentArea);
+        editPanel.add(equipmentArea);
 
         add(new JLabel("必要数"));
-        add(quantityArea);
+        editPanel.add(quantityArea);
 
         add(new JLabel("注意事項"));
-        add(memoArea);
+        editPanel.add(memoArea);
 
-        add(saveButton);
+        editPanel.add(saveButton);
+        
+        
+        add(editPanel, BorderLayout.WEST);
+        
+        summaryArea = new JTextArea(8, 30);
+        summaryArea.setEditable(false);
+        
+        add(new JScrollPane(summaryArea), BorderLayout.CENTER);
         
         saveButton.addActionListener(e -> {
 
@@ -52,15 +71,23 @@ public class PropertyPanel extends JPanel {
 
             try {
 
-                currentItem.setQuantity(
-                        Integer.parseInt(quantityArea.getText()));
-
-                currentItem.setMemo(
-                        memoArea.getText());
+                int quantity = Integer.parseInt(quantityArea.getText().trim());
+                
+                if (quantity < 1) {
+                		quantity = 1;
+                }
+                
+                currentItem.setQuantity(quantity);
+                currentItem.setMemo(memoArea.getText());
+                
+                displaySummary(allItems);
 
             } catch(NumberFormatException ex) {
 
                 quantityArea.setText("1");
+                currentItem.setQuantity(1);
+                
+                displaySummary(allItems);
 
             }
 
@@ -93,6 +120,45 @@ public class PropertyPanel extends JPanel {
     	memoArea.setText(
     			item.getMemo());
     	
+    }
+    
+    public void displaySummary(List<LayoutItem> items) {
+    	
+    	allItems = items;
+    	
+    	if (items == null || items.isEmpty()) {
+    		
+    		summaryArea.setText("配置されている機材はありません。");
+    		
+    		return;
+    	}
+    	
+    	Map<String, Integer> summary = new LinkedHashMap<>();
+    	
+    	for (LayoutItem item : items) {
+    		
+    		String name = item.getEquipment().getName();
+    		
+    		int quantity = item.getQuantity();
+    		
+    		summary.put(
+    				name,
+    				summary.getOrDefault(name,0) + quantity);
+    	}
+    	
+    	StringBuilder sb = new StringBuilder();
+    	
+    	sb.append("=== 必要機材一覧 ===\n");
+    	
+    	for (Map.Entry<String, Integer> entry : summary.entrySet()) {
+    		
+    		sb.append(entry.getKey())
+    		  .append(" x ")
+    		  .append(entry.getValue())
+    		  .append("\n");
+    	}
+    	
+    	summaryArea.setText(sb.toString());
     }
     
 }
