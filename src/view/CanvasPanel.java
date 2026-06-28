@@ -1,8 +1,11 @@
 package view;
 
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Graphics;
 import java.awt.Rectangle;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
@@ -17,7 +20,11 @@ import model.Equipment;
 import model.EquipmentFactory;
 import model.LayoutItem;
 
-public class CanvasPanel extends JPanel implements MouseListener, MouseMotionListener {
+
+
+public class CanvasPanel extends JPanel implements MouseListener, 
+												  MouseMotionListener,
+												  KeyListener {
 	
 	private EquipmentPanel equipmentPanel;
 	
@@ -25,11 +32,17 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 	
 	private LayoutItem selectedItem;
 	
+	private LayoutItem copiedItem;
+	
 	private boolean dragging = false;
 	
 	private PropertyPanel propertyPanel;	
 	
 	private final int GRID_SIZE = 25;
+	
+	private int dragOffsetX;
+	
+	private int dragOffsetY;
 	
 	private void showPopupMenu(MouseEvent e){
 
@@ -44,6 +57,8 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 	            items.remove(selectedItem);
 
 	            selectedItem = null;
+	            
+	            propertyPanel.displayItem(null);
 
 	            repaint();
 
@@ -64,6 +79,9 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 		this.equipmentPanel = equipmentPanel;
 		this.propertyPanel = propertyPanel;
 		
+		setFocusable(true);
+		requestFocusInWindow();
+		
 		setBackground(Color.WHITE);
 		
 		Equipment mic = EquipmentFactory.create("マイク");
@@ -76,6 +94,8 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 		
 		addMouseListener(this);
 		addMouseMotionListener(this);
+		addKeyListener(this);
+		
 	}
 	
 	
@@ -168,6 +188,8 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 	@Override
 	public void mousePressed(MouseEvent e) {
 		
+		requestFocusInWindow();
+		
 		if (e.isPopupTrigger()) {
 			showPopupMenu(e);
 			return;
@@ -175,11 +197,16 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 		
 		selectedItem = findItem(e.getX(), e.getY());
 		
-		propertyPanel.displayItem(selectedItem);
-		
 		if(selectedItem != null) {
+			
+			dragOffsetX = e.getX() - selectedItem.getX();
+			dragOffsetY = e.getY() - selectedItem.getY();
+			
 			dragging = true;
 		}
+		
+		propertyPanel.displayItem(selectedItem);
+		
 		
 		repaint();
 	}
@@ -207,15 +234,82 @@ public class CanvasPanel extends JPanel implements MouseListener, MouseMotionLis
 		
 		if(selectedItem != null && dragging) {
 			
-			selectedItem.setX(e.getX());
-			selectedItem.setY(e.getY());
 			
+			int x = e.getX() - dragOffsetX;
+			int y = e.getY() - dragOffsetY;
+
+			x = Math.round((float)x / GRID_SIZE) * GRID_SIZE;
+			y = Math.round((float)y / GRID_SIZE) * GRID_SIZE;
+
+			selectedItem.setX(x);
+			selectedItem.setY(y);
+
 			repaint();
+
 		}
 	}
 	
 	@Override
-	public void mouseMoved(MouseEvent e) {}
+	public void mouseMoved(MouseEvent e) {
+		
+		LayoutItem item = findItem(e.getX(), e.getY());
+		
+		if(item != null) {
+			
+			setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		}else {
+			setCursor(Cursor.getDefaultCursor());
+		}
+	}
+	
+	@Override
+	public void keyPressed(KeyEvent e) {
+
+	    if(e.isControlDown()
+	            && e.getKeyCode() == KeyEvent.VK_C) {
+
+	        copiedItem = selectedItem;
+
+	    }
+	    if(e.isControlDown()
+	            && e.getKeyCode() == KeyEvent.VK_V) {
+
+	        if(copiedItem != null){
+
+	            Equipment equipment =
+	                    EquipmentFactory.create(
+	                            copiedItem.getEquipment().getName());
+
+	            LayoutItem item =
+	                    new LayoutItem(
+	                            equipment,
+	                            copiedItem.getX()+30,
+	                            copiedItem.getY()+30);
+
+	            item.setMemo(
+	                    copiedItem.getMemo());
+
+	            item.setQuantity(
+	                    copiedItem.getQuantity());
+
+	            items.add(item);
+
+	            selectedItem = item;
+
+	            propertyPanel.displayItem(item);
+
+	            repaint();
+
+	        }
+
+	    }
+
+	}
+	@Override
+	public void keyReleased(KeyEvent e){}
+
+	@Override
+	public void keyTyped(KeyEvent e){}
 	
 	private LayoutItem findItem(int x, int y) {
 		
