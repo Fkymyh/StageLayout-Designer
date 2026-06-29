@@ -1,14 +1,17 @@
 package view;
 
 import java.awt.BorderLayout;
+import java.io.File;
 
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import io.LayoutFileManager;
+
 
 public class MainFrame extends JFrame {
 
@@ -58,56 +61,93 @@ public class MainFrame extends JFrame {
 
         setJMenuBar(menuBar);
         
-        //保存処理
+     // 保存処理
         menuBar.getSaveItem().addActionListener(e -> {
-        	
-        		JFileChooser chooser = new JFileChooser();
-        		
-        		if(chooser.showSaveDialog(this)
-        				== JFileChooser.APPROVE_OPTION) {
-        			
-        			try {
 
-        			    LayoutFileManager.save(
+            JFileChooser chooser = new JFileChooser();
 
-        			            canvasPanel.getItems(),
+            FileNameExtensionFilter filter =
+                    new FileNameExtensionFilter(
+                            "Stage Layout File (*.stage)",
+                            "stage");
 
-        			            chooser.getSelectedFile().getAbsolutePath()
+            chooser.setFileFilter(filter);
 
-        			    );
+            if (chooser.showSaveDialog(this)
+                    == JFileChooser.APPROVE_OPTION) {
 
-        			} catch(Exception ex){
+                try {
 
-        			    ex.printStackTrace();
+                    File file = chooser.getSelectedFile();
 
-        			}
-        			
-        		}
-        	
+                    if (!file.getName().toLowerCase().endsWith(".stage")) {
+                        file = new File(file.getAbsolutePath() + ".stage");
+                    }
+
+                    LayoutFileManager.save(
+                            canvasPanel.getItems(),
+                            file.getAbsolutePath());
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "保存しました。",
+                            "保存完了",
+                            JOptionPane.INFORMATION_MESSAGE);
+
+                } catch (Exception ex) {
+
+                    ex.printStackTrace();
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "保存に失敗しました。",
+                            "エラー",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
         });
-        //開く処理
+     // 開く処理
         menuBar.getOpenItem().addActionListener(e -> {
 
             JFileChooser chooser = new JFileChooser();
 
-            if(chooser.showOpenDialog(this)
-                    == JFileChooser.APPROVE_OPTION){
+            FileNameExtensionFilter filter =
+                    new FileNameExtensionFilter(
+                            "Stage Layout File (*.stage)",
+                            "stage");
 
-                try{
+            chooser.setFileFilter(filter);
+
+            if (chooser.showOpenDialog(this)
+                    == JFileChooser.APPROVE_OPTION) {
+
+                try {
+
+                    File file = chooser.getSelectedFile();
 
                     canvasPanel.setItems(
-                        LayoutFileManager.load(
-                            chooser.getSelectedFile().getAbsolutePath()));
+                            LayoutFileManager.load(
+                                    file.getAbsolutePath()));
 
-                }catch(Exception ex){
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "読み込みました。",
+                            "読込完了",
+                            JOptionPane.INFORMATION_MESSAGE);
+
+                } catch (Exception ex) {
 
                     ex.printStackTrace();
 
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "読み込みに失敗しました。",
+                            "エラー",
+                            JOptionPane.ERROR_MESSAGE);
                 }
-
             }
-
         });
+        
         
      // 新規作成処理
         menuBar.getNewItem().addActionListener(e -> {
