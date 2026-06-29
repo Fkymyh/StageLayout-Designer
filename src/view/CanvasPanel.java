@@ -99,6 +99,28 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 	}
 	
+	public void resizeSelectedItem(int delta) {
+
+	    if (selectedItem == null) {
+	        return;
+	    }
+
+	    int newWidth = selectedItem.getWidth() + delta;
+	    int newHeight = selectedItem.getHeight() + delta;
+
+	    if (newWidth < 10) {
+	        newWidth = 10;
+	    }
+
+	    if (newHeight < 10) {
+	        newHeight = 10;
+	    }
+
+	    selectedItem.setSize(newWidth, newHeight);
+
+	    repaint();
+	}
+	
 	
 	@Override
 	protected void paintComponent(Graphics g) {
@@ -136,13 +158,13 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         		if(equipment.getImage() != null) {
 
-        		    g.drawImage(
-        		            equipment.getImage(),
-        		            item.getX(),
-        		            item.getY(),
-        		            equipment.getWidth(),
-        		            equipment.getHeight(),
-        		            this);
+        			g.drawImage(
+        			        equipment.getImage(),
+        			        item.getX(),
+        			        item.getY(),
+        			        item.getWidth(),
+        			        item.getHeight(),
+        			        this);
 
         		} else {
 
@@ -151,8 +173,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
         		    g.fillRect(
         		            item.getX(),
         		            item.getY(),
-        		            equipment.getWidth(),
-        		            equipment.getHeight());
+        		            item.getWidth(),
+        		            item.getHeight());
         		}
             
             //枠線を描く
@@ -161,16 +183,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
         		} else {
         		    g.setColor(Color.BLACK);
         		}
-            g.drawRect(
-            	    item.getX(),
-            	    item.getY(),
-            	    equipment.getWidth(),
-            	    equipment.getHeight());
+        		g.drawRect(
+        		        item.getX(),
+        		        item.getY(),
+        		        item.getWidth(),
+        		        item.getHeight());
             //文字
             g.drawString(
-            	    item.getEquipment().getName(),
-            	    item.getX() + 8,
-            	    item.getY() + equipment.getHeight() + 15);
+                    item.getEquipment().getName(),
+                    item.getX() + 8,
+                    item.getY() + item.getHeight() + 15);
 
         }
         
@@ -302,6 +324,25 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 
+	    if (e.getKeyCode() == KeyEvent.VK_PLUS
+	            || e.getKeyCode() == KeyEvent.VK_EQUALS
+	            || e.getKeyCode() == KeyEvent.VK_ADD
+	            || e.getKeyChar() == '+') {
+
+	        resizeSelectedItem(10);
+
+	        return;
+	    }
+
+	    if (e.getKeyCode() == KeyEvent.VK_MINUS
+	            || e.getKeyCode() == KeyEvent.VK_SUBTRACT
+	            || e.getKeyChar() == '-') {
+
+	        resizeSelectedItem(-10);
+
+	        return;
+	    }
+
 	    if (e.isControlDown()
 	            && e.getKeyCode() == KeyEvent.VK_C) {
 
@@ -332,31 +373,12 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    propertyPanel.displaySummary(items);
 	}
 	
-	private LayoutItem findItem(int x, int y) {
-		
-		for (LayoutItem item : items) {
-			
-			Equipment equipment = item.getEquipment();
-			
-			Rectangle rect = new Rectangle(
-					item.getX(),
-					item.getY(),
-					equipment.getWidth(),
-					equipment.getHeight());
-			
-			if(rect.contains(x, y)) {
-				return item;
-				
-			}
-		}
-		
-		return null;
-	}
+	
 	
 	public void deleteSelectedItem() {
 		
 		if (selectedItem == null) {
-			
+			return;
 		}
 		items.remove(selectedItem);
 		
@@ -391,6 +413,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 						equipment,
 						copiedItem.getX() + 30,
 						copiedItem.getY() + 30);
+		
+		item.setSize(
+		        copiedItem.getWidth(),
+		        copiedItem.getHeight());
 		
 		item.setMemo(copiedItem.getMemo());
 		
@@ -440,6 +466,24 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public void setSnapToGrid(boolean snapToGrid) {
 
 	    this.snapToGrid = snapToGrid;
+	}
+	
+	private LayoutItem findItem(int x, int y) {
+
+	    for (LayoutItem item : items) {
+
+	        Rectangle rect = new Rectangle(
+	                item.getX(),
+	                item.getY(),
+	                item.getWidth(),
+	                item.getHeight());
+
+	        if (rect.contains(x, y)) {
+	            return item;
+	        }
+	    }
+
+	    return null;
 	}
 
 }

@@ -20,12 +20,14 @@ public class LayoutFileManager {
 
         for (LayoutItem item : items) {
 
-            writer.write(
-                    item.getEquipment().getName() + "," +
-                    item.getX() + "," +
-                    item.getY() + "," +
-                    item.getQuantity() + "," +
-                    item.getMemo());
+        	writer.write(
+        	        item.getEquipment().getName() + "," +
+        	        item.getX() + "," +
+        	        item.getY() + "," +
+        	        item.getWidth() + "," +
+        	        item.getHeight() + "," +
+        	        item.getQuantity() + "," +
+        	        item.getMemo());
 
             writer.write("\n");
         }
@@ -54,20 +56,40 @@ public class LayoutFileManager {
             String name = data[0];
             int x = Integer.parseInt(data[1]);
             int y = Integer.parseInt(data[2]);
-            int quantity = Integer.parseInt(data[3]);
-
-            String memo = "";
-
-            if (data.length >= 5) {
-                memo = data[4];
-            }
 
             Equipment equipment = EquipmentFactory.create(name);
 
             LayoutItem item = new LayoutItem(equipment, x, y);
 
-            item.setQuantity(quantity);
-            item.setMemo(memo);
+            if (data.length >= 6) {
+
+                int width = Integer.parseInt(data[3]);
+                int height = Integer.parseInt(data[4]);
+                int quantity = Integer.parseInt(data[5]);
+
+                String memo = "";
+
+                if (data.length >= 7) {
+                    memo = data[6];
+                }
+
+                item.setSize(width, height);
+                item.setQuantity(quantity);
+                item.setMemo(memo);
+
+            } else {
+
+                int quantity = Integer.parseInt(data[3]);
+
+                String memo = "";
+
+                if (data.length >= 5) {
+                    memo = data[4];
+                }
+
+                item.setQuantity(quantity);
+                item.setMemo(memo);
+            }
 
             items.add(item);
         }
