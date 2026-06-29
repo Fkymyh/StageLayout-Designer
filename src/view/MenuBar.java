@@ -9,6 +9,8 @@ public class MenuBar extends JMenuBar{
 	private JMenuItem saveItem;
 	private JMenuItem openItem;
 	private JMenuItem newItem;
+	private JMenuItem exitItem;
+	
 	
 	public MenuBar() {
 		
@@ -27,7 +29,8 @@ public class MenuBar extends JMenuBar{
 		fileMenu.addSeparator();
 		fileMenu.add(new JMenuItem("印刷"));
 		fileMenu.addSeparator();
-		fileMenu.add(new JMenuItem("終了"));
+		exitItem = new JMenuItem("終了");
+		fileMenu.add(exitItem);
 		
 		add(fileMenu);
 		
@@ -58,6 +61,10 @@ public class MenuBar extends JMenuBar{
 	
 	public JMenuItem getNewItem() {
 		return newItem;
+	}
+	
+	public JMenuItem getExitItem() {
+		return exitItem;
 	}
 
 }

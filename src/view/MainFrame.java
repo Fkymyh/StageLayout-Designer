@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JSplitPane;
 
 import io.LayoutFileManager;
@@ -94,8 +95,31 @@ public class MainFrame extends JFrame {
      // 新規作成処理
         menuBar.getNewItem().addActionListener(e -> {
 
-            canvasPanel.clearItems();
+            int result = JOptionPane.showConfirmDialog(
+            		this,
+            		"現在のレイアウトを破棄して新規作成しますか？",
+            		"新規作成",
+            		JOptionPane.YES_NO_OPTION);
+            
+            if (result == JOptionPane.YES_OPTION) {
+            		canvasPanel.clearItems();
+            }
 
+        });
+        
+     // 終了処理
+        menuBar.getExitItem().addActionListener(e -> {
+
+            int result = JOptionPane.showConfirmDialog(
+                    this,
+                    "アプリを終了しますか？",
+                    "終了確認",
+                    JOptionPane.YES_NO_OPTION);
+
+            if (result == JOptionPane.YES_OPTION) {
+                dispose();
+                System.exit(0);
+            }
         });
 
     }
