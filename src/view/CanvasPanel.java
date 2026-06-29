@@ -374,5 +374,15 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    repaint();
 	}
+	
+	public void clearItems() {
+		items.clear();
+		
+		selectedItem = null;
+		
+		refreshPanels();
+		
+		repaint();
+	}
 
 }

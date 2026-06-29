@@ -8,13 +8,15 @@ public class MenuBar extends JMenuBar{
 	
 	private JMenuItem saveItem;
 	private JMenuItem openItem;
+	private JMenuItem newItem;
 	
 	public MenuBar() {
 		
 		//ファイル
 		JMenu fileMenu = new JMenu("ファイル");
 		
-		fileMenu.add(new JMenuItem("新規"));
+		newItem = new JMenuItem("新規");
+		fileMenu.add(newItem);
 		
 		openItem = new JMenuItem("開く");
 		fileMenu.add(openItem);
@@ -52,6 +54,10 @@ public class MenuBar extends JMenuBar{
 	
 	public JMenuItem getOpenItem() {
 	    return openItem;
+	}
+	
+	public JMenuItem getNewItem() {
+		return newItem;
 	}
 
 }

@@ -90,6 +90,13 @@ public class MainFrame extends JFrame {
             }
 
         });
+        
+     // 新規作成処理
+        menuBar.getNewItem().addActionListener(e -> {
+
+            canvasPanel.clearItems();
+
+        });
 
     }
 
