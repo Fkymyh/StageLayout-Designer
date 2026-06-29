@@ -44,6 +44,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private int dragOffsetY;
 	
+	private boolean showGrid = true;
+
+	private boolean snapToGrid = true;
+	
 	private void showPopupMenu(MouseEvent e){
 
 	    JPopupMenu menu = new JPopupMenu();
@@ -76,6 +80,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public CanvasPanel(EquipmentPanel equipmentPanel,
 						PropertyPanel propertyPanel) {
 		
+		
 		this.equipmentPanel = equipmentPanel;
 		this.propertyPanel = propertyPanel;
 		
@@ -107,16 +112,20 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		super.paintComponent(g);
 		
 		//グリッド線の色
-		g.setColor(new Color(220,220,220));
+		if (showGrid) {
+
+		    g.setColor(new Color(220, 220, 220));
 		
 		 // 縦線
-        for(int x = 0; x < getWidth(); x += GRID_SIZE) {
-            g.drawLine(x,0,x,getHeight());
-        }
+		 for (int x = 0; x < getWidth(); x += GRID_SIZE) {
+		        g.drawLine(x, 0, x, getHeight());
+		    }
+		
 
         // 横線
-        for(int y = 0; y < getHeight(); y += GRID_SIZE) {
-            g.drawLine(0,y,getWidth(),y);
+		for (int y = 0; y < getHeight(); y += GRID_SIZE) {
+	        g.drawLine(0, y, getWidth(), y);
+	    }
         }
      // 機材描画
         g.setColor(Color.BLACK);
@@ -259,8 +268,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
 			int x = e.getX() - dragOffsetX;
 			int y = e.getY() - dragOffsetY;
 
-			x = Math.round((float)x / GRID_SIZE) * GRID_SIZE;
-			y = Math.round((float)y / GRID_SIZE) * GRID_SIZE;
+			if (snapToGrid) {
+
+			    x = Math.round((float)x / GRID_SIZE) * GRID_SIZE;
+			    y = Math.round((float)y / GRID_SIZE) * GRID_SIZE;
+			}
 
 			selectedItem.setX(x);
 			selectedItem.setY(y);
@@ -383,6 +395,18 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		refreshPanels();
 		
 		repaint();
+	}
+	
+	public void setShowGrid(boolean showGrid) {
+
+	    this.showGrid = showGrid;
+
+	    repaint();
+	}
+
+	public void setSnapToGrid(boolean snapToGrid) {
+
+	    this.snapToGrid = snapToGrid;
 	}
 
 }

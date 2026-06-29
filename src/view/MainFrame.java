@@ -121,6 +121,20 @@ public class MainFrame extends JFrame {
                 System.exit(0);
             }
         });
+        
+     // グリッド表示ON/OFF
+        menuBar.getGridVisibleItem().addActionListener(e -> {
+
+            canvasPanel.setShowGrid(
+                    menuBar.getGridVisibleItem().isSelected());
+        });
+
+        // グリッド吸着ON/OFF
+        menuBar.getSnapToGridItem().addActionListener(e -> {
+
+            canvasPanel.setSnapToGrid(
+                    menuBar.getSnapToGridItem().isSelected());
+        });
 
     }
 

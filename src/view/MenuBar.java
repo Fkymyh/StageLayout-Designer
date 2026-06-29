@@ -1,5 +1,6 @@
 package view;
 
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -10,6 +11,8 @@ public class MenuBar extends JMenuBar{
 	private JMenuItem openItem;
 	private JMenuItem newItem;
 	private JMenuItem exitItem;
+	private JCheckBoxMenuItem gridVisibleItem;
+	private JCheckBoxMenuItem snapToGridItem;
 	
 	
 	public MenuBar() {
@@ -46,7 +49,11 @@ public class MenuBar extends JMenuBar{
 		//表示
 		JMenu viewMenu = new JMenu("表示");
 		
-		viewMenu.add(new JMenuItem("グリッド表示"));
+		gridVisibleItem = new JCheckBoxMenuItem("グリッド表示", true);
+		snapToGridItem = new JCheckBoxMenuItem("グリッド吸着", true);
+		
+		viewMenu.add(gridVisibleItem);
+		viewMenu.add(snapToGridItem);
 		
 		add(viewMenu);
 	}
@@ -65,6 +72,14 @@ public class MenuBar extends JMenuBar{
 	
 	public JMenuItem getExitItem() {
 		return exitItem;
+	}
+	
+	public JCheckBoxMenuItem getGridVisibleItem() {
+	    return gridVisibleItem;
+	}
+
+	public JCheckBoxMenuItem getSnapToGridItem() {
+	    return snapToGridItem;
 	}
 
 }
