@@ -139,6 +139,21 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    repaint();
 	}
 	
+	public void moveSelectedItem(int dx, int dy) {
+
+	    if (selectedItem == null) {
+	        return;
+	    }
+
+	    int x = selectedItem.getX() + dx;
+	    int y = selectedItem.getY() + dy;
+
+	    selectedItem.setX(x);
+	    selectedItem.setY(y);
+
+	    repaint();
+	}
+	
 	
 	@Override
 	protected void paintComponent(Graphics g) {
@@ -251,10 +266,18 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		Equipment equipment = EquipmentFactory.create(name);
 		
+		int x = e.getX();
+		int y = e.getY();
+
+		if (snapToGrid) {
+		    x = snapValue(x);
+		    y = snapValue(y);
+		}
+
 		LayoutItem newItem = new LayoutItem(
-				equipment,
-				e.getX(),
-				e.getY());
+		        equipment,
+		        x,
+		        y);
 		
 		items.add(newItem);
 		
@@ -320,9 +343,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 			if (snapToGrid) {
 
-			    x = Math.round((float)x / GRID_SIZE) * GRID_SIZE;
-			    y = Math.round((float)y / GRID_SIZE) * GRID_SIZE;
+			    x = snapValue(x);
+			    y = snapValue(y);
 			}
+			
 
 			selectedItem.setX(x);
 			selectedItem.setY(y);
@@ -331,6 +355,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 		}
 	}
+	
 	
 	@Override
 	public void mouseMoved(MouseEvent e) {
@@ -351,6 +376,36 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    if (e.getKeyCode() == KeyEvent.VK_DELETE) {
 
 	        deleteSelectedItem();
+
+	        return;
+	    }
+	    
+	    int moveAmount = snapToGrid ? GRID_SIZE : 5;
+
+	    if (e.getKeyCode() == KeyEvent.VK_UP) {
+
+	        moveSelectedItem(0, -moveAmount);
+
+	        return;
+	    }
+
+	    if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+
+	        moveSelectedItem(0, moveAmount);
+
+	        return;
+	    }
+
+	    if (e.getKeyCode() == KeyEvent.VK_LEFT) {
+
+	        moveSelectedItem(-moveAmount, 0);
+
+	        return;
+	    }
+
+	    if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
+
+	        moveSelectedItem(moveAmount, 0);
 
 	        return;
 	    }
@@ -507,6 +562,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public void setSnapToGrid(boolean snapToGrid) {
 
 	    this.snapToGrid = snapToGrid;
+	}
+	
+	private int snapValue(int value) {
+
+	    return Math.round((float) value / GRID_SIZE) * GRID_SIZE;
 	}
 	
 	private LayoutItem findItem(int x, int y) {
