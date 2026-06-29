@@ -58,13 +58,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	        if(selectedItem != null){
 
-	            items.remove(selectedItem);
-
-	            selectedItem = null;
-	            
-	            refreshPanels();
-
-	            repaint();
+	        	deleteSelectedItem();
 
 	        }
 
@@ -298,46 +292,30 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	@Override
 	public void keyPressed(KeyEvent e) {
 
-	    if(e.isControlDown()
+	    if (e.getKeyCode() == KeyEvent.VK_DELETE) {
+
+	        deleteSelectedItem();
+
+	        return;
+	    }
+
+	    if (e.isControlDown()
 	            && e.getKeyCode() == KeyEvent.VK_C) {
 
-	        copiedItem = selectedItem;
+	        copySelectedItem();
 
+	        return;
 	    }
-	    if(e.isControlDown()
+
+	    if (e.isControlDown()
 	            && e.getKeyCode() == KeyEvent.VK_V) {
 
-	        if(copiedItem != null){
+	        pasteCopiedItem();
 
-	            Equipment equipment =
-	                    EquipmentFactory.create(
-	                            copiedItem.getEquipment().getName());
-
-	            LayoutItem item =
-	                    new LayoutItem(
-	                            equipment,
-	                            copiedItem.getX()+30,
-	                            copiedItem.getY()+30);
-
-	            item.setMemo(
-	                    copiedItem.getMemo());
-
-	            item.setQuantity(
-	                    copiedItem.getQuantity());
-
-	            items.add(item);
-
-	            selectedItem = item;
-
-	            refreshPanels();
-
-	            repaint();
-
-	        }
-
+	        return;
 	    }
-
 	}
+	
 	@Override
 	public void keyReleased(KeyEvent e){}
 
@@ -370,6 +348,58 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		}
 		
 		return null;
+	}
+	
+	public void deleteSelectedItem() {
+		
+		if (selectedItem == null) {
+			
+		}
+		items.remove(selectedItem);
+		
+		selectedItem = null;
+		
+		refreshPanels();
+		
+		repaint();
+	}
+	
+	public void copySelectedItem() {
+		
+		if (selectedItem == null) {
+			return;
+		}
+		
+		copiedItem = selectedItem;
+	}
+	
+	public void pasteCopiedItem() {
+		
+		if (copiedItem == null) {
+			return;
+		}
+		
+		Equipment equipment =
+				EquipmentFactory.create(
+						copiedItem.getEquipment().getName());
+		
+		LayoutItem item =
+				new LayoutItem(
+						equipment,
+						copiedItem.getX() + 30,
+						copiedItem.getY() + 30);
+		
+		item.setMemo(copiedItem.getMemo());
+		
+		item.setQuantity(copiedItem.getQuantity());
+		
+		items.add(item);
+		
+		selectedItem =item;
+		
+		refreshPanels();
+		
+		repaint();
 	}
 	public List<LayoutItem> getItems(){
 

@@ -135,6 +135,27 @@ public class MainFrame extends JFrame {
             canvasPanel.setSnapToGrid(
                     menuBar.getSnapToGridItem().isSelected());
         });
+        
+     // 編集メニュー：削除
+        menuBar.getDeleteItem().addActionListener(e -> {
+
+            canvasPanel.deleteSelectedItem();
+
+        });
+
+        // 編集メニュー：コピー
+        menuBar.getCopyItem().addActionListener(e -> {
+
+            canvasPanel.copySelectedItem();
+
+        });
+
+        // 編集メニュー：貼り付け
+        menuBar.getPasteItem().addActionListener(e -> {
+
+            canvasPanel.pasteCopiedItem();
+
+        });
 
     }
 

@@ -13,6 +13,9 @@ public class MenuBar extends JMenuBar{
 	private JMenuItem exitItem;
 	private JCheckBoxMenuItem gridVisibleItem;
 	private JCheckBoxMenuItem snapToGridItem;
+	private JMenuItem deleteItem;
+	private JMenuItem copyItem;
+	private JMenuItem pasteItem;
 	
 	
 	public MenuBar() {
@@ -40,9 +43,13 @@ public class MenuBar extends JMenuBar{
 		//編集
 		JMenu editMenu = new JMenu("編集");
 		
-		editMenu.add(new JMenuItem("削除"));
-		editMenu.add(new JMenuItem("コピー"));
-		editMenu.add(new JMenuItem("貼り付け"));
+		deleteItem = new JMenuItem("削除");
+		copyItem = new JMenuItem("コピー");
+		pasteItem = new JMenuItem("貼り付け");
+		
+		editMenu.add(deleteItem);
+		editMenu.add(copyItem);
+		editMenu.add(pasteItem);
 		
 		add(editMenu);
 		
@@ -80,6 +87,18 @@ public class MenuBar extends JMenuBar{
 
 	public JCheckBoxMenuItem getSnapToGridItem() {
 	    return snapToGridItem;
+	}
+	
+	public JMenuItem getDeleteItem() {
+	    return deleteItem;
+	}
+
+	public JMenuItem getCopyItem() {
+	    return copyItem;
+	}
+
+	public JMenuItem getPasteItem() {
+	    return pasteItem;
 	}
 
 }
