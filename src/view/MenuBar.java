@@ -16,6 +16,7 @@ public class MenuBar extends JMenuBar{
 	private JMenuItem deleteItem;
 	private JMenuItem copyItem;
 	private JMenuItem pasteItem;
+	private JMenuItem rotateItem;
 	
 	
 	public MenuBar() {
@@ -46,10 +47,13 @@ public class MenuBar extends JMenuBar{
 		deleteItem = new JMenuItem("削除");
 		copyItem = new JMenuItem("コピー");
 		pasteItem = new JMenuItem("貼り付け");
+		rotateItem = new JMenuItem("回転");
 		
 		editMenu.add(deleteItem);
 		editMenu.add(copyItem);
 		editMenu.add(pasteItem);
+		editMenu.addSeparator();
+		editMenu.add(rotateItem);
 		
 		add(editMenu);
 		
@@ -99,6 +103,10 @@ public class MenuBar extends JMenuBar{
 
 	public JMenuItem getPasteItem() {
 	    return pasteItem;
+	}
+	
+	public JMenuItem getRotateItem() {
+	    return rotateItem;
 	}
 
 }

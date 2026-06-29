@@ -173,6 +173,13 @@ public class MainFrame extends JFrame {
             canvasPanel.pasteCopiedItem();
 
         });
+        
+     // 編集メニュー：回転
+        menuBar.getRotateItem().addActionListener(e -> {
+
+            canvasPanel.rotateSelectedItem();
+
+        });
 
     }
 

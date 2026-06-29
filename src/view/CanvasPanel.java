@@ -224,24 +224,6 @@ public class CanvasPanel extends JPanel implements MouseListener,
         				item.getEquipment().getName(),
         				item.getX() + 8,
         				item.getY() + item.getHeight() + 15);
-        		
-            
-            //枠線を描く
-        		if(item == selectedItem) {
-        		    g.setColor(Color.RED);
-        		} else {
-        		    g.setColor(Color.BLACK);
-        		}
-        		g.drawRect(
-        		        item.getX(),
-        		        item.getY(),
-        		        item.getWidth(),
-        		        item.getHeight());
-            //文字
-            g.drawString(
-                    item.getEquipment().getName(),
-                    item.getX() + 8,
-                    item.getY() + item.getHeight() + 15);
 
         }
         
