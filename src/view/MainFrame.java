@@ -27,6 +27,12 @@ public class MainFrame extends JFrame {
         				equipmentPanel,
         				propertyPanel);
         
+        propertyPanel.setUpdateCallback(() -> {
+
+            canvasPanel.repaint();
+
+        });
+        
         JSplitPane splitPane = new JSplitPane(
         		JSplitPane.HORIZONTAL_SPLIT,
         		equipmentPanel,

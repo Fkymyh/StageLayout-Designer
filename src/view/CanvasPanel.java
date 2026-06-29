@@ -117,6 +117,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 
 	    selectedItem.setSize(newWidth, newHeight);
+	    
+	    refreshPanels();
 
 	    repaint();
 	}

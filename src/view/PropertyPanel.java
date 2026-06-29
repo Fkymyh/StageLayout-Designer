@@ -26,6 +26,12 @@ public class PropertyPanel extends JPanel {
 	
 	private LayoutItem currentItem;
 	
+	private JTextArea widthArea;
+	
+	private JTextArea heightArea;
+	
+	private Runnable updateCallback;
+	
 	private List<LayoutItem> allItems;
 	
 	
@@ -33,11 +39,15 @@ public class PropertyPanel extends JPanel {
 		
 		setLayout(new BorderLayout());
 
-        JPanel editPanel = new JPanel(new GridLayout(7, 1));
+        JPanel editPanel = new JPanel(new GridLayout(11, 1));
         
         equipmentArea = new JTextArea();
         quantityArea = new JTextArea();
         memoArea = new JTextArea(4, 20);
+        
+        widthArea = new JTextArea();
+
+        heightArea = new JTextArea();
         
         equipmentArea.setEditable(false);
         
@@ -49,6 +59,13 @@ public class PropertyPanel extends JPanel {
 
         add(new JLabel("必要数"));
         editPanel.add(quantityArea);
+        
+        editPanel.add(new JLabel("幅"));
+        editPanel.add(widthArea);
+
+        editPanel.add(new JLabel("高さ"));
+        editPanel.add(heightArea);
+
 
         add(new JLabel("注意事項"));
         editPanel.add(memoArea);
@@ -71,23 +88,49 @@ public class PropertyPanel extends JPanel {
 
             try {
 
-                int quantity = Integer.parseInt(quantityArea.getText().trim());
+                int quantity = 
+                			Integer.parseInt(quantityArea.getText().trim());
+                
+                int width =
+                        Integer.parseInt(widthArea.getText().trim());
+
+                int height =
+                        Integer.parseInt(heightArea.getText().trim());
+
                 
                 if (quantity < 1) {
                 		quantity = 1;
                 }
                 
+                if (width < 10) {
+                    width = 10;
+                }
+
+                if (height < 10) {
+                    height = 10;
+                }
+
+                
                 currentItem.setQuantity(quantity);
+                
+                currentItem.setSize(width, height);
+                
                 currentItem.setMemo(memoArea.getText());
+                
+                displayItem(currentItem);
                 
                 displaySummary(allItems);
 
             } catch(NumberFormatException ex) {
 
-                quantityArea.setText("1");
-                currentItem.setQuantity(1);
-                
-                displaySummary(allItems);
+            	quantityArea.setText(
+                        String.valueOf(currentItem.getQuantity()));
+
+                widthArea.setText(
+                        String.valueOf(currentItem.getWidth()));
+
+                heightArea.setText(
+                        String.valueOf(currentItem.getHeight()));
 
             }
 
@@ -105,6 +148,10 @@ public class PropertyPanel extends JPanel {
     		
     		quantityArea.setText("");
     		
+    		widthArea.setText("");
+    		
+        heightArea.setText("");
+    		
     		memoArea.setText("");
     		
     		
@@ -116,6 +163,12 @@ public class PropertyPanel extends JPanel {
     	
     	quantityArea.setText(
     			String.valueOf(item.getQuantity()));
+    	
+    	widthArea.setText(
+                String.valueOf(item.getWidth()));
+
+    heightArea.setText(
+                String.valueOf(item.getHeight()));
     	
     	memoArea.setText(
     			item.getMemo());
@@ -132,6 +185,8 @@ public class PropertyPanel extends JPanel {
     		
     		return;
     	}
+    	
+    	
     	
     	Map<String, Integer> summary = new LinkedHashMap<>();
     	
@@ -159,6 +214,11 @@ public class PropertyPanel extends JPanel {
     	}
     	
     	summaryArea.setText(sb.toString());
+    }
+    
+    public void setUpdateCallback(Runnable updateCallback) {
+
+        this.updateCallback = updateCallback;
     }
     
 }
