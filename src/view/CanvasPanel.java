@@ -192,6 +192,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		String name = equipmentPanel.getSelectedEquipment();
 		
+		if (name == null) {
+			return;
+		}
 		
 		Equipment equipment = EquipmentFactory.create(name);
 		
