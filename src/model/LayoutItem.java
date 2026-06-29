@@ -13,6 +13,8 @@ public class LayoutItem {
     private int height;
 
     private int quantity = 1;
+    
+    private int rotation = 0;
 
     private String memo = "";
 
@@ -81,5 +83,22 @@ public class LayoutItem {
 
     public void setMemo(String memo) {
         this.memo = memo;
+    }
+    
+    public int getRotation() {
+        return rotation;
+    }
+
+    public void setRotation(int rotation) {
+        this.rotation = rotation;
+    }
+    
+    public void rotate90() {
+
+        rotation = (rotation + 90) % 360;
+
+        int temp = width;
+        width = height;
+        height = temp;
     }
 }

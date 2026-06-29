@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -125,6 +126,19 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    repaint();
 	}
 	
+	public void rotateSelectedItem() {
+
+	    if (selectedItem == null) {
+	        return;
+	    }
+
+	    selectedItem.rotate90();
+
+	    refreshPanels();
+
+	    repaint();
+	}
+	
 	
 	@Override
 	protected void paintComponent(Graphics g) {
@@ -160,26 +174,57 @@ public class CanvasPanel extends JPanel implements MouseListener,
         		//四角を描く
         		Equipment equipment = item.getEquipment();
 
+        		Graphics2D g2 = (Graphics2D) g.create();
+        		
+        		double centerX = item.getX() + item.getWidth() / 2.0;
+        		double centerY = item.getY() + item.getHeight() / 2.0;
+        		
+        		g2.rotate(
+        				Math.toRadians(item.getRotation()),
+        				centerX,
+        				centerY);
+        		
         		if(equipment.getImage() != null) {
-
-        			g.drawImage(
-        			        equipment.getImage(),
-        			        item.getX(),
-        			        item.getY(),
-        			        item.getWidth(),
-        			        item.getHeight(),
-        			        this);
-
-        		} else {
-
-        		    g.setColor(equipment.getColor());
-
-        		    g.fillRect(
-        		            item.getX(),
-        		            item.getY(),
-        		            item.getWidth(),
-        		            item.getHeight());
+        			
+        			g2.drawImage(
+        					equipment.getImage(),
+        					item.getX(),
+        					item.getY(),
+        					item.getWidth(),
+        					item.getHeight(),
+        					this	);
+        		}else {
+        			
+        			g2.setColor(equipment.getColor());
+        			
+        			g2.fillRect(
+        					item.getX(),
+        					item.getY(),
+        					item.getWidth(),
+        					item.getHeight());
         		}
+        		
+        		if (item == selectedItem) {
+        			g2.setColor(Color.RED);
+        		}else {
+        			g2.setColor(Color.BLACK);
+        		}
+        		
+        		g2.drawRect(
+        				item.getX(),
+        				item.getY(),
+        				item.getWidth(),
+        				item.getHeight());
+        		
+        		g2.dispose();
+        		
+        		g.setColor(Color.BLACK);
+        		
+        		g.drawString(
+        				item.getEquipment().getName(),
+        				item.getX() + 8,
+        				item.getY() + item.getHeight() + 15);
+        		
             
             //枠線を描く
         		if(item == selectedItem) {
@@ -337,6 +382,14 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	        return;
 	    }
+	    
+	    if (e.getKeyCode() == KeyEvent.VK_R) {
+
+	        rotateSelectedItem();
+
+	        return;
+	    }
+	    
 
 	    if (e.getKeyCode() == KeyEvent.VK_MINUS
 	            || e.getKeyCode() == KeyEvent.VK_SUBTRACT
@@ -421,6 +474,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		item.setSize(
 		        copiedItem.getWidth(),
 		        copiedItem.getHeight());
+		
+		item.setRotation(copiedItem.getRotation());
 		
 		item.setMemo(copiedItem.getMemo());
 		

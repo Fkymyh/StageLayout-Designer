@@ -26,6 +26,7 @@ public class LayoutFileManager {
         	        item.getY() + "," +
         	        item.getWidth() + "," +
         	        item.getHeight() + "," +
+        	        item.getRotation() + "," +
         	        item.getQuantity() + "," +
         	        item.getMemo());
 
@@ -61,21 +62,39 @@ public class LayoutFileManager {
 
             LayoutItem item = new LayoutItem(equipment, x, y);
 
-            if (data.length >= 6) {
+            if (data.length >= 8) {
 
                 int width = Integer.parseInt(data[3]);
                 int height = Integer.parseInt(data[4]);
-                int quantity = Integer.parseInt(data[5]);
+                int rotation = Integer.parseInt(data[5]);
+                int quantity = Integer.parseInt(data[6]);
 
                 String memo = "";
 
-                if (data.length >= 7) {
-                    memo = data[6];
+                if (data.length >= 8) {
+                    memo = data[7];
                 }
 
                 item.setSize(width, height);
+                item.setRotation(rotation);
                 item.setQuantity(quantity);
                 item.setMemo(memo);
+                
+            }else if (data.length >= 6) {
+            	
+            	int width = Integer.parseInt(data[3]);
+            	int height = Integer.parseInt(data[4]);
+            	int quantity = Integer.parseInt(data[5]);
+            	
+            	String memo = "";
+            	
+            	if (data.length >= 7) {
+            		memo = data[6];
+            	}
+            	
+            	item.setSize(width,  height);
+            	item.setQuantity(quantity);
+            	item.setMemo(memo);
 
             } else {
 
