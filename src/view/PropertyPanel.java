@@ -1,6 +1,7 @@
 package view;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,93 +16,90 @@ import javax.swing.JTextArea;
 import model.LayoutItem;
 
 public class PropertyPanel extends JPanel {
-	
-	private JTextArea equipmentArea;
-	
-	private JTextArea quantityArea;
-	
-	private JTextArea memoArea;
-	
-	private JTextArea summaryArea;
-	
-	private LayoutItem currentItem;
-	
-	private JTextArea widthArea;
-	
-	private JTextArea heightArea;
-	
-	private Runnable updateCallback;
-	
-	private List<LayoutItem> allItems;
-	
-	
-	public PropertyPanel() {
-		
-		setLayout(new BorderLayout());
+
+    private JTextArea equipmentArea;
+
+    private JTextArea quantityArea;
+
+    private JTextArea widthArea;
+
+    private JTextArea heightArea;
+
+    private JTextArea memoArea;
+
+    private JTextArea summaryArea;
+
+    private LayoutItem currentItem;
+
+    private Runnable updateCallback;
+
+    private List<LayoutItem> allItems;
+
+    public PropertyPanel() {
+
+        setPreferredSize(new Dimension(0, 180));
+
+        setLayout(new BorderLayout());
 
         JPanel editPanel = new JPanel(new GridLayout(11, 1));
-        
+
+        editPanel.setPreferredSize(new Dimension(260, 0));
+
         equipmentArea = new JTextArea();
         quantityArea = new JTextArea();
-        memoArea = new JTextArea(4, 20);
-        
         widthArea = new JTextArea();
-
         heightArea = new JTextArea();
-        
-        equipmentArea.setEditable(false);
-        
-        JButton saveButton = new JButton("更新");
-      
+        memoArea = new JTextArea(4, 20);
 
-        add(new JLabel("使用機材"));
+        equipmentArea.setEditable(false);
+
+        JButton saveButton = new JButton("更新");
+
+        editPanel.add(new JLabel("使用機材"));
         editPanel.add(equipmentArea);
 
-        add(new JLabel("必要数"));
+        editPanel.add(new JLabel("必要数"));
         editPanel.add(quantityArea);
-        
+
         editPanel.add(new JLabel("幅"));
         editPanel.add(widthArea);
 
         editPanel.add(new JLabel("高さ"));
         editPanel.add(heightArea);
 
-
-        add(new JLabel("注意事項"));
+        editPanel.add(new JLabel("注意事項"));
         editPanel.add(memoArea);
 
         editPanel.add(saveButton);
-        
-        
+
         add(editPanel, BorderLayout.WEST);
-        
-        summaryArea = new JTextArea(8, 30);
+
+        summaryArea = new JTextArea(5, 25);
         summaryArea.setEditable(false);
-        
+
         add(new JScrollPane(summaryArea), BorderLayout.CENTER);
-        
+
         saveButton.addActionListener(e -> {
 
-            if(currentItem == null){
+            if (currentItem == null) {
                 return;
             }
 
             try {
 
-                int quantity = 
-                			Integer.parseInt(quantityArea.getText().trim());
-                
+                int quantity =
+                        Integer.parseInt(quantityArea.getText().trim());
+
                 int width =
                         Integer.parseInt(widthArea.getText().trim());
 
                 int height =
                         Integer.parseInt(heightArea.getText().trim());
 
-                
                 if (quantity < 1) {
-                		quantity = 1;
+                    quantity = 1;
                 }
-                
+
                 if (width < 10) {
                     width = 10;
                 }
@@ -110,20 +108,23 @@ public class PropertyPanel extends JPanel {
                     height = 10;
                 }
 
-                
                 currentItem.setQuantity(quantity);
-                
+
                 currentItem.setSize(width, height);
-                
+
                 currentItem.setMemo(memoArea.getText());
-                
+
                 displayItem(currentItem);
-                
+
                 displaySummary(allItems);
 
-            } catch(NumberFormatException ex) {
+                if (updateCallback != null) {
+                    updateCallback.run();
+                }
 
-            	quantityArea.setText(
+            } catch (NumberFormatException ex) {
+
+                quantityArea.setText(
                         String.valueOf(currentItem.getQuantity()));
 
                 widthArea.setText(
@@ -131,94 +132,82 @@ public class PropertyPanel extends JPanel {
 
                 heightArea.setText(
                         String.valueOf(currentItem.getHeight()));
-
             }
-
         });
-
     }
-	
+
     public void displayItem(LayoutItem item) {
-    	
-    	currentItem = item;
-    	
-    	if(item == null) {
-    		
-    		equipmentArea.setText("");
-    		
-    		quantityArea.setText("");
-    		
-    		widthArea.setText("");
-    		
-        heightArea.setText("");
-    		
-    		memoArea.setText("");
-    		
-    		
-    		return;
-    	}
-    	
-    	equipmentArea.setText(
-    			item.getEquipment().getName());
-    	
-    	quantityArea.setText(
-    			String.valueOf(item.getQuantity()));
-    	
-    	widthArea.setText(
+
+        currentItem = item;
+
+        if (item == null) {
+
+            equipmentArea.setText("");
+            quantityArea.setText("");
+            widthArea.setText("");
+            heightArea.setText("");
+            memoArea.setText("");
+
+            return;
+        }
+
+        equipmentArea.setText(
+                item.getEquipment().getName());
+
+        quantityArea.setText(
+                String.valueOf(item.getQuantity()));
+
+        widthArea.setText(
                 String.valueOf(item.getWidth()));
 
-    heightArea.setText(
+        heightArea.setText(
                 String.valueOf(item.getHeight()));
-    	
-    	memoArea.setText(
-    			item.getMemo());
-    	
+
+        memoArea.setText(
+                item.getMemo());
     }
-    
+
     public void displaySummary(List<LayoutItem> items) {
-    	
-    	allItems = items;
-    	
-    	if (items == null || items.isEmpty()) {
-    		
-    		summaryArea.setText("配置されている機材はありません。");
-    		
-    		return;
-    	}
-    	
-    	
-    	
-    	Map<String, Integer> summary = new LinkedHashMap<>();
-    	
-    	for (LayoutItem item : items) {
-    		
-    		String name = item.getEquipment().getName();
-    		
-    		int quantity = item.getQuantity();
-    		
-    		summary.put(
-    				name,
-    				summary.getOrDefault(name,0) + quantity);
-    	}
-    	
-    	StringBuilder sb = new StringBuilder();
-    	
-    	sb.append("=== 必要機材一覧 ===\n");
-    	
-    	for (Map.Entry<String, Integer> entry : summary.entrySet()) {
-    		
-    		sb.append(entry.getKey())
-    		  .append(" x ")
-    		  .append(entry.getValue())
-    		  .append("\n");
-    	}
-    	
-    	summaryArea.setText(sb.toString());
+
+        allItems = items;
+
+        if (items == null || items.isEmpty()) {
+
+            summaryArea.setText("配置されている機材はありません。");
+
+            return;
+        }
+
+        Map<String, Integer> summary = new LinkedHashMap<>();
+
+        for (LayoutItem item : items) {
+
+            String name = item.getEquipment().getName();
+
+            int quantity = item.getQuantity();
+
+            summary.put(
+                    name,
+                    summary.getOrDefault(name, 0) + quantity);
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("=== 必要機材一覧 ===\n");
+
+        for (Map.Entry<String, Integer> entry : summary.entrySet()) {
+
+            sb.append(entry.getKey())
+              .append(" × ")
+              .append(entry.getValue())
+              .append("\n");
+        }
+
+        summaryArea.setText(sb.toString());
     }
-    
+
     public void setUpdateCallback(Runnable updateCallback) {
 
         this.updateCallback = updateCallback;
     }
-    
 }

@@ -5,6 +5,7 @@ import java.awt.BorderLayout;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 
 import io.LayoutFileManager;
@@ -32,16 +33,26 @@ public class MainFrame extends JFrame {
             canvasPanel.repaint();
 
         });
+        JScrollPane canvasScrollPane = new JScrollPane(canvasPanel);
         
-        JSplitPane splitPane = new JSplitPane(
+        JSplitPane horizontalSplitPane = new JSplitPane(
         		JSplitPane.HORIZONTAL_SPLIT,
         		equipmentPanel,
-        		canvasPanel);
+        		canvasScrollPane);
         
-        splitPane.setDividerLocation(250);
+        horizontalSplitPane.setDividerLocation(220);
+        horizontalSplitPane.setResizeWeight(0.0);
         
-        add(splitPane, BorderLayout.CENTER);
-        add(propertyPanel, BorderLayout.SOUTH);
+        JSplitPane mainSplitPane = new JSplitPane(
+        			JSplitPane.VERTICAL_SPLIT,
+        			horizontalSplitPane,
+        			propertyPanel);
+        
+        mainSplitPane.setDividerLocation(680);
+        mainSplitPane.setResizeWeight(0.85);
+        
+        add(mainSplitPane, BorderLayout.CENTER);
+        		
         
         MenuBar menuBar = new MenuBar();
 

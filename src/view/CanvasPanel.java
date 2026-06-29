@@ -2,6 +2,7 @@ package view;
 
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
@@ -82,6 +83,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		requestFocusInWindow();
 		
 		setBackground(Color.WHITE);
+		setPreferredSize(new Dimension(1800, 1200));
 		
 		Equipment mic = EquipmentFactory.create("マイク");
 
