@@ -14,6 +14,8 @@ import io.LayoutFileManager;
 
 
 public class MainFrame extends JFrame {
+	
+	private File currentFile;
 
     public MainFrame() {
 
@@ -64,47 +66,8 @@ public class MainFrame extends JFrame {
      // 保存処理
         menuBar.getSaveItem().addActionListener(e -> {
 
-            JFileChooser chooser = new JFileChooser();
+            saveLayout(canvasPanel);
 
-            FileNameExtensionFilter filter =
-                    new FileNameExtensionFilter(
-                            "Stage Layout File (*.stage)",
-                            "stage");
-
-            chooser.setFileFilter(filter);
-
-            if (chooser.showSaveDialog(this)
-                    == JFileChooser.APPROVE_OPTION) {
-
-                try {
-
-                    File file = chooser.getSelectedFile();
-
-                    if (!file.getName().toLowerCase().endsWith(".stage")) {
-                        file = new File(file.getAbsolutePath() + ".stage");
-                    }
-
-                    LayoutFileManager.save(
-                            canvasPanel.getItems(),
-                            file.getAbsolutePath());
-
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "保存しました。",
-                            "保存完了",
-                            JOptionPane.INFORMATION_MESSAGE);
-
-                } catch (Exception ex) {
-
-                    ex.printStackTrace();
-
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "保存に失敗しました。",
-                            "エラー",
-                            JOptionPane.ERROR_MESSAGE);
-                }
-            }
         });
      // 開く処理
         menuBar.getOpenItem().addActionListener(e -> {
@@ -128,6 +91,10 @@ public class MainFrame extends JFrame {
                     canvasPanel.setItems(
                             LayoutFileManager.load(
                                     file.getAbsolutePath()));
+                    
+                    currentFile = file;
+
+                    updateTitle();
 
                     JOptionPane.showMessageDialog(
                             this,
@@ -159,7 +126,12 @@ public class MainFrame extends JFrame {
             		JOptionPane.YES_NO_OPTION);
             
             if (result == JOptionPane.YES_OPTION) {
+            	
             		canvasPanel.clearItems();
+            		
+            		 currentFile = null;
+
+            		    updateTitle();
             }
 
         });
@@ -220,7 +192,96 @@ public class MainFrame extends JFrame {
             canvasPanel.rotateSelectedItem();
 
         });
+        updateTitle();
 
+    }
+    private void updateTitle() {
+
+        if (currentFile == null) {
+            setTitle("Stage Layout Designer - 新規レイアウト");
+        } else {
+            setTitle("Stage Layout Designer - " + currentFile.getName());
+        }
+    }
+    
+    private void saveLayout(CanvasPanel canvasPanel) {
+
+        if (currentFile == null) {
+            saveLayoutAs(canvasPanel);
+            return;
+        }
+
+        try {
+
+            LayoutFileManager.save(
+                    canvasPanel.getItems(),
+                    currentFile.getAbsolutePath());
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "保存しました。",
+                    "保存完了",
+                    JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (Exception ex) {
+
+            ex.printStackTrace();
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "保存に失敗しました。",
+                    "エラー",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void saveLayoutAs(CanvasPanel canvasPanel) {
+
+        JFileChooser chooser = new JFileChooser();
+
+        FileNameExtensionFilter filter =
+                new FileNameExtensionFilter(
+                        "Stage Layout File (*.stage)",
+                        "stage");
+
+        chooser.setFileFilter(filter);
+
+        if (chooser.showSaveDialog(this)
+                == JFileChooser.APPROVE_OPTION) {
+
+            try {
+
+                File file = chooser.getSelectedFile();
+
+                if (!file.getName().toLowerCase().endsWith(".stage")) {
+                    file = new File(file.getAbsolutePath() + ".stage");
+                }
+
+                LayoutFileManager.save(
+                        canvasPanel.getItems(),
+                        file.getAbsolutePath());
+
+                currentFile = file;
+
+                updateTitle();
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "保存しました。",
+                        "保存完了",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (Exception ex) {
+
+                ex.printStackTrace();
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "保存に失敗しました。",
+                        "エラー",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
 }
