@@ -2,26 +2,33 @@ package view;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.util.HashMap;
+import java.awt.GridLayout;
+import java.awt.Image;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-import javax.swing.DefaultListModel;
-import javax.swing.JList;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+
+import model.Equipment;
+import model.EquipmentFactory;
 
 public class EquipmentPanel extends JPanel {
 
     private JTabbedPane tabbedPane;
 
-    private Map<String, JList<String>> equipmentLists = new HashMap<>();
+    private String selectedEquipmentName = "マイク";
+
+    private Map<String, JButton> buttons = new LinkedHashMap<>();
 
     public EquipmentPanel() {
 
         setLayout(new BorderLayout());
 
-        setPreferredSize(new Dimension(220, 0));
+        setPreferredSize(new Dimension(260, 0));
 
         tabbedPane = new JTabbedPane();
 
@@ -54,40 +61,84 @@ public class EquipmentPanel extends JPanel {
                 });
 
         add(tabbedPane, BorderLayout.CENTER);
+
+        updateButtonSelection();
     }
 
     private void addEquipmentTab(String categoryName, String[] equipmentNames) {
 
-        DefaultListModel<String> model = new DefaultListModel<>();
+        JPanel panel = new JPanel();
+
+        panel.setLayout(new GridLayout(0, 2, 6, 6));
 
         for (String name : equipmentNames) {
-            model.addElement(name);
+
+            JButton button = createEquipmentButton(name);
+
+            buttons.put(name, button);
+
+            panel.add(button);
         }
 
-        JList<String> list = new JList<>(model);
+        JScrollPane scrollPane = new JScrollPane(panel);
 
-        if (model.getSize() > 0) {
-            list.setSelectedIndex(0);
+        tabbedPane.addTab(categoryName, scrollPane);
+    }
+
+    private JButton createEquipmentButton(String name) {
+
+        Equipment equipment = EquipmentFactory.create(name);
+
+        JButton button = new JButton();
+
+        button.setText(name);
+
+        button.setVerticalTextPosition(JButton.BOTTOM);
+
+        button.setHorizontalTextPosition(JButton.CENTER);
+
+        button.setPreferredSize(new Dimension(100, 90));
+
+        if (equipment.getImage() != null) {
+
+            Image scaledImage =
+                    equipment.getImage().getScaledInstance(
+                            48,
+                            48,
+                            Image.SCALE_SMOOTH);
+
+            button.setIcon(new ImageIcon(scaledImage));
         }
 
-        equipmentLists.put(categoryName, list);
+        button.addActionListener(e -> {
 
-        tabbedPane.addTab(
-                categoryName,
-                new JScrollPane(list));
+            selectedEquipmentName = name;
+
+            updateButtonSelection();
+        });
+
+        return button;
+    }
+
+    private void updateButtonSelection() {
+
+        for (Map.Entry<String, JButton> entry : buttons.entrySet()) {
+
+            JButton button = entry.getValue();
+
+            if (entry.getKey().equals(selectedEquipmentName)) {
+
+                button.setText("▶ " + entry.getKey());
+
+            } else {
+
+                button.setText(entry.getKey());
+            }
+        }
     }
 
     public String getSelectedEquipment() {
 
-        String categoryName =
-                tabbedPane.getTitleAt(tabbedPane.getSelectedIndex());
-
-        JList<String> list = equipmentLists.get(categoryName);
-
-        if (list == null) {
-            return null;
-        }
-
-        return list.getSelectedValue();
+        return selectedEquipmentName;
     }
 }
