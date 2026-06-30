@@ -69,6 +69,13 @@ public class MainFrame extends JFrame {
             saveLayout(canvasPanel);
 
         });
+        
+     // 名前を付けて保存処理
+        menuBar.getSaveAsItem().addActionListener(e -> {
+
+            saveLayoutAs(canvasPanel);
+
+        });
      // 開く処理
         menuBar.getOpenItem().addActionListener(e -> {
 

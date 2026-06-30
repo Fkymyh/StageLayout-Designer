@@ -17,6 +17,7 @@ public class MenuBar extends JMenuBar{
 	private JMenuItem copyItem;
 	private JMenuItem pasteItem;
 	private JMenuItem rotateItem;
+	private JMenuItem saveAsItem;
 	
 	
 	public MenuBar() {
@@ -32,6 +33,9 @@ public class MenuBar extends JMenuBar{
 		
 		saveItem = new JMenuItem("保存");
 		fileMenu.add(saveItem);
+		
+		saveAsItem = new JMenuItem("名前を付けて保存");
+		fileMenu.add(saveAsItem);
 		
 		fileMenu.addSeparator();
 		fileMenu.add(new JMenuItem("印刷"));
@@ -107,6 +111,10 @@ public class MenuBar extends JMenuBar{
 	
 	public JMenuItem getRotateItem() {
 	    return rotateItem;
+	}
+	
+	public JMenuItem getSaveAsItem() {
+	    return saveAsItem;
 	}
 
 }
