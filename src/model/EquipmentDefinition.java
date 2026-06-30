@@ -5,6 +5,8 @@ import java.awt.Color;
 public class EquipmentDefinition {
 
     private String name;
+    
+    private String category;
 
     private Color color;
 
@@ -16,12 +18,14 @@ public class EquipmentDefinition {
 
     public EquipmentDefinition(
             String name,
+            String category,
             Color color,
             int width,
             int height,
             String imagePath) {
 
         this.name = name;
+        this.category = category;
         this.color = color;
         this.width = width;
         this.height = height;
@@ -30,6 +34,10 @@ public class EquipmentDefinition {
 
     public String getName() {
         return name;
+    }
+    
+    public String getCategory() {
+        return category;
     }
 
     public Color getColor() {

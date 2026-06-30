@@ -5,7 +5,9 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Image;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.ImageIcon;
@@ -15,6 +17,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 
 import model.Equipment;
+import model.EquipmentDefinition;
 import model.EquipmentFactory;
 
 public class EquipmentPanel extends JPanel {
@@ -33,33 +36,7 @@ public class EquipmentPanel extends JPanel {
 
         tabbedPane = new JTabbedPane();
 
-        addEquipmentTab(
-                "音響",
-                new String[] {
-                        "マイク",
-                        "スピーカー",
-                        "ミキサー"
-                });
-
-        addEquipmentTab(
-                "照明",
-                new String[] {
-                        "PARライト"
-                });
-
-        addEquipmentTab(
-                "舞台",
-                new String[] {
-                        "バミリ",
-                        "平台",
-                        "箱馬"
-                });
-
-        addEquipmentTab(
-                "人物",
-                new String[] {
-                        "棒人間"
-                });
+        createTabsFromDefinitions();
 
         add(tabbedPane, BorderLayout.CENTER);
 
@@ -145,5 +122,31 @@ public class EquipmentPanel extends JPanel {
     public String getSelectedEquipment() {
 
         return selectedEquipmentName;
+    }
+    
+    private void createTabsFromDefinitions() {
+
+        Map<String, List<String>> categoryMap = new LinkedHashMap<>();
+
+        for (EquipmentDefinition definition :
+                EquipmentFactory.getDefinitions().values()) {
+
+            String category = definition.getCategory();
+
+            categoryMap.putIfAbsent(category, new ArrayList<>());
+
+            categoryMap.get(category).add(definition.getName());
+        }
+
+        for (Map.Entry<String, List<String>> entry : categoryMap.entrySet()) {
+
+            String categoryName = entry.getKey();
+
+            List<String> equipmentNames = entry.getValue();
+
+            addEquipmentTab(
+                    categoryName,
+                    equipmentNames.toArray(new String[0]));
+        }
     }
 }

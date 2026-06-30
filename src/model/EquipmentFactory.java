@@ -16,6 +16,7 @@ public class EquipmentFactory {
 
         register(
                 "マイク",
+                "音響",
                 Color.BLUE,
                 70,
                 30,
@@ -23,6 +24,7 @@ public class EquipmentFactory {
 
         register(
                 "スピーカー",
+                "音響",
                 Color.BLUE,
                 70,
                 30,
@@ -30,6 +32,7 @@ public class EquipmentFactory {
 
         register(
                 "ミキサー",
+                "音響",
                 Color.BLUE,
                 70,
                 30,
@@ -37,6 +40,7 @@ public class EquipmentFactory {
 
         register(
                 "PARライト",
+                "照明",
                 Color.YELLOW,
                 50,
                 50,
@@ -44,6 +48,7 @@ public class EquipmentFactory {
 
         register(
                 "バミリ",
+                "舞台",
                 Color.LIGHT_GRAY,
                 20,
                 20,
@@ -51,6 +56,7 @@ public class EquipmentFactory {
 
         register(
                 "平台",
+                "舞台",
                 Color.LIGHT_GRAY,
                 80,
                 50,
@@ -58,6 +64,7 @@ public class EquipmentFactory {
 
         register(
                 "箱馬",
+                "舞台",
                 Color.LIGHT_GRAY,
                 50,
                 40,
@@ -65,6 +72,7 @@ public class EquipmentFactory {
 
         register(
                 "棒人間",
+                "人物",
                 Color.GREEN,
                 30,
                 60,
@@ -73,6 +81,7 @@ public class EquipmentFactory {
 
     private static void register(
             String name,
+            String category,
             Color color,
             int width,
             int height,
@@ -81,6 +90,7 @@ public class EquipmentFactory {
         EquipmentDefinition definition =
                 new EquipmentDefinition(
                         name,
+                        category,
                         color,
                         width,
                         height,
@@ -88,6 +98,8 @@ public class EquipmentFactory {
 
         definitions.put(name, definition);
     }
+
+    
 
     public static Equipment create(String name) {
 
@@ -130,5 +142,10 @@ public class EquipmentFactory {
                 width,
                 height,
                 image);
+    }
+    
+    public static Map<String, EquipmentDefinition> getDefinitions() {
+
+        return definitions;
     }
 }
