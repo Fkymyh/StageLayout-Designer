@@ -149,4 +149,6 @@ public class EquipmentPanel extends JPanel {
                     equipmentNames.toArray(new String[0]));
         }
     }
+    
+    
 }

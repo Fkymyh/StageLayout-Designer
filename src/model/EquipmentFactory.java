@@ -37,6 +37,22 @@ public class EquipmentFactory {
                 70,
                 30,
                 "/resources/images/p09_001_mixer_A.png");
+        
+        register(
+                "ブームスタンド",
+                "音響",
+                Color.BLUE,
+                60,
+                40,
+                "/resources/images/boom_stand.png");
+
+        register(
+                "CD_player",
+                "音響",
+                Color.BLUE,
+                40,
+                30,
+                "/resources/images/CD_player.png");
 
         register(
                 "PARライト",
@@ -70,13 +86,30 @@ public class EquipmentFactory {
                 40,
                 "/resources/images/p01_024_hakouma_syou2_front_1_syaku_x_1syaku_B.png");
 
+       
         register(
-                "棒人間",
+                "人間A 上",
                 "人物",
                 Color.GREEN,
-                30,
+                40,
                 60,
-                "/resources/images/p11_001_person_A_up.png");
+                "/resources/images/humanA_up.png");
+
+        register(
+                "人間A 横",
+                "人物",
+                Color.GREEN,
+                60,
+                40,
+                "/resources/images/humanA_side.png");
+
+        register(
+                "人間A 正面",
+                "人物",
+                Color.GREEN,
+                40,
+                60,
+                "/resources/images/humanA_front.png");
     }
 
     private static void register(
