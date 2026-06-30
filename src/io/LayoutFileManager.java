@@ -10,13 +10,27 @@ import java.util.List;
 import model.Equipment;
 import model.EquipmentFactory;
 import model.LayoutItem;
+import model.ProjectInfo;
 
 public class LayoutFileManager {
 
-    public static void save(List<LayoutItem> items, String fileName)
-            throws IOException {
+    public static void save(
+    				List<LayoutItem> items,
+    				ProjectInfo projectInfo,
+    				String fileName)
+    				throws IOException {
 
         FileWriter writer = new FileWriter(fileName);
+        
+        writer.write("#PROJECT\n");
+
+        writer.write("title=" + escape(projectInfo.getTitle()) + "\n");
+        writer.write("date=" + escape(projectInfo.getDate()) + "\n");
+        writer.write("place=" + escape(projectInfo.getPlace()) + "\n");
+        writer.write("planner=" + escape(projectInfo.getPlanner()) + "\n");
+        writer.write("note=" + escape(projectInfo.getNote()) + "\n");
+
+        writer.write("#ITEMS\n");
 
         for (LayoutItem item : items) {
 
@@ -35,9 +49,61 @@ public class LayoutFileManager {
 
         writer.close();
     }
+    
+    private static String escape(String text) {
 
-    public static List<LayoutItem> load(String fileName)
+        if (text == null) {
+            return "";
+        }
+
+        return text
+                .replace("\\", "\\\\")
+                .replace("\n", "\\n")
+                .replace(",", "\\,");
+    }
+
+    private static String unescape(String text) {
+
+        if (text == null) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        boolean escaping = false;
+
+        for (int i = 0; i < text.length(); i++) {
+
+            char c = text.charAt(i);
+
+            if (escaping) {
+
+                if (c == 'n') {
+                    sb.append('\n');
+                } else {
+                    sb.append(c);
+                }
+
+                escaping = false;
+
+            } else {
+
+                if (c == '\\') {
+                    escaping = true;
+                } else {
+                    sb.append(c);
+                }
+            }
+        }
+
+        return sb.toString();
+    }
+    
+
+    public static LayoutData load(String fileName)
             throws IOException {
+
+        ProjectInfo projectInfo = new ProjectInfo();
 
         List<LayoutItem> items = new ArrayList<>();
 
@@ -46,13 +112,62 @@ public class LayoutFileManager {
 
         String line;
 
+        boolean itemMode = false;
+
         while ((line = reader.readLine()) != null) {
 
             if (line.isBlank()) {
                 continue;
             }
 
-            String[] data = line.split(",", -1);
+            if (line.equals("#PROJECT")) {
+                itemMode = false;
+                continue;
+            }
+
+            if (line.equals("#ITEMS")) {
+                itemMode = true;
+                continue;
+            }
+
+            if (!itemMode && line.contains("=")) {
+
+                String[] parts = line.split("=", 2);
+
+                String key = parts[0];
+                String value = "";
+
+                if (parts.length >= 2) {
+                    value = unescape(parts[1]);
+                }
+
+                switch (key) {
+
+                case "title":
+                    projectInfo.setTitle(value);
+                    break;
+
+                case "date":
+                    projectInfo.setDate(value);
+                    break;
+
+                case "place":
+                    projectInfo.setPlace(value);
+                    break;
+
+                case "planner":
+                    projectInfo.setPlanner(value);
+                    break;
+
+                case "note":
+                    projectInfo.setNote(value);
+                    break;
+                }
+
+                continue;
+            }
+
+            String[] data = splitEscapedCsv(line);
 
             String name = data[0];
             int x = Integer.parseInt(data[1]);
@@ -72,29 +187,29 @@ public class LayoutFileManager {
                 String memo = "";
 
                 if (data.length >= 8) {
-                    memo = data[7];
+                    memo = unescape(data[7]);
                 }
 
                 item.setSize(width, height);
                 item.setRotation(rotation);
                 item.setQuantity(quantity);
                 item.setMemo(memo);
-                
-            }else if (data.length >= 6) {
-            	
-            	int width = Integer.parseInt(data[3]);
-            	int height = Integer.parseInt(data[4]);
-            	int quantity = Integer.parseInt(data[5]);
-            	
-            	String memo = "";
-            	
-            	if (data.length >= 7) {
-            		memo = data[6];
-            	}
-            	
-            	item.setSize(width,  height);
-            	item.setQuantity(quantity);
-            	item.setMemo(memo);
+
+            } else if (data.length >= 6) {
+
+                int width = Integer.parseInt(data[3]);
+                int height = Integer.parseInt(data[4]);
+                int quantity = Integer.parseInt(data[5]);
+
+                String memo = "";
+
+                if (data.length >= 7) {
+                    memo = unescape(data[6]);
+                }
+
+                item.setSize(width, height);
+                item.setQuantity(quantity);
+                item.setMemo(memo);
 
             } else {
 
@@ -103,7 +218,7 @@ public class LayoutFileManager {
                 String memo = "";
 
                 if (data.length >= 5) {
-                    memo = data[4];
+                    memo = unescape(data[4]);
                 }
 
                 item.setQuantity(quantity);
@@ -115,6 +230,42 @@ public class LayoutFileManager {
 
         reader.close();
 
-        return items;
+        return new LayoutData(projectInfo, items);
+    }
+    
+    private static String[] splitEscapedCsv(String line) {
+
+        List<String> result = new ArrayList<>();
+
+        StringBuilder sb = new StringBuilder();
+
+        boolean escaping = false;
+
+        for (int i = 0; i < line.length(); i++) {
+
+            char c = line.charAt(i);
+
+            if (escaping) {
+
+                sb.append('\\');
+                sb.append(c);
+                escaping = false;
+
+            } else {
+
+                if (c == '\\') {
+                    escaping = true;
+                } else if (c == ',') {
+                    result.add(sb.toString());
+                    sb.setLength(0);
+                } else {
+                    sb.append(c);
+                }
+            }
+        }
+
+        result.add(sb.toString());
+
+        return result.toArray(new String[0]);
     }
 }

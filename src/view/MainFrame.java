@@ -10,14 +10,17 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import io.LayoutData;
 import io.LayoutFileManager;
-
+import model.ProjectInfo;
 
 public class MainFrame extends JFrame {
 	
 	private File currentFile;
 	
 	private boolean modified = false;
+	
+	private ProjectInfo projectInfo = new ProjectInfo();
 
     public MainFrame() {
 
@@ -101,9 +104,13 @@ public class MainFrame extends JFrame {
 
                     File file = chooser.getSelectedFile();
 
-                    canvasPanel.setItems(
+                    LayoutData data =
                             LayoutFileManager.load(
-                                    file.getAbsolutePath()));
+                                    file.getAbsolutePath());
+
+                    projectInfo = data.getProjectInfo();
+
+                    canvasPanel.setItems(data.getItems());
                     
                     currentFile = file;
 
@@ -142,9 +149,11 @@ public class MainFrame extends JFrame {
             	
             		canvasPanel.clearItems();
             		
-            		 currentFile = null;
+            		projectInfo = new ProjectInfo();
+            		
+            		currentFile = null;
 
-            		    setModified(false);
+            		setModified(false);
             }
 
         });
@@ -162,6 +171,20 @@ public class MainFrame extends JFrame {
                 dispose();
                 System.exit(0);
             }
+        });
+        
+     // プロジェクト：案件情報
+        menuBar.getProjectInfoItem().addActionListener(e -> {
+
+            ProjectInfoDialog dialog =
+                    new ProjectInfoDialog(
+                            this,
+                            projectInfo,
+                            () -> {
+                                setModified(true);
+                            });
+
+            dialog.setVisible(true);
         });
         
      // グリッド表示ON/OFF
@@ -234,9 +257,10 @@ public class MainFrame extends JFrame {
 
         try {
 
-            LayoutFileManager.save(
-                    canvasPanel.getItems(),
-                    currentFile.getAbsolutePath());
+        	LayoutFileManager.save(
+        	        canvasPanel.getItems(),
+        	        projectInfo,
+        	        currentFile.getAbsolutePath());
             
             setModified(false);
 
@@ -282,6 +306,7 @@ public class MainFrame extends JFrame {
 
                 LayoutFileManager.save(
                         canvasPanel.getItems(),
+                        projectInfo,
                         file.getAbsolutePath());
 
                 currentFile = file;

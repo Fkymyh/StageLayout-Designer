@@ -18,6 +18,7 @@ public class MenuBar extends JMenuBar{
 	private JMenuItem pasteItem;
 	private JMenuItem rotateItem;
 	private JMenuItem saveAsItem;
+	private JMenuItem projectInfoItem;
 	
 	
 	public MenuBar() {
@@ -60,6 +61,15 @@ public class MenuBar extends JMenuBar{
 		editMenu.add(rotateItem);
 		
 		add(editMenu);
+		
+		//プロジェクト
+		JMenu projectMenu = new JMenu("プロジェクト");
+
+		projectInfoItem = new JMenuItem("案件情報");
+
+		projectMenu.add(projectInfoItem);
+
+		add(projectMenu);
 		
 		//表示
 		JMenu viewMenu = new JMenu("表示");
@@ -115,6 +125,10 @@ public class MenuBar extends JMenuBar{
 	
 	public JMenuItem getSaveAsItem() {
 	    return saveAsItem;
+	}
+	
+	public JMenuItem getProjectInfoItem() {
+	    return projectInfoItem;
 	}
 
 }
