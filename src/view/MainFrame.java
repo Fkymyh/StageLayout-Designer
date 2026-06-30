@@ -16,6 +16,8 @@ import io.LayoutFileManager;
 public class MainFrame extends JFrame {
 	
 	private File currentFile;
+	
+	private boolean modified = false;
 
     public MainFrame() {
 
@@ -33,11 +35,15 @@ public class MainFrame extends JFrame {
         				equipmentPanel,
         				propertyPanel);
         
-        propertyPanel.setUpdateCallback(() -> {
-
-            canvasPanel.repaint();
+        canvasPanel.setChangeCallback(() -> {
+        	
+        		canvasPanel.repaint();
+        	
+        		setModified(true);
+        		
 
         });
+        
         JScrollPane canvasScrollPane = new JScrollPane(canvasPanel);
         
         JSplitPane horizontalSplitPane = new JSplitPane(
@@ -101,7 +107,7 @@ public class MainFrame extends JFrame {
                     
                     currentFile = file;
 
-                    updateTitle();
+                    setModified(false);
 
                     JOptionPane.showMessageDialog(
                             this,
@@ -138,7 +144,7 @@ public class MainFrame extends JFrame {
             		
             		 currentFile = null;
 
-            		    updateTitle();
+            		    setModified(false);
             }
 
         });
@@ -204,11 +210,19 @@ public class MainFrame extends JFrame {
     }
     private void updateTitle() {
 
+        String title;
+
         if (currentFile == null) {
-            setTitle("Stage Layout Designer - 新規レイアウト");
+            title = "Stage Layout Designer - 新規レイアウト";
         } else {
-            setTitle("Stage Layout Designer - " + currentFile.getName());
+            title = "Stage Layout Designer - " + currentFile.getName();
         }
+
+        if (modified) {
+            title += " *";
+        }
+
+        setTitle(title);
     }
     
     private void saveLayout(CanvasPanel canvasPanel) {
@@ -223,6 +237,8 @@ public class MainFrame extends JFrame {
             LayoutFileManager.save(
                     canvasPanel.getItems(),
                     currentFile.getAbsolutePath());
+            
+            setModified(false);
 
             JOptionPane.showMessageDialog(
                     this,
@@ -269,6 +285,8 @@ public class MainFrame extends JFrame {
                         file.getAbsolutePath());
 
                 currentFile = file;
+                
+                setModified(false);
 
                 updateTitle();
 
@@ -289,6 +307,12 @@ public class MainFrame extends JFrame {
                         JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+    private void setModified(boolean modified) {
+
+        this.modified = modified;
+
+        updateTitle();
     }
 
 }

@@ -50,6 +50,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	private boolean snapToGrid = true;
 	
+	private Runnable changeCallback;
+	
 	private void showPopupMenu(MouseEvent e){
 
 	    JPopupMenu menu = new JPopupMenu();
@@ -122,6 +124,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    selectedItem.setSize(newWidth, newHeight);
 	    
 	    refreshPanels();
+	    
+	    notifyChanged();
 
 	    repaint();
 	}
@@ -135,6 +139,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    selectedItem.rotate90();
 
 	    refreshPanels();
+	    
+	    notifyChanged();
 
 	    repaint();
 	}
@@ -150,6 +156,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    selectedItem.setX(x);
 	    selectedItem.setY(y);
+	    
+	    notifyChanged();
 
 	    repaint();
 	}
@@ -285,6 +293,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		refreshPanels();
 		
+		notifyChanged();
+		
 		repaint();
 	}
 	
@@ -320,6 +330,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		if (e.isPopupTrigger()) {
 			showPopupMenu(e);
 			return;
+		}
+		
+		if (dragging) {
+			notifyChanged();
 		}
 		
 		dragging = false;
@@ -480,6 +494,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		refreshPanels();
 		
+		notifyChanged();
+		
 		repaint();
 	}
 	
@@ -524,6 +540,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		refreshPanels();
 		
+		notifyChanged();
+		
 		repaint();
 	}
 	public List<LayoutItem> getItems(){
@@ -548,6 +566,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		selectedItem = null;
 		
 		refreshPanels();
+		
+		notifyChanged();
 		
 		repaint();
 	}
@@ -585,6 +605,18 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 
 	    return null;
+	}
+	
+	public void setChangeCallback(Runnable changeCallback) {
+
+	    this.changeCallback = changeCallback;
+	}
+	//変更通知用メソッド
+	private void notifyChanged() {
+
+	    if (changeCallback != null) {
+	        changeCallback.run();
+	    }
 	}
 
 }
