@@ -1,6 +1,7 @@
 package view;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Image;
@@ -94,10 +95,13 @@ public class EquipmentPanel extends JPanel {
         button.setText(name);
 
         button.setVerticalTextPosition(JButton.BOTTOM);
-
         button.setHorizontalTextPosition(JButton.CENTER);
 
-        button.setPreferredSize(new Dimension(100, 90));
+        button.setPreferredSize(new Dimension(105, 90));
+
+        button.setBackground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setOpaque(true);
 
         if (equipment.getImage() != null) {
 
@@ -129,14 +133,15 @@ public class EquipmentPanel extends JPanel {
             if (entry.getKey().equals(selectedEquipmentName)) {
 
                 button.setText("▶ " + entry.getKey());
+                button.setBackground(new Color(180, 210, 255));
 
             } else {
 
                 button.setText(entry.getKey());
+                button.setBackground(Color.WHITE);
             }
         }
     }
-
     public String getSelectedEquipment() {
 
         return selectedEquipmentName;
