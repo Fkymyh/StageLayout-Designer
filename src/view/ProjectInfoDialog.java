@@ -1,10 +1,13 @@
 package view;
 
+import java.awt.BorderLayout;
 import java.awt.GridLayout;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
@@ -29,36 +32,51 @@ public class ProjectInfoDialog extends JDialog {
 
         super(owner, "案件情報", true);
 
-        setSize(400, 350);
+        setSize(500, 420);
 
         setLocationRelativeTo(owner);
 
-        setLayout(new GridLayout(11, 1));
+        setLayout(new BorderLayout(10, 10));
+        
+        JPanel inputPanel = new JPanel();
+        
+        inputPanel.setLayout(new GridLayout(4, 2, 8, 8));
 
         titleField = new JTextField(projectInfo.getTitle());
         dateField = new JTextField(projectInfo.getDate());
         placeField = new JTextField(projectInfo.getPlace());
         plannerField = new JTextField(projectInfo.getPlanner());
+
+        inputPanel.add(new JLabel("タイトル"));
+        inputPanel.add(titleField);
+        
+        inputPanel.add(new JLabel("日付"));
+        inputPanel.add(dateField);
+        
+        inputPanel.add(new JLabel("場所"));
+        inputPanel.add(placeField);
+        
+        inputPanel.add(new JLabel("担当者"));
+        inputPanel.add(plannerField);
+        
+        add(inputPanel, BorderLayout.NORTH);
+        
         noteArea = new JTextArea(projectInfo.getNote());
-
-        add(new JLabel("タイトル"));
-        add(titleField);
-
-        add(new JLabel("日付"));
-        add(dateField);
-
-        add(new JLabel("場所"));
-        add(placeField);
-
-        add(new JLabel("担当者"));
-        add(plannerField);
-
-        add(new JLabel("全体メモ"));
-        add(noteArea);
-
+        
+        noteArea.setLineWrap(true);
+        noteArea.setWrapStyleWord(true);
+        
+        JScrollPane noteScrollPane = new JScrollPane(noteArea);
+        
+        noteScrollPane.setBorder(
+        		javax.swing.BorderFactory.createTitledBorder("全体メモ"));
+        
+        add(noteScrollPane, BorderLayout.CENTER);
+        
         JButton saveButton = new JButton("保存");
-
-        add(saveButton);
+        
+        add(saveButton, BorderLayout.SOUTH);
+        
 
         saveButton.addActionListener(e -> {
 
