@@ -1,6 +1,8 @@
 package view;
 
 import java.awt.BorderLayout;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 
 import javax.swing.JFileChooser;
@@ -27,7 +29,7 @@ public class MainFrame extends JFrame {
         setTitle("Stage Layout Designer");
         setSize(1400, 900);
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
         EquipmentPanel equipmentPanel = new EquipmentPanel();
         
@@ -37,6 +39,20 @@ public class MainFrame extends JFrame {
         		new CanvasPanel(
         				equipmentPanel,
         				propertyPanel);
+        
+    		addWindowListener(new WindowAdapter() {
+
+    			@Override
+    			public void windowClosing(WindowEvent e) {
+
+    				if (!confirmSaveIfNeeded(canvasPanel)) {
+    					return;
+    				}
+
+    				dispose();
+    				System.exit(0);
+    			}
+    		});
         
         canvasPanel.setChangeCallback(() -> {
         	
@@ -87,6 +103,10 @@ public class MainFrame extends JFrame {
         });
      // 開く処理
         menuBar.getOpenItem().addActionListener(e -> {
+        	
+        		if (!confirmSaveIfNeeded(canvasPanel)) {
+        			return;
+        		}
 
             JFileChooser chooser = new JFileChooser();
 
@@ -138,6 +158,10 @@ public class MainFrame extends JFrame {
         
      // 新規作成処理
         menuBar.getNewItem().addActionListener(e -> {
+        	
+        		if (!confirmSaveIfNeeded(canvasPanel)) {
+        			return;
+        		}
 
             int result = JOptionPane.showConfirmDialog(
             		this,
@@ -160,6 +184,10 @@ public class MainFrame extends JFrame {
         
      // 終了処理
         menuBar.getExitItem().addActionListener(e -> {
+        	
+        	if (!confirmSaveIfNeeded(canvasPanel)) {
+                return;
+            }
 
             int result = JOptionPane.showConfirmDialog(
                     this,
@@ -333,6 +361,38 @@ public class MainFrame extends JFrame {
             }
         }
     }
+    
+    private boolean confirmSaveIfNeeded(CanvasPanel canvasPanel) {
+    	
+    	if (!modified) {
+    		return true;
+    	}
+    	
+    	int result = JOptionPane.showConfirmDialog(
+    			this,
+    			"保存されていない変更があります。\n保存しますか？",
+    			"保存確認",
+    			JOptionPane.YES_NO_CANCEL_OPTION);
+    	
+    	if (result == JOptionPane.CANCEL_OPTION
+    			|| result == JOptionPane.CLOSED_OPTION) {
+    		
+    		return false;
+    	}
+    	
+    	if (result == JOptionPane.YES_OPTION) {
+    		
+    		saveLayout(canvasPanel);
+    		
+    		return !modified;
+    	}
+    	
+    	return true;
+    }
+    	
+    
+    	
+    
     private void setModified(boolean modified) {
 
         this.modified = modified;
