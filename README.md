@@ -35,9 +35,7 @@ Java Swing の学習を兼ねて制作しているポートフォリオで、大
 ---
 
 ## 主な機能
-## 画面イメージ
 
-![メイン画面](<img width="959" height="599" alt="screenshot_main" src="https://github.com/user-attachments/assets/bf815806-4cd9-438c-89f1-abe7d7018295" />
 )
 ### 機材配置
 
