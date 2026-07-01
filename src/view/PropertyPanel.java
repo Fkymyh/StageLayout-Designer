@@ -47,7 +47,7 @@ public class PropertyPanel extends JPanel {
         editPanel.setPreferredSize(new Dimension(260, 0));
         
         editPanel.setBorder(
-                BorderFactory.createTitledBorder("選択中の機材"));
+                BorderFactory.createTitledBorder("配置済み機材の編集"));
 
         equipmentArea = new JTextArea();
         quantityArea = new JTextArea();
@@ -57,9 +57,9 @@ public class PropertyPanel extends JPanel {
 
         equipmentArea.setEditable(false);
 
-        JButton saveButton = new JButton("更新");
+        JButton saveButton = new JButton("反映");
 
-        editPanel.add(new JLabel("使用機材"));
+        editPanel.add(new JLabel("機材名"));
         editPanel.add(equipmentArea);
 
         editPanel.add(new JLabel("必要数"));
