@@ -300,17 +300,33 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	            roomTemplate.getHeight());
 
 	    for (RoomObject object : roomTemplate.getObjects()) {
-
-	        g.drawRect(
-	                object.getX(),
-	                object.getY(),
-	                object.getWidth(),
-	                object.getHeight());
-
-	        g.drawString(
-	                object.getName(),
-	                object.getX() + 5,
-	                object.getY() + 18);
+	    	
+	    	if (RoomObject.TYPE_LINE.equals(object.getType())) {
+	    		
+	    		g.drawLine(
+	    				object.getX(),
+	    				object.getY(),
+	    				object.getEndX(),
+	    				object.getEndY());
+	    		
+	    		g.drawString(
+	    				object.getName(),
+	    				object.getX() + 5,
+	    				object.getY() - 5);
+	    		
+	    	}else {
+	    		
+	    		g.drawRect(
+	    				object.getX(),
+	    				object.getY(),
+	    				object.getWidth(),
+	    				object.getHeight());
+	    		
+	    		g.drawString(
+	    				object.getName(),
+	    				object.getX() + 5,
+	    				object.getY() +18);
+	    	}
 	    }
 	}
 	

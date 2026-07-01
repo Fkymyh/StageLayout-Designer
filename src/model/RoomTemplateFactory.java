@@ -49,6 +49,38 @@ public class RoomTemplateFactory {
                         grid(4),
                         grid(12),
                         grid(7)));
+        
+        room.addObject(
+                RoomObject.createLine(
+                        "教壇上辺",
+                        grid(4),
+                        grid(2),
+                        grid(16),
+                        grid(2)));
+
+        room.addObject(
+                RoomObject.createLine(
+                        "教壇右辺",
+                        grid(16),
+                        grid(2),
+                        grid(15),
+                        grid(4)));
+
+        room.addObject(
+                RoomObject.createLine(
+                        "教壇下辺",
+                        grid(15),
+                        grid(4),
+                        grid(5),
+                        grid(4)));
+
+        room.addObject(
+                RoomObject.createLine(
+                        "教壇左辺",
+                        grid(5),
+                        grid(4),
+                        grid(4),
+                        grid(2)));
 
         return room;
     }
