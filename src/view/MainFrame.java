@@ -70,7 +70,7 @@ public class MainFrame extends JFrame {
         		equipmentPanel,
         		canvasScrollPane);
         
-        horizontalSplitPane.setDividerLocation(220);
+        horizontalSplitPane.setDividerLocation(280);
         horizontalSplitPane.setResizeWeight(0.0);
         
         JSplitPane mainSplitPane = new JSplitPane(
@@ -78,7 +78,7 @@ public class MainFrame extends JFrame {
         			horizontalSplitPane,
         			propertyPanel);
         
-        mainSplitPane.setDividerLocation(680);
+        mainSplitPane.setDividerLocation(640);
         mainSplitPane.setResizeWeight(0.85);
         
         add(mainSplitPane, BorderLayout.CENTER);

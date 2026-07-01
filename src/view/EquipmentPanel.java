@@ -32,7 +32,7 @@ public class EquipmentPanel extends JPanel {
 
         setLayout(new BorderLayout());
 
-        setPreferredSize(new Dimension(260, 0));
+        setPreferredSize(new Dimension(280, 0));
         
         setBorder(
                 javax.swing.BorderFactory.createTitledBorder("機材パレット"));
@@ -79,7 +79,7 @@ public class EquipmentPanel extends JPanel {
         button.setVerticalTextPosition(JButton.BOTTOM);
         button.setHorizontalTextPosition(JButton.CENTER);
 
-        button.setPreferredSize(new Dimension(105, 90));
+        button.setPreferredSize(new Dimension(115, 95));
 
         button.setBackground(Color.WHITE);
         button.setFocusPainted(false);

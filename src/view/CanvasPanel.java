@@ -92,13 +92,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		setPreferredSize(new Dimension(1800, 1200));
 		
-		Equipment mic = EquipmentFactory.create("マイク");
-
-		items.add(new LayoutItem(mic,100,100));
-
-		items.add(new LayoutItem(mic,250,150));
-
-		items.add(new LayoutItem(mic,450,250));
+		
 		
 		addMouseListener(this);
 		addMouseMotionListener(this);
