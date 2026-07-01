@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -38,15 +39,15 @@ public class PropertyPanel extends JPanel {
     public PropertyPanel() {
 
         setPreferredSize(new Dimension(0, 180));
-        
-        setBorder(
-                javax.swing.BorderFactory.createTitledBorder("プロパティ / 必要機材一覧"));
 
         setLayout(new BorderLayout());
 
         JPanel editPanel = new JPanel(new GridLayout(11, 1));
 
         editPanel.setPreferredSize(new Dimension(260, 0));
+        
+        editPanel.setBorder(
+                BorderFactory.createTitledBorder("選択中の機材"));
 
         equipmentArea = new JTextArea();
         quantityArea = new JTextArea();
@@ -79,6 +80,12 @@ public class PropertyPanel extends JPanel {
 
         summaryArea = new JTextArea(5, 25);
         summaryArea.setEditable(false);
+        
+        JScrollPane summaryScrollPane =
+                new JScrollPane(summaryArea);
+
+        summaryScrollPane.setBorder(
+                BorderFactory.createTitledBorder("必要機材一覧"));
 
         add(new JScrollPane(summaryArea), BorderLayout.CENTER);
 
