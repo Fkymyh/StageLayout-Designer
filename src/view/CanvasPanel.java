@@ -1,5 +1,6 @@
 package view;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -226,18 +227,47 @@ public class CanvasPanel extends JPanel implements MouseListener,
         		}
         		
         		if (item == selectedItem) {
+        			
         			g2.setColor(Color.RED);
+        			g2.setStroke(new BasicStroke(3));
+        			
+        			g2.drawRect(
+        					item.getX(),
+        					item.getY(),
+        					item.getWidth(),
+        					item.getHeight());
+        			
         		}else {
+        			
         			g2.setColor(Color.BLACK);
+        			g2.setStroke(new BasicStroke(1));
+        			
+        			g2.drawRect(
+        					item.getX(),
+        					item.getY(),
+        					item.getWidth(),
+        					item.getHeight());
         		}
         		
-        		g2.drawRect(
-        				item.getX(),
-        				item.getY(),
-        				item.getWidth(),
-        				item.getHeight());
+        		
         		
         		g2.dispose();
+        		
+        		if(item == selectedItem) {
+        			
+        			g.setColor(Color.RED);
+        			
+        			int labelY = item.getY() - 5;
+        			
+        			if (labelY < 15) {
+        				labelY = item.getY() + item.getHeight() + 15;
+        			}
+        			
+        			g.drawString(
+        					"選択中",
+        					item.getX(),
+        					labelY);
+        		}
         		
         		g.setColor(Color.BLACK);
         		
