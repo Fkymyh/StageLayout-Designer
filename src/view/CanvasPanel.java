@@ -45,6 +45,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private final int GRID_SIZE = 25;
 	
+	private final double METERS_PER_GRID = 0.5;
+	
 	private int dragOffsetX;
 	
 	private int dragOffsetY;
@@ -92,8 +94,6 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		setBackground(Color.WHITE);
 		
-		setBorder(
-		        javax.swing.BorderFactory.createTitledBorder("レイアウトキャンバス"));
 		
 		setPreferredSize(new Dimension(1800, 1200));
 		
@@ -173,23 +173,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		//グリッド線の色
 		if (showGrid) {
-
-		    g.setColor(new Color(220, 220, 220));
-		
-		 // 縦線
-		 for (int x = 0; x < getWidth(); x += GRID_SIZE) {
-		        g.drawLine(x, 0, x, getHeight());
-		    }
-		
-
-        // 横線
-		for (int y = 0; y < getHeight(); y += GRID_SIZE) {
-	        g.drawLine(0, y, getWidth(), y);
-	    }
-        }
+		    drawGrid(g);
+		}
 		
 		drawRoomTemplate(g);
-		
+	
 		
      // 機材描画
         g.setColor(Color.BLACK);
@@ -287,6 +275,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
         }
         
 	}
+	
+	
 	private void drawRoomTemplate(Graphics g) {
 
 	    if (roomTemplate == null) {
@@ -718,6 +708,71 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	public RoomTemplate getRoomTemplate() {
 	    return roomTemplate;
+	}
+	
+	private void drawGrid(Graphics g) {
+
+	    for (int x = 0; x < getWidth(); x += GRID_SIZE) {
+
+	        int gridIndex = x / GRID_SIZE;
+
+	        if (gridIndex % 2 == 0) {
+	            g.setColor(new Color(200, 200, 200));
+	        } else {
+	            g.setColor(new Color(230, 230, 230));
+	        }
+
+	        g.drawLine(x, 0, x, getHeight());
+	    }
+
+	    for (int y = 0; y < getHeight(); y += GRID_SIZE) {
+
+	        int gridIndex = y / GRID_SIZE;
+
+	        if (gridIndex % 2 == 0) {
+	            g.setColor(new Color(200, 200, 200));
+	        } else {
+	            g.setColor(new Color(230, 230, 230));
+	        }
+
+	        g.drawLine(0, y, getWidth(), y);
+	    }
+
+	    drawMeterLabels(g);
+	}
+	
+	private void drawMeterLabels(Graphics g) {
+
+	    g.setColor(Color.GRAY);
+
+	    for (int x = 0; x < getWidth(); x += GRID_SIZE * 2) {
+
+	        double meter = x / (double) GRID_SIZE * METERS_PER_GRID;
+
+	        g.drawString(
+	                formatMeter(meter),
+	                x + 3,
+	                15);
+	    }
+
+	    for (int y = 0; y < getHeight(); y += GRID_SIZE * 2) {
+
+	        double meter = y / (double) GRID_SIZE * METERS_PER_GRID;
+
+	        g.drawString(
+	                formatMeter(meter),
+	                3,
+	                y + 15);
+	    }
+	}
+	
+	private String formatMeter(double meter) {
+
+	    if (meter == (int) meter) {
+	        return (int) meter + "m";
+	    }
+
+	    return meter + "m";
 	}
 
 }

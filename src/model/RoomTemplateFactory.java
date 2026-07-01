@@ -1,46 +1,54 @@
 package model;
 
 public class RoomTemplateFactory {
+	
+	private static final int PX_PER_GRID = 25;
+	
+	private static int grid(double value) {
+        return (int) Math.round(value * PX_PER_GRID);
+	}
 
-    public static RoomTemplate createFirstClassroom() {
+	public static RoomTemplate createFirstClassroom() {
+    	
+    
 
         RoomTemplate room =
                 new RoomTemplate(
                         "第一教室",
-                        1000,
-                        700);
+                        grid(20),
+                        grid(14));
 
         room.addObject(
                 new RoomObject(
                         "黒板",
-                        250,
-                        40,
-                        500,
-                        30));
+                        grid(5),
+                        grid(1),
+                        grid(10),
+                        grid(0.5)));
 
         room.addObject(
                 new RoomObject(
                         "教卓",
-                        450,
-                        100,
-                        100,
-                        50));
+                        grid(9),
+                        grid(2),
+                        grid(2),
+                        grid(1)));
 
         room.addObject(
                 new RoomObject(
                         "入口",
-                        850,
-                        500,
-                        80,
-                        120));
+                        grid(18),
+                        grid(10),
+                        grid(1.5),
+                        grid(2)));
 
         room.addObject(
                 new RoomObject(
                         "机配置エリア",
-                        200,
-                        180,
-                        600,
-                        350));
+                        grid(4),
+                        grid(4),
+                        grid(12),
+                        grid(7)));
 
         return room;
     }
@@ -53,4 +61,6 @@ public class RoomTemplateFactory {
 
         return null;
     }
+    
+    
 }
