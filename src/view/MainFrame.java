@@ -249,6 +249,17 @@ public class MainFrame extends JFrame {
             canvasPanel.pasteCopiedItem();
 
         });
+        //プレビュー処理
+        menuBar.getPreviewItem().addActionListener(e -> {
+
+            PreviewDialog dialog =
+                    new PreviewDialog(
+                            this,
+                            projectInfo,
+                            canvasPanel.getItems());
+
+            dialog.setVisible(true);
+        });
         
      // 編集メニュー：回転
         menuBar.getRotateItem().addActionListener(e -> {
