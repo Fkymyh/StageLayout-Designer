@@ -184,6 +184,22 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         for(LayoutItem item : items){
         	
+        	String itemName = item.getEquipment().getName();
+
+        	if (itemName.startsWith("バミリ")) {
+        	    drawBamiri(g, item);
+
+        	    g.setColor(Color.BLACK);
+        	    if (showItemNames) {
+        	        g.drawString(
+        	                item.getEquipment().getName(),
+        	                item.getX() + 8,
+        	                item.getY() + item.getHeight() + 15);
+        	    }
+
+        	    continue;
+        	}
+        	
         		if(item == selectedItem) {
         			g.setColor(Color.RED);
         		}else {
@@ -327,6 +343,39 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    				object.getX() + 5,
 	    				object.getY() +18);
 	    	}
+	    }
+	}
+	
+	private void drawBamiri(Graphics g, LayoutItem item) {
+
+	    String name = item.getEquipment().getName();
+
+	    int x = item.getX();
+	    int y = item.getY();
+	    int w = item.getWidth();
+	    int h = item.getHeight();
+
+	    g.setColor(item.getEquipment().getColor());
+
+	    if ("バミリ X".equals(name)) {
+
+	        g.drawLine(x, y, x + w, y + h);
+	        g.drawLine(x + w, y, x, y + h);
+
+	    } else if ("バミリ ＋".equals(name)) {
+
+	        g.drawLine(x + w / 2, y, x + w / 2, y + h);
+	        g.drawLine(x, y + h / 2, x + w, y + h / 2);
+
+	    } else {
+
+	        // バミリ 横・縦
+	        g.fillRect(x, y, w, h);
+	    }
+
+	    if (item == selectedItem) {
+	        g.setColor(Color.RED);
+	        g.drawRect(x - 3, y - 3, w + 6, h + 6);
 	    }
 	}
 	
@@ -789,6 +838,17 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 
 	    return meter + "m";
+	}
+	
+	private boolean showItemNames = true;
+
+	public void setShowItemNames(boolean showItemNames) {
+	    this.showItemNames = showItemNames;
+	    repaint();
+	}
+
+	public boolean isShowItemNames() {
+	    return showItemNames;
 	}
 
 }

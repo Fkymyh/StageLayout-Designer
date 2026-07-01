@@ -18,23 +18,23 @@ public class EquipmentFactory {
                 "マイク",
                 "音響",
                 Color.BLUE,
-                70,
                 30,
+                15,
                 "/resources/images/mic_A.png");
 
         register(
                 "スピーカー",
                 "音響",
                 Color.BLUE,
-                70,
-                30,
+                35,
+                35,
                 "/resources/images/speaker_E_G.png");
 
         register(
                 "ミキサー",
                 "音響",
                 Color.BLUE,
-                70,
+                45,
                 30,
                 "/resources/images/mixer_A.png");
         
@@ -42,15 +42,15 @@ public class EquipmentFactory {
                 "ブームスタンド",
                 "音響",
                 Color.BLUE,
-                60,
-                40,
+                45,
+                20,
                 "/resources/images/boom_stand.png");
 
         register(
                 "CD_Player",
                 "音響",
                 Color.BLUE,
-                40,
+                45,
                 30,
                 "/resources/images/CD_player.png");
 
@@ -58,17 +58,41 @@ public class EquipmentFactory {
                 "PARライト",
                 "照明",
                 Color.YELLOW,
-                50,
-                50,
+                25,
+                25,
                 "/resources/images/PAR_B_M.png");
 
         register(
-                "バミリ",
+                "バミリ 横",
                 "舞台",
-                Color.LIGHT_GRAY,
-                20,
-                20,
-                "/resources/images/bamiri.png");
+                Color.RED,
+                25,
+                4,
+                null);
+
+        register(
+                "バミリ 縦",
+                "舞台",
+                Color.RED,
+                4,
+                25,
+                null);
+
+        register(
+                "バミリ X",
+                "舞台",
+                Color.RED,
+                18,
+                18,
+                null);
+        
+        register(
+                "バミリ ＋",
+                "舞台",
+                Color.RED,
+                22,
+                22,
+                null);
 
         register(
                 "平台",
@@ -85,21 +109,31 @@ public class EquipmentFactory {
                 50,
                 40,
                 "/resources/images/hakouma.png");
+        
+        register(
+                "長机",
+                "舞台",
+                Color.LIGHT_GRAY,
+                60,
+                20,
+                "/resources/images/desk.png");
+        
+        
 
        
         register(
                 "人間A 上",
                 "人物",
                 Color.GREEN,
+                25,
                 40,
-                60,
                 "/resources/images/humanA_up.png");
 
         register(
                 "人間A 横",
                 "人物",
                 Color.GREEN,
-                60,
+                25,
                 40,
                 "/resources/images/humanA_side.png");
 
@@ -107,9 +141,11 @@ public class EquipmentFactory {
                 "人間A 正面",
                 "人物",
                 Color.GREEN,
+                25,
                 40,
-                60,
                 "/resources/images/humanA_front.png");
+        
+        
     }
 
     private static void register(
