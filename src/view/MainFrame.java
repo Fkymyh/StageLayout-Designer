@@ -135,6 +135,10 @@ public class MainFrame extends JFrame {
 
                     canvasPanel.setItems(data.getItems());
                     
+                    canvasPanel.setRoomTemplate(
+                            RoomTemplateFactory.createByName(
+                                    projectInfo.getTemplateName()));
+                    
                     currentFile = file;
 
                     setModified(false);
@@ -174,13 +178,18 @@ public class MainFrame extends JFrame {
             
             if (result == JOptionPane.YES_OPTION) {
             	
+            		
+            		
             		canvasPanel.clearItems();
-            		
+
             		projectInfo = new ProjectInfo();
-            		
+
+            		canvasPanel.setRoomTemplate(null);
+
             		currentFile = null;
 
             		setModified(false);
+            		
             }
 
         });
@@ -223,6 +232,8 @@ public class MainFrame extends JFrame {
 
             canvasPanel.setRoomTemplate(
                     RoomTemplateFactory.createFirstClassroom());
+            
+            projectInfo.setTemplateName("第一教室");
 
             setModified(true);
         });
@@ -231,6 +242,8 @@ public class MainFrame extends JFrame {
         menuBar.getClearTemplateItem().addActionListener(e -> {
 
             canvasPanel.setRoomTemplate(null);
+            
+            projectInfo.setTemplateName("");
 
             setModified(true);
         });

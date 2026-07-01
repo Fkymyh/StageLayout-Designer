@@ -29,6 +29,7 @@ public class LayoutFileManager {
         writer.write("place=" + escape(projectInfo.getPlace()) + "\n");
         writer.write("planner=" + escape(projectInfo.getPlanner()) + "\n");
         writer.write("note=" + escape(projectInfo.getNote()) + "\n");
+        writer.write("template=" + escape(projectInfo.getTemplateName()) + "\n");
 
         writer.write("#ITEMS\n");
 
@@ -161,6 +162,10 @@ public class LayoutFileManager {
 
                 case "note":
                     projectInfo.setNote(value);
+                    break;
+                    
+                case "template":
+                    projectInfo.setTemplateName(value);
                     break;
                 }
 

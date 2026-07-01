@@ -44,4 +44,13 @@ public class RoomTemplateFactory {
 
         return room;
     }
+    
+    public static RoomTemplate createByName(String name) {
+
+        if ("第一教室".equals(name)) {
+            return createFirstClassroom();
+        }
+
+        return null;
+    }
 }

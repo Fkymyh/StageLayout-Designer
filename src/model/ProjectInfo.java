@@ -11,6 +11,8 @@ public class ProjectInfo {
     private String planner = "";
 
     private String note = "";
+    
+    private String templateName = "";
 
     public String getTitle() {
         return title;
@@ -50,5 +52,13 @@ public class ProjectInfo {
 
     public void setNote(String note) {
         this.note = note;
+    }
+    
+    public String getTemplateName() {
+        return templateName;
+    }
+
+    public void setTemplateName(String templateName) {
+        this.templateName = templateName;
     }
 }
