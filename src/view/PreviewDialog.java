@@ -8,13 +8,15 @@ import javax.swing.JScrollPane;
 
 import model.LayoutItem;
 import model.ProjectInfo;
+import model.RoomTemplate;
 
 public class PreviewDialog extends JDialog{
 	
 	public PreviewDialog(
 			MainFrame owner,
 			ProjectInfo projectInfo,
-			List<LayoutItem> items) {
+			List<LayoutItem> items,
+			RoomTemplate roomTemplate) {
 		
 		super(owner, "提出用プレビュー", true);
 		
@@ -25,7 +27,7 @@ public class PreviewDialog extends JDialog{
 		setLayout(new BorderLayout());
 		
 		SheetPreviewPanel previewPanel =
-				new SheetPreviewPanel(projectInfo, items);
+				new SheetPreviewPanel(projectInfo, items, roomTemplate);
 		
 		JScrollPane scrollPane =
 				new JScrollPane(previewPanel);

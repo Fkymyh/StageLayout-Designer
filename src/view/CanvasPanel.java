@@ -621,6 +621,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    return items;
 	}
 	
+	
 	public void setItems(List<LayoutItem> items) {
 
 	    this.items = items;
@@ -713,6 +714,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    revalidate();
 
 	    repaint();
+	}
+	
+	public RoomTemplate getRoomTemplate() {
+	    return roomTemplate;
 	}
 
 }

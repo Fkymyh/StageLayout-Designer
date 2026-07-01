@@ -14,6 +14,8 @@ import javax.swing.JPanel;
 
 import model.LayoutItem;
 import model.ProjectInfo;
+import model.RoomObject;
+import model.RoomTemplate;
 
 public class SheetPreviewPanel extends JPanel{
 	
@@ -21,12 +23,16 @@ public class SheetPreviewPanel extends JPanel{
 	
 	private List<LayoutItem> items;
 	
+	private RoomTemplate roomTemplate;
+	
 	public SheetPreviewPanel(
 			ProjectInfo projectInfo,
-			List<LayoutItem> items) {
+			List<LayoutItem> items,
+			RoomTemplate roomTemplate) {
 		
 		this.projectInfo = projectInfo;
 		this.items = items;
+		this.roomTemplate = roomTemplate;
 		
 		setPreferredSize(new Dimension(1200, 850));
 		
@@ -275,6 +281,8 @@ public class SheetPreviewPanel extends JPanel{
         g.setColor(Color.BLACK);
     }
     
+   
+    
     private void drawPreviewItems(
             Graphics g,
             int areaX,
@@ -282,27 +290,41 @@ public class SheetPreviewPanel extends JPanel{
             int areaW,
             int areaH) {
 
-        if (items == null || items.isEmpty()) {
+        if ((items == null || items.isEmpty())
+                && roomTemplate == null) {
             return;
         }
 
-        int minX = Integer.MAX_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int maxY = Integer.MIN_VALUE;
+        int minX = 0;
+        int minY = 0;
+        int maxX = 0;
+        int maxY = 0;
 
-        for (LayoutItem item : items) {
+        if (roomTemplate != null) {
 
-            minX = Math.min(minX, item.getX());
-            minY = Math.min(minY, item.getY());
+            maxX = roomTemplate.getWidth();
+            maxY = roomTemplate.getHeight();
 
-            maxX = Math.max(
-                    maxX,
-                    item.getX() + item.getWidth());
+        } else {
 
-            maxY = Math.max(
-                    maxY,
-                    item.getY() + item.getHeight());
+            minX = Integer.MAX_VALUE;
+            minY = Integer.MAX_VALUE;
+            maxX = Integer.MIN_VALUE;
+            maxY = Integer.MIN_VALUE;
+
+            for (LayoutItem item : items) {
+
+                minX = Math.min(minX, item.getX());
+                minY = Math.min(minY, item.getY());
+
+                maxX = Math.max(
+                        maxX,
+                        item.getX() + item.getWidth());
+
+                maxY = Math.max(
+                        maxY,
+                        item.getY() + item.getHeight());
+            }
         }
 
         int contentW = maxX - minX;
@@ -312,7 +334,7 @@ public class SheetPreviewPanel extends JPanel{
             return;
         }
 
-        int margin = 50;
+        int margin = 40;
 
         double scaleX =
                 (double) (areaW - margin * 2) / contentW;
@@ -322,7 +344,6 @@ public class SheetPreviewPanel extends JPanel{
 
         double scale = Math.min(scaleX, scaleY);
 
-        // 大きくなりすぎ防止
         if (scale > 1.0) {
             scale = 1.0;
         }
@@ -335,65 +356,131 @@ public class SheetPreviewPanel extends JPanel{
         int offsetY =
                 areaY + margin - (int) (minY * scale);
 
-        for (LayoutItem item : items) {
+        drawRoomTemplate(
+                g2,
+                areaX,
+                areaY,
+                areaW,
+                areaH,
+                scale,
+                offsetX,
+                offsetY);
 
-            int drawX = offsetX + (int) (item.getX() * scale);
-            int drawY = offsetY + (int) (item.getY() * scale);
-            int drawW = Math.max(8, (int) (item.getWidth() * scale));
-            int drawH = Math.max(8, (int) (item.getHeight() * scale));
+        if (items != null) {
 
-            double centerX = drawX + drawW / 2.0;
-            double centerY = drawY + drawH / 2.0;
+            for (LayoutItem item : items) {
 
-            Graphics2D itemG = (Graphics2D) g2.create();
+                int drawX = offsetX + (int) (item.getX() * scale);
+                int drawY = offsetY + (int) (item.getY() * scale);
+                int drawW = Math.max(8, (int) (item.getWidth() * scale));
+                int drawH = Math.max(8, (int) (item.getHeight() * scale));
 
-            itemG.rotate(
-                    Math.toRadians(item.getRotation()),
-                    centerX,
-                    centerY);
+                double centerX = drawX + drawW / 2.0;
+                double centerY = drawY + drawH / 2.0;
 
-            Image image = item.getEquipment().getImage();
+                Graphics2D itemG = (Graphics2D) g2.create();
 
-            if (image != null) {
+                itemG.rotate(
+                        Math.toRadians(item.getRotation()),
+                        centerX,
+                        centerY);
 
-                itemG.drawImage(
-                        image,
-                        drawX,
-                        drawY,
-                        drawW,
-                        drawH,
-                        this);
+                Image image = item.getEquipment().getImage();
 
-            } else {
+                if (image != null) {
 
-                itemG.setColor(item.getEquipment().getColor());
+                    itemG.drawImage(
+                            image,
+                            drawX,
+                            drawY,
+                            drawW,
+                            drawH,
+                            this);
 
-                itemG.fillRect(
+                } else {
+
+                    itemG.setColor(item.getEquipment().getColor());
+
+                    itemG.fillRect(
+                            drawX,
+                            drawY,
+                            drawW,
+                            drawH);
+                }
+
+                itemG.setColor(Color.BLACK);
+
+                itemG.drawRect(
                         drawX,
                         drawY,
                         drawW,
                         drawH);
+
+                itemG.dispose();
+
+                g2.setColor(Color.BLACK);
+                g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
+
+                g2.drawString(
+                        item.getEquipment().getName(),
+                        drawX,
+                        drawY + drawH + 12);
             }
-
-            itemG.setColor(Color.BLACK);
-
-            itemG.drawRect(
-                    drawX,
-                    drawY,
-                    drawW,
-                    drawH);
-
-            itemG.dispose();
-
-            g2.setColor(Color.BLACK);
-            g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
-
-            g2.drawString(
-                    item.getEquipment().getName(),
-                    drawX,
-                    drawY + drawH + 12);
         }
 
         g2.dispose();
+    }
+    private void drawRoomTemplate(
+            Graphics g,
+            int areaX,
+            int areaY,
+            int areaW,
+            int areaH,
+            double scale,
+            int offsetX,
+            int offsetY) {
+
+        if (roomTemplate == null) {
+            return;
+        }
+
+        g.setColor(new Color(245, 245, 245));
+
+        int roomX = offsetX;
+        int roomY = offsetY;
+        int roomW = (int) (roomTemplate.getWidth() * scale);
+        int roomH = (int) (roomTemplate.getHeight() * scale);
+
+        g.fillRect(roomX, roomY, roomW, roomH);
+
+        g.setColor(Color.GRAY);
+        g.drawRect(roomX, roomY, roomW, roomH);
+
+        g.setFont(new Font("SansSerif", Font.PLAIN, 10));
+
+        for (RoomObject object : roomTemplate.getObjects()) {
+
+            int x = offsetX + (int) (object.getX() * scale);
+            int y = offsetY + (int) (object.getY() * scale);
+            int w = Math.max(4, (int) (object.getWidth() * scale));
+            int h = Math.max(4, (int) (object.getHeight() * scale));
+
+            g.setColor(Color.GRAY);
+
+            g.drawRect(
+                    x,
+                    y,
+                    w,
+                    h);
+
+            g.setColor(Color.DARK_GRAY);
+
+            g.drawString(
+                    object.getName(),
+                    x + 3,
+                    y + 12);
+        }
+
+        g.setColor(Color.BLACK);
     }
 }

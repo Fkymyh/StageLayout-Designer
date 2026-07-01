@@ -289,7 +289,8 @@ public class MainFrame extends JFrame {
                     new PreviewDialog(
                             this,
                             projectInfo,
-                            canvasPanel.getItems());
+                            canvasPanel.getItems(),
+                            canvasPanel.getRoomTemplate());
 
             dialog.setVisible(true);
         });
