@@ -59,6 +59,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private RoomTemplate roomTemplate;
 	
+	private boolean showNames = true;
+	
 	private void showPopupMenu(MouseEvent e){
 
 	    JPopupMenu menu = new JPopupMenu();
@@ -190,7 +192,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         	    drawBamiri(g, item);
 
         	    g.setColor(Color.BLACK);
-        	    if (showItemNames) {
+        	    if (showNames) {
         	        g.drawString(
         	                item.getEquipment().getName(),
         	                item.getX() + 8,
@@ -282,11 +284,13 @@ public class CanvasPanel extends JPanel implements MouseListener,
         		}
         		
         		g.setColor(Color.BLACK);
-        		
-        		g.drawString(
-        				item.getEquipment().getName(),
-        				item.getX() + 8,
-        				item.getY() + item.getHeight() + 15);
+        	
+        		if (showNames) {
+        		    g.drawString(
+        		            item.getEquipment().getName(),
+        		            item.getX() + 8,
+        		            item.getY() + item.getHeight() + 15);
+        		}
 
         }
         
@@ -325,10 +329,12 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    				object.getEndX(),
 	    				object.getEndY());
 	    		
-	    		g.drawString(
-	    				object.getName(),
-	    				object.getX() + 5,
-	    				object.getY() - 5);
+	    		if (showNames) {
+	    		    g.drawString(
+	    		            object.getName(),
+	    		            object.getX() + 5,
+	    		            object.getY() - 5);
+	    		}
 	    		
 	    	}else {
 	    		
@@ -338,10 +344,12 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    				object.getWidth(),
 	    				object.getHeight());
 	    		
-	    		g.drawString(
-	    				object.getName(),
-	    				object.getX() + 5,
-	    				object.getY() +18);
+	    		if (showNames) {
+	    		    g.drawString(
+	    		            object.getName(),
+	    		            object.getX() + 5,
+	    		            object.getY() + 18);
+	    		}
 	    	}
 	    }
 	}
@@ -840,15 +848,15 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    return meter + "m";
 	}
 	
-	private boolean showItemNames = true;
-
-	public void setShowItemNames(boolean showItemNames) {
-	    this.showItemNames = showItemNames;
+	
+	
+	public void setShowNames(boolean showNames) {
+	    this.showNames = showNames;
 	    repaint();
 	}
 
-	public boolean isShowItemNames() {
-	    return showItemNames;
+	public boolean isShowNames() {
+	    return showNames;
 	}
 
 }

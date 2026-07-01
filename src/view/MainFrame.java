@@ -262,6 +262,12 @@ public class MainFrame extends JFrame {
                     menuBar.getSnapToGridItem().isSelected());
         });
         
+        //名前のON/OFF
+        menuBar.getShowNamesItem().addActionListener(e -> {
+            canvasPanel.setShowNames(
+                    menuBar.getShowNamesItem().isSelected());
+        });
+        
      // 編集メニュー：削除
         menuBar.getDeleteItem().addActionListener(e -> {
 

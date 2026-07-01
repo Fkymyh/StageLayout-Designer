@@ -22,6 +22,7 @@ public class MenuBar extends JMenuBar{
 	private JMenuItem previewItem;
 	private JMenuItem firstClassroomItem;
 	private JMenuItem clearTemplateItem;
+	private JCheckBoxMenuItem showNamesItem;
 	
 	
 	public MenuBar() {
@@ -92,9 +93,12 @@ public class MenuBar extends JMenuBar{
 		
 		gridVisibleItem = new JCheckBoxMenuItem("グリッド表示", true);
 		snapToGridItem = new JCheckBoxMenuItem("グリッド吸着", true);
+		showNamesItem = new JCheckBoxMenuItem("名前を表示");
+		showNamesItem.setSelected(true);
 		
 		viewMenu.add(gridVisibleItem);
 		viewMenu.add(snapToGridItem);
+		viewMenu.add(showNamesItem);
 		
 		add(viewMenu);
 	}
@@ -157,6 +161,10 @@ public class MenuBar extends JMenuBar{
 
 	public JMenuItem getClearTemplateItem() {
 	    return clearTemplateItem;
+	}
+	
+	public JCheckBoxMenuItem getShowNamesItem() {
+	    return showNamesItem;
 	}
 
 }
