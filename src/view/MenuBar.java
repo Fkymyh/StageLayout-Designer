@@ -20,6 +20,8 @@ public class MenuBar extends JMenuBar{
 	private JMenuItem saveAsItem;
 	private JMenuItem projectInfoItem;
 	private JMenuItem previewItem;
+	private JMenuItem firstClassroomItem;
+	private JMenuItem clearTemplateItem;
 	
 	
 	public MenuBar() {
@@ -49,6 +51,16 @@ public class MenuBar extends JMenuBar{
 		fileMenu.add(exitItem);
 		
 		add(fileMenu);
+		//テンプレートメニュー
+		JMenu templateMenu = new JMenu("会場テンプレート");
+
+		firstClassroomItem = new JMenuItem("第一教室");
+		clearTemplateItem = new JMenuItem("テンプレートなし");
+
+		templateMenu.add(firstClassroomItem);
+		templateMenu.add(clearTemplateItem);
+
+		add(templateMenu);
 		
 		//編集
 		JMenu editMenu = new JMenu("編集");
@@ -137,6 +149,14 @@ public class MenuBar extends JMenuBar{
 	
 	public JMenuItem getPreviewItem() {
 	    return previewItem;
+	}
+	
+	public JMenuItem getFirstClassroomItem() {
+	    return firstClassroomItem;
+	}
+
+	public JMenuItem getClearTemplateItem() {
+	    return clearTemplateItem;
 	}
 
 }

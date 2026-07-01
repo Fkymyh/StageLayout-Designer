@@ -703,6 +703,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	                new Dimension(
 	                        roomTemplate.getWidth() + margin,
 	                        roomTemplate.getHeight() + margin));
+	    }else {
+	    	
+	    	revalidate();
+	    	
+	    	repaint();
 	    }
 
 	    revalidate();

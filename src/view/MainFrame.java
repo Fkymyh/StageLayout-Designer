@@ -41,8 +41,7 @@ public class MainFrame extends JFrame {
         				equipmentPanel,
         				propertyPanel);
         
-        canvasPanel.setRoomTemplate(
-                RoomTemplateFactory.createFirstClassroom());
+        
         
     		addWindowListener(new WindowAdapter() {
 
@@ -217,6 +216,23 @@ public class MainFrame extends JFrame {
                             });
 
             dialog.setVisible(true);
+        });
+        
+     // 会場テンプレート：第一教室
+        menuBar.getFirstClassroomItem().addActionListener(e -> {
+
+            canvasPanel.setRoomTemplate(
+                    RoomTemplateFactory.createFirstClassroom());
+
+            setModified(true);
+        });
+        
+     // 会場テンプレート：なし
+        menuBar.getClearTemplateItem().addActionListener(e -> {
+
+            canvasPanel.setRoomTemplate(null);
+
+            setModified(true);
         });
         
      // グリッド表示ON/OFF
