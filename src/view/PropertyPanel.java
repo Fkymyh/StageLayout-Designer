@@ -38,6 +38,9 @@ public class PropertyPanel extends JPanel {
     public PropertyPanel() {
 
         setPreferredSize(new Dimension(0, 180));
+        
+        setBorder(
+                javax.swing.BorderFactory.createTitledBorder("プロパティ / 必要機材一覧"));
 
         setLayout(new BorderLayout());
 

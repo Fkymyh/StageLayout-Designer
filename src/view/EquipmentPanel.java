@@ -33,6 +33,9 @@ public class EquipmentPanel extends JPanel {
         setLayout(new BorderLayout());
 
         setPreferredSize(new Dimension(260, 0));
+        
+        setBorder(
+                javax.swing.BorderFactory.createTitledBorder("機材パレット"));
 
         tabbedPane = new JTabbedPane();
 
@@ -70,6 +73,8 @@ public class EquipmentPanel extends JPanel {
         JButton button = new JButton();
 
         button.setText(name);
+        
+        button.setToolTipText(name);
 
         button.setVerticalTextPosition(JButton.BOTTOM);
         button.setHorizontalTextPosition(JButton.CENTER);

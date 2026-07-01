@@ -86,6 +86,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		requestFocusInWindow();
 		
 		setBackground(Color.WHITE);
+		
+		setBorder(
+		        javax.swing.BorderFactory.createTitledBorder("レイアウトキャンバス"));
+		
 		setPreferredSize(new Dimension(1800, 1200));
 		
 		Equipment mic = EquipmentFactory.create("マイク");
