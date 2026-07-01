@@ -4,6 +4,8 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +114,10 @@ public class SheetPreviewPanel extends JPanel{
         g.setFont(new Font("SansSerif", Font.PLAIN, 12));
         g.drawString("レイアウト図", x + 10, y + 20);
 
-        // 今回はまだ枠だけ
+        drawGrid(g, x, y, w, h);
+
+        drawPreviewItems(g, x, y, w, h);
+    
         // 次の段階でここに機材配置を縮小描画する
     }
 
@@ -246,5 +251,108 @@ public class SheetPreviewPanel extends JPanel{
         }
 
         return summary;
+    }
+    
+    private void drawGrid(
+            Graphics g,
+            int x,
+            int y,
+            int w,
+            int h) {
+
+        int gridSize = 25;
+
+        g.setColor(new Color(230, 230, 230));
+
+        for (int gridX = x; gridX <= x + w; gridX += gridSize) {
+            g.drawLine(gridX, y, gridX, y + h);
+        }
+
+        for (int gridY = y; gridY <= y + h; gridY += gridSize) {
+            g.drawLine(x, gridY, x + w, gridY);
+        }
+
+        g.setColor(Color.BLACK);
+    }
+    
+    private void drawPreviewItems(
+            Graphics g,
+            int areaX,
+            int areaY,
+            int areaW,
+            int areaH) {
+
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+
+        Graphics2D g2 = (Graphics2D) g.create();
+
+        double scale = 0.45;
+
+        int offsetX = areaX + 40;
+        int offsetY = areaY + 40;
+
+        for (LayoutItem item : items) {
+
+            int drawX = offsetX + (int) (item.getX() * scale);
+            int drawY = offsetY + (int) (item.getY() * scale);
+            int drawW = Math.max(8, (int) (item.getWidth() * scale));
+            int drawH = Math.max(8, (int) (item.getHeight() * scale));
+
+            double centerX = drawX + drawW / 2.0;
+            double centerY = drawY + drawH / 2.0;
+
+            Graphics2D itemG = (Graphics2D) g2.create();
+
+            itemG.rotate(
+                    Math.toRadians(item.getRotation()),
+                    centerX,
+                    centerY);
+
+            Image image = item.getEquipment().getImage();
+
+            if (image != null) {
+
+                itemG.drawImage(
+                        image,
+                        drawX,
+                        drawY,
+                        drawW,
+                        drawH,
+                        this);
+
+            } else {
+
+                itemG.setColor(item.getEquipment().getColor());
+
+                itemG.fillRect(
+                        drawX,
+                        drawY,
+                        drawW,
+                        drawH);
+            }
+
+            itemG.setColor(Color.BLACK);
+
+            itemG.drawRect(
+                    drawX,
+                    drawY,
+                    drawW,
+                    drawH);
+
+            itemG.dispose();
+
+            g2.setColor(Color.BLACK);
+
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
+
+            g2.drawString(
+                    item.getEquipment().getName(),
+                    drawX,
+                    drawY + drawH + 12);
+        }
+
+        g2.dispose();
     }
 }
