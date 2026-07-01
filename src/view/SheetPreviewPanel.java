@@ -286,12 +286,54 @@ public class SheetPreviewPanel extends JPanel{
             return;
         }
 
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+
+        for (LayoutItem item : items) {
+
+            minX = Math.min(minX, item.getX());
+            minY = Math.min(minY, item.getY());
+
+            maxX = Math.max(
+                    maxX,
+                    item.getX() + item.getWidth());
+
+            maxY = Math.max(
+                    maxY,
+                    item.getY() + item.getHeight());
+        }
+
+        int contentW = maxX - minX;
+        int contentH = maxY - minY;
+
+        if (contentW <= 0 || contentH <= 0) {
+            return;
+        }
+
+        int margin = 50;
+
+        double scaleX =
+                (double) (areaW - margin * 2) / contentW;
+
+        double scaleY =
+                (double) (areaH - margin * 2) / contentH;
+
+        double scale = Math.min(scaleX, scaleY);
+
+        // 大きくなりすぎ防止
+        if (scale > 1.0) {
+            scale = 1.0;
+        }
+
         Graphics2D g2 = (Graphics2D) g.create();
 
-        double scale = 0.45;
+        int offsetX =
+                areaX + margin - (int) (minX * scale);
 
-        int offsetX = areaX + 40;
-        int offsetY = areaY + 40;
+        int offsetY =
+                areaY + margin - (int) (minY * scale);
 
         for (LayoutItem item : items) {
 
@@ -344,7 +386,6 @@ public class SheetPreviewPanel extends JPanel{
             itemG.dispose();
 
             g2.setColor(Color.BLACK);
-
             g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
 
             g2.drawString(

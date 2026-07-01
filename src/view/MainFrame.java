@@ -15,6 +15,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import io.LayoutData;
 import io.LayoutFileManager;
 import model.ProjectInfo;
+import model.RoomTemplateFactory;
 
 public class MainFrame extends JFrame {
 	
@@ -39,6 +40,9 @@ public class MainFrame extends JFrame {
         		new CanvasPanel(
         				equipmentPanel,
         				propertyPanel);
+        
+        canvasPanel.setRoomTemplate(
+                RoomTemplateFactory.createFirstClassroom());
         
     		addWindowListener(new WindowAdapter() {
 

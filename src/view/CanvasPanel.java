@@ -22,6 +22,8 @@ import javax.swing.JPopupMenu;
 import model.Equipment;
 import model.EquipmentFactory;
 import model.LayoutItem;
+import model.RoomObject;
+import model.RoomTemplate;
 
 
 
@@ -52,6 +54,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private boolean snapToGrid = true;
 	
 	private Runnable changeCallback;
+	
+	private RoomTemplate roomTemplate;
 	
 	private void showPopupMenu(MouseEvent e){
 
@@ -183,6 +187,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        g.drawLine(0, y, getWidth(), y);
 	    }
         }
+		
+		drawRoomTemplate(g);
+		
+		
      // 機材描画
         g.setColor(Color.BLACK);
 
@@ -278,6 +286,42 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         }
         
+	}
+	private void drawRoomTemplate(Graphics g) {
+
+	    if (roomTemplate == null) {
+	        return;
+	    }
+
+	    g.setColor(new Color(245, 245, 245));
+
+	    g.fillRect(
+	            0,
+	            0,
+	            roomTemplate.getWidth(),
+	            roomTemplate.getHeight());
+
+	    g.setColor(Color.GRAY);
+
+	    g.drawRect(
+	            0,
+	            0,
+	            roomTemplate.getWidth(),
+	            roomTemplate.getHeight());
+
+	    for (RoomObject object : roomTemplate.getObjects()) {
+
+	        g.drawRect(
+	                object.getX(),
+	                object.getY(),
+	                object.getWidth(),
+	                object.getHeight());
+
+	        g.drawString(
+	                object.getName(),
+	                object.getX() + 5,
+	                object.getY() + 18);
+	    }
 	}
 	
 	@Override
@@ -645,6 +689,25 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    if (changeCallback != null) {
 	        changeCallback.run();
 	    }
+	}
+	
+	public void setRoomTemplate(RoomTemplate roomTemplate) {
+
+	    this.roomTemplate = roomTemplate;
+
+	    if (roomTemplate != null) {
+
+	        int margin = 100;
+
+	        setPreferredSize(
+	                new Dimension(
+	                        roomTemplate.getWidth() + margin,
+	                        roomTemplate.getHeight() + margin));
+	    }
+
+	    revalidate();
+
+	    repaint();
 	}
 
 }
