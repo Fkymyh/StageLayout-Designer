@@ -20,7 +20,7 @@ public class EquipmentFactory {
                 Color.BLUE,
                 70,
                 30,
-                "/resources/images/p08_020_mic_A.png");
+                "/resources/images/mic_A.png");
 
         register(
                 "スピーカー",
@@ -28,7 +28,7 @@ public class EquipmentFactory {
                 Color.BLUE,
                 70,
                 30,
-                "/resources/images/p07_024_speaker_E_G.png");
+                "/resources/images/speaker_E_G.png");
 
         register(
                 "ミキサー",
@@ -36,7 +36,7 @@ public class EquipmentFactory {
                 Color.BLUE,
                 70,
                 30,
-                "/resources/images/p09_001_mixer_A.png");
+                "/resources/images/mixer_A.png");
         
         register(
                 "ブームスタンド",
@@ -47,7 +47,7 @@ public class EquipmentFactory {
                 "/resources/images/boom_stand.png");
 
         register(
-                "CD_player",
+                "CD_Player",
                 "音響",
                 Color.BLUE,
                 40,
@@ -60,7 +60,7 @@ public class EquipmentFactory {
                 Color.YELLOW,
                 50,
                 50,
-                "/resources/images/p03_026_PAR_B_M.png");
+                "/resources/images/PAR_B_M.png");
 
         register(
                 "バミリ",
@@ -68,7 +68,7 @@ public class EquipmentFactory {
                 Color.LIGHT_GRAY,
                 20,
                 20,
-                "/resources/images/p01_004_3syakuhaba_panel_6syakuhaba_pane_ Bamiri_kari.png");
+                "/resources/images/bamiri.png");
 
         register(
                 "平台",
@@ -76,7 +76,7 @@ public class EquipmentFactory {
                 Color.LIGHT_GRAY,
                 80,
                 50,
-                "/resources/images/p01_002_1monn_ hiradai_3x6.png");
+                "/resources/images/hiradai_3x6.png");
 
         register(
                 "箱馬",
@@ -84,7 +84,7 @@ public class EquipmentFactory {
                 Color.LIGHT_GRAY,
                 50,
                 40,
-                "/resources/images/p01_024_hakouma_syou2_front_1_syaku_x_1syaku_B.png");
+                "/resources/images/hakouma.png");
 
        
         register(
