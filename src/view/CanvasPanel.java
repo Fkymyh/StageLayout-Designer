@@ -6,6 +6,7 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -43,7 +44,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private PropertyPanel propertyPanel;	
 	
-	private final int GRID_SIZE = 25;
+	private final int GRID_SIZE = 35;
 	
 	private final double METERS_PER_GRID = 0.5;
 	
@@ -141,7 +142,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 
-	    selectedItem.rotate90();
+	    selectedItem.rotateBy(15);
 
 	    refreshPanels();
 	    
@@ -220,15 +221,12 @@ public class CanvasPanel extends JPanel implements MouseListener,
         				centerX,
         				centerY);
         		
-        		if(equipment.getImage() != null) {
+        		if (equipment.getImage() != null) {
         			
-        			g2.drawImage(
+        			drawImageKeepingAspectRatio(
+        					g2,
         					equipment.getImage(),
-        					item.getX(),
-        					item.getY(),
-        					item.getWidth(),
-        					item.getHeight(),
-        					this	);
+        					item);
         		}else {
         			
         			g2.setColor(equipment.getColor());
@@ -310,6 +308,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	            0,
 	            roomTemplate.getWidth(),
 	            roomTemplate.getHeight());
+	    //テンプレート内だけのグリッド
+	    drawRoomTemplateGrid(g);
 
 	    g.setColor(Color.GRAY);
 
@@ -351,6 +351,31 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    		            object.getY() + 18);
 	    		}
 	    	}
+	    }
+	}
+	
+	private void drawRoomTemplateGrid(Graphics g) {
+
+	    if (roomTemplate == null) {
+	        return;
+	    }
+
+	    g.setColor(new Color(225, 225, 225));
+
+	    for (int x = 0; x <= roomTemplate.getWidth(); x += GRID_SIZE) {
+	        g.drawLine(
+	                x,
+	                0,
+	                x,
+	                roomTemplate.getHeight());
+	    }
+
+	    for (int y = 0; y <= roomTemplate.getHeight(); y += GRID_SIZE) {
+	        g.drawLine(
+	                0,
+	                y,
+	                roomTemplate.getWidth(),
+	                y);
 	    }
 	}
 	
@@ -398,6 +423,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
 			
 			repaint();
 			
+			return;
+		}
+		
+		//空いてる場所をダブルクリックした時だけ機材を追加する
+		if (e.getClickCount() < 2) {
 			return;
 		}
 		
@@ -570,10 +600,13 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 	    
 	    if (e.getKeyCode() == KeyEvent.VK_R) {
-
-	        rotateSelectedItem();
-
-	        return;
+	    	
+	    	if (e.isShiftDown()) {
+	    		rotateSelectedItemReverse();
+	    	}else {
+	    		rotateSelectedItem();
+	    	}
+	    	return;
 	    }
 	    
 
@@ -601,6 +634,21 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	        return;
 	    }
+	}
+	
+	public void rotateSelectedItemReverse() {
+
+	    if (selectedItem == null) {
+	        return;
+	    }
+
+	    selectedItem.rotateBy(-15);
+
+	    refreshPanels();
+
+	    notifyChanged();
+
+	    repaint();
 	}
 	
 	@Override
@@ -761,7 +809,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    if (roomTemplate != null) {
 
-	        int margin = 100;
+	        int margin = 300;
 
 	        setPreferredSize(
 	                new Dimension(
@@ -857,6 +905,37 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	public boolean isShowNames() {
 	    return showNames;
+	}
+	private void drawImageKeepingAspectRatio(
+	        Graphics2D g2,
+	        Image image,
+	        LayoutItem item) {
+
+	    int imageW = image.getWidth(this);
+	    int imageH = image.getHeight(this);
+
+	    if (imageW <= 0 || imageH <= 0) {
+	        return;
+	    }
+
+	    double scaleX = item.getWidth() / (double) imageW;
+	    double scaleY = item.getHeight() / (double) imageH;
+
+	    double scale = Math.min(scaleX, scaleY);
+
+	    int drawW = (int) Math.round(imageW * scale);
+	    int drawH = (int) Math.round(imageH * scale);
+
+	    int drawX = item.getX() + (item.getWidth() - drawW) / 2;
+	    int drawY = item.getY() + (item.getHeight() - drawH) / 2;
+
+	    g2.drawImage(
+	            image,
+	            drawX,
+	            drawY,
+	            drawW,
+	            drawH,
+	            this);
 	}
 
 }

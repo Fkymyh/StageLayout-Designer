@@ -38,7 +38,7 @@ public class PropertyPanel extends JPanel {
 
     public PropertyPanel() {
 
-        setPreferredSize(new Dimension(0, 180));
+        setPreferredSize(new Dimension(0, 140));
 
         setLayout(new BorderLayout());
 
@@ -78,16 +78,23 @@ public class PropertyPanel extends JPanel {
 
         add(editPanel, BorderLayout.WEST);
 
-        summaryArea = new JTextArea(5, 25);
+        summaryArea = new JTextArea(3, 25);
         summaryArea.setEditable(false);
         
         JScrollPane summaryScrollPane =
                 new JScrollPane(summaryArea);
+        
+        summaryScrollPane.setPreferredSize(
+        		new Dimension(220, 80));
+        
 
         summaryScrollPane.setBorder(
                 BorderFactory.createTitledBorder("必要機材一覧"));
+        
+        JPanel summaryPanel = new JPanel(new BorderLayout());
+        summaryPanel.add(summaryScrollPane, BorderLayout.NORTH);
 
-        add(new JScrollPane(summaryArea), BorderLayout.CENTER);
+        add(summaryScrollPane, BorderLayout.CENTER);
 
         saveButton.addActionListener(e -> {
 

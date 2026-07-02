@@ -25,18 +25,32 @@ public class SheetPreviewPanel extends JPanel{
 	
 	private RoomTemplate roomTemplate;
 	
+	private String orientation;
+	
+	private double previewScale = 0.85;
+	
 	public SheetPreviewPanel(
 			ProjectInfo projectInfo,
 			List<LayoutItem> items,
-			RoomTemplate roomTemplate) {
+			RoomTemplate roomTemplate,
+			String orientation) {
 		
 		this.projectInfo = projectInfo;
 		this.items = items;
 		this.roomTemplate = roomTemplate;
+		this.orientation = orientation;
 		
-		setPreferredSize(new Dimension(1200, 850));
-		
-		setBackground(Color.DARK_GRAY);
+		if (PreviewDialog.ORIENTATION_LANDSCAPE.equals(orientation)) {
+		    setPreferredSize(
+		            new Dimension(
+		                    (int) (1200 * previewScale),
+		                    (int) (850 * previewScale)));
+		} else {
+		    setPreferredSize(
+		            new Dimension(
+		                    (int) (850 * previewScale),
+		                    (int) (1200 * previewScale)));
+		}
 	}
 	
 	@Override
@@ -44,28 +58,38 @@ public class SheetPreviewPanel extends JPanel{
 		
 		super.paintComponent(g);
 		
-		int pageX = 40;
-		int pageY = 30;
+		Graphics2D g2 = (Graphics2D) g.create();
+		
+		g2.scale(previewScale, previewScale);
+		
 		int pageW = 1120;
-		int pageH = 780;
+	    int pageH = 780;
+
+	    int scaledPanelW = (int) (getWidth() / previewScale);
+	    int scaledPanelH = (int) (getHeight() / previewScale);
+
+	    int pageX = Math.max(20, (scaledPanelW - pageW) / 2);
+	    int pageY = 30;
 		
 		//用紙背景
-		g.setColor(Color.WHITE);
-		g.fillRect(pageX, pageY, pageW, pageH);
+		g2.setColor(Color.WHITE);
+		g2.fillRect(pageX, pageY, pageW, pageH);
 		
 		 // 用紙外枠
-        g.setColor(Color.BLACK);
-        g.drawRect(pageX, pageY, pageW, pageH);
+        g2.setColor(Color.BLACK);
+        g2.drawRect(pageX, pageY, pageW, pageH);
 
-        drawHeader(g, pageX, pageY, pageW);
+        drawHeader(g2, pageX, pageY, pageW);
 
-        drawLayoutArea(g, pageX, pageY, pageW, pageH);
+        drawLayoutArea(g2, pageX, pageY, pageW, pageH);
 
-        drawEquipmentList(g, pageX, pageY, pageW, pageH);
+        drawEquipmentList(g2, pageX, pageY, pageW, pageH);
 
-        drawNoteArea(g, pageX, pageY, pageW, pageH);
+        drawNoteArea(g2, pageX, pageY, pageW, pageH);
 
-        drawFooter(g, pageX, pageY, pageW, pageH);
+        drawFooter(g2, pageX, pageY, pageW, pageH);
+        
+        g2.dispose();
     }
 
     private void drawHeader(

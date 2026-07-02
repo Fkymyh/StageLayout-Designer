@@ -2,9 +2,9 @@ package model;
 
 public class RoomTemplateFactory {
 	
-	//アプリ上の1グリッド　= 25px
+	//アプリ上の1グリッド　= 35px
 	//1グリッド　= 床1マス = 0.5m 想定
-	private static final int PX_PER_GRID = 25;
+	private static final int PX_PER_GRID = 35;
 	
 	private static int grid(double value) {
         return (int) Math.round(value * PX_PER_GRID);
@@ -27,10 +27,10 @@ public class RoomTemplateFactory {
         room.addObject(
                 new RoomObject(
                         "黒板",
-                        grid(3),
-                        grid(0.5),
-                        grid(8),
-                        grid(0.5)));
+                        grid(3), //左から3マス
+                        grid(0.5), //上から0.5マス
+                        grid(8), //横 8マス
+                        grid(0.5))); //縦 0.5マス
      // 教卓
         room.addObject(
                 new RoomObject(
@@ -43,19 +43,19 @@ public class RoomTemplateFactory {
         room.addObject(
                 new RoomObject(
                         "入口",
-                        grid(2),//左から1m空ける
+                        grid(2),//左から2マス
                         grid(roomGridH - 1), //下辺にくっつける
-                        grid(3), // 入口の横幅1m
-                        grid(1))); //入口の奥行1m
+                        grid(3), // 入口の横幅 3マス
+                        grid(1))); //入口の奥行1マス
      
         
         room.addObject(
                 RoomObject.createLine(
                         "教壇上辺",
-                        grid(2),
-                        grid(1),
-                        grid(11),
-                        grid(1)));
+                        grid(2), //左から2
+                        grid(1), //上から1
+                        grid(11), //左から11
+                        grid(1))); //上から1
 
         room.addObject(
                 RoomObject.createLine(

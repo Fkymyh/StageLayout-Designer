@@ -93,12 +93,13 @@ public class LayoutItem {
         this.rotation = rotation;
     }
     
-    public void rotate90() {
+    
+    public void rotateBy(int degree) {
 
-        rotation = (rotation + 90) % 360;
+        rotation = (rotation + degree) % 360;
 
-        int temp = width;
-        width = height;
-        height = temp;
+        if (rotation < 0) {
+            rotation += 360;
+        }
     }
 }

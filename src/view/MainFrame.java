@@ -1,6 +1,8 @@
 package view;
 
 import java.awt.BorderLayout;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -77,12 +79,29 @@ public class MainFrame extends JFrame {
         horizontalSplitPane.setResizeWeight(0.0);
         
         JSplitPane mainSplitPane = new JSplitPane(
-        			JSplitPane.VERTICAL_SPLIT,
-        			horizontalSplitPane,
-        			propertyPanel);
-        
-        mainSplitPane.setDividerLocation(640);
-        mainSplitPane.setResizeWeight(0.85);
+                JSplitPane.VERTICAL_SPLIT,
+                horizontalSplitPane,
+                propertyPanel);
+
+        mainSplitPane.setResizeWeight(1.0);
+
+        int bottomPanelHeight = 170;
+
+        mainSplitPane.addComponentListener(new ComponentAdapter() {
+
+            @Override
+            public void componentResized(ComponentEvent e) {
+
+                int dividerLocation =
+                        mainSplitPane.getHeight() - bottomPanelHeight;
+
+                if (dividerLocation > 0) {
+                    mainSplitPane.setDividerLocation(dividerLocation);
+                }
+            }
+        });
+
+        add(mainSplitPane, BorderLayout.CENTER);
         
         add(mainSplitPane, BorderLayout.CENTER);
         		
@@ -291,14 +310,15 @@ public class MainFrame extends JFrame {
         //プレビュー処理
         menuBar.getPreviewItem().addActionListener(e -> {
 
-            PreviewDialog dialog =
-                    new PreviewDialog(
-                            this,
-                            projectInfo,
-                            canvasPanel.getItems(),
-                            canvasPanel.getRoomTemplate());
+        	PreviewDialog dialog =
+        	        new PreviewDialog(
+        	                this,
+        	                projectInfo,
+        	                canvasPanel.getItems(),
+        	                canvasPanel.getRoomTemplate(),
+        	                PreviewDialog.ORIENTATION_LANDSCAPE);
 
-            dialog.setVisible(true);
+        	dialog.setVisible(true);
         });
         
      // 編集メニュー：回転
