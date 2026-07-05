@@ -44,9 +44,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private PropertyPanel propertyPanel;	
 	
-	private final int GRID_SIZE = 35;
+	private final int GRID_SIZE = 20;
 	
-	private final double METERS_PER_GRID = 0.5;
+	private final double METERS_PER_GRID = 0.3;
 	
 	private int dragOffsetX;
 	
@@ -360,7 +360,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 
-	    g.setColor(new Color(225, 225, 225));
+	    g.setColor(new Color(238, 238, 238));
 
 	    for (int x = 0; x <= roomTemplate.getWidth(); x += GRID_SIZE) {
 	        g.drawLine(
@@ -809,7 +809,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    if (roomTemplate != null) {
 
-	        int margin = 300;
+	        int margin = 200;
 
 	        setPreferredSize(
 	                new Dimension(
@@ -865,37 +865,29 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private void drawMeterLabels(Graphics g) {
 
 	    g.setColor(Color.GRAY);
+	    //5マスごとに表示
+	    int labelStep = GRID_SIZE * 5;
 
-	    for (int x = 0; x < getWidth(); x += GRID_SIZE * 2) {
+	    for (int x = 0; x < getWidth(); x += labelStep) {
 
-	        double meter = x / (double) GRID_SIZE * METERS_PER_GRID;
+	        int gridNumber = x / GRID_SIZE;
 
 	        g.drawString(
-	                formatMeter(meter),
+	                gridNumber + "マス",
 	                x + 3,
 	                15);
 	    }
 
-	    for (int y = 0; y < getHeight(); y += GRID_SIZE * 2) {
+	    for (int y = 0; y < getHeight(); y += labelStep) {
 
-	        double meter = y / (double) GRID_SIZE * METERS_PER_GRID;
+	        int gridNumber = y / GRID_SIZE;
 
 	        g.drawString(
-	                formatMeter(meter),
+	                gridNumber + "マス",
 	                3,
 	                y + 15);
 	    }
 	}
-	
-	private String formatMeter(double meter) {
-
-	    if (meter == (int) meter) {
-	        return (int) meter + "m";
-	    }
-
-	    return meter + "m";
-	}
-	
 	
 	
 	public void setShowNames(boolean showNames) {

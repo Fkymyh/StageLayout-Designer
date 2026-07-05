@@ -2,9 +2,9 @@ package model;
 
 public class RoomTemplateFactory {
 	
-	//アプリ上の1グリッド　= 35px
-	//1グリッド　= 床1マス = 0.5m 想定
-	private static final int PX_PER_GRID = 35;
+	//アプリ上の1グリッド　= 20px
+	//1グリッド　= 床1マス = 30cm 想定
+	private static final int PX_PER_GRID = 20;
 	
 	private static int grid(double value) {
         return (int) Math.round(value * PX_PER_GRID);
@@ -12,128 +12,166 @@ public class RoomTemplateFactory {
 
 	public static RoomTemplate createFirstClassroom() {
 		
-		int roomGridW = 14; //仮:横14マス
-		int roomGridH = 24; //仮:縦24マス
+		// =========================
+	    // 214教室 実測値
+	    // 床1マス = 30cm
+	    // =========================
+		
+		double roomGridW = 42.0; //仮:横42マス
+		double roomGridH = 51.7; //仮:縦51.7マス
 		
     	
     
 
         RoomTemplate room =
                 new RoomTemplate(
-                        "第一教室",
+                        "214教室",
                         grid(roomGridW),
                         grid(roomGridH));
-     // 黒板 :上側中央
-        room.addObject(
-                new RoomObject(
-                        "黒板",
-                        grid(3), //左から3マス
-                        grid(0.5), //上から0.5マス
-                        grid(8), //横 8マス
-                        grid(0.5))); //縦 0.5マス
+     // =========================
+     // 黒板
+     // 平面図では壁面の高さ126cmは使わず、薄い横長として表示
+     // =========================
+     double blackboardX = 10 + 16.0 / 30.0;
+     double blackboardY = 0;
+     double blackboardW = 554.0 / 30.0;
+     double blackboardH = 0.5;
+
+     room.addObject(
+             new RoomObject(
+                     "黒板",
+                     grid(blackboardX),
+                     grid(blackboardY),
+                     grid(blackboardW),
+                     grid(blackboardH)));
+
+     // =========================
+     // 教壇
+     // 黒板より少し広め・奥行きありで仮表示
+     // =========================
+     double podiumX = blackboardX - 1.0;
+     double podiumY = 0.5;
+     double podiumW = blackboardW + 2.0;
+     double podiumH = 2 + 22.0 / 30.0;
+
+     room.addObject(
+             new RoomObject(
+                     "教壇",
+                     grid(podiumX),
+                     grid(podiumY),
+                     grid(podiumW),
+                     grid(podiumH)));
+
+     // =========================
      // 教卓
+     // 黒板の中心に合わせる
+     // =========================
+     double lecternW = 270.0 / 30.0;
+     double lecternH = 90.0 / 30.0;
+
+     double blackboardCenterX = blackboardX + blackboardW / 2.0;
+     double lecternX = blackboardCenterX - lecternW / 2.0;
+     double lecternY = 3.0;
+
+     room.addObject(
+             new RoomObject(
+                     "教卓",
+                     grid(lecternX),
+                     grid(lecternY),
+                     grid(lecternW),
+                     grid(lecternH)));
+     // ==========================================
+     //入口
+     //下側の壁、左から2マス17cm, 幅180cm
+     //下辺ぴったりではなく、少し内側に描く
+     //===========================================
+        
+        double entranceX = 2 + 17.0 / 30.0;
+        double entranceW = 180.0 / 30.0;
+        double entranceY = roomGridH - 0.3;
+        
+       
+        
+        
         room.addObject(
-                new RoomObject(
-                        "教卓",
-                        grid(5.5),
-                        grid(2),
-                        grid(3),
-                        grid(1)));
-     // 入口：下辺左側、左から1m=2マス空ける想定
-        room.addObject(
-                new RoomObject(
+                RoomObject.createLine(
                         "入口",
-                        grid(2),//左から2マス
-                        grid(roomGridH - 1), //下辺にくっつける
-                        grid(3), // 入口の横幅 3マス
-                        grid(1))); //入口の奥行1マス
+                        grid(entranceX),
+                        grid(roomGridH),
+                        grid(entranceX + entranceW),
+                        grid(entranceY))); 
+     //==========================================
+     //教壇エリア　仮
+     //メモの４点が左右同じになっているので四角形で
+     //ステージ：縦12マス５㎝ / 横42マス程度
+     //==========================================
+        
+        double stageH = 12 + 5.0 / 30.0;
+        
+        room.addObject(
+        		new RoomObject(
+    					"ステージ想定エリア",
+    					grid(0),
+    					grid(roomGridH - stageH),
+    					grid(roomGridW),
+    					grid(stageH)));
+        
+     //==========================================
+     //壁出っ張り
+     //左右同じ位置
+     //w 33cm / h 56cm
+     //==========================================  
+        
+     double bumpW = 33.0 / 30.0;
+     double bumpH = 56.0 / 30.0;
      
-        
-        room.addObject(
-                RoomObject.createLine(
-                        "教壇上辺",
-                        grid(2), //左から2
-                        grid(1), //上から1
-                        grid(11), //左から11
-                        grid(1))); //上から1
-
-        room.addObject(
-                RoomObject.createLine(
-                        "教壇右辺",
-                        grid(11),
-                        grid(1),
-                        grid(10),
-                        grid(3)));
-
-        room.addObject(
-                RoomObject.createLine(
-                        "教壇下辺",
-                        grid(10),
-                        grid(3),
-                        grid(3),
-                        grid(3)));
-
-        room.addObject(
-                RoomObject.createLine(
-                        "教壇左辺",
-                        grid(3),
-                        grid(3),
-                        grid(2),
-                        grid(1)));
-        
-     // 左右の壁出っ張り
-     		int bumpW = grid(0.5);
-     		int bumpH = grid(1.0);
-
-     		int leftBumpX = 0;
-     		int rightBumpX = grid(roomGridW) - bumpW;
-
-     		int upperBumpY = grid(roomGridH * 0.30) - bumpH / 2;
-     		int lowerBumpY = grid(roomGridH * 0.65) - bumpH / 2;
-        
-        room.addObject(
-        		new RoomObject(
-        				"壁出っ張り",
-        				leftBumpX,
-        				upperBumpY,
-        				bumpW,
-        				bumpH));
-        
-        room.addObject(
-        		new RoomObject(
-        				"壁出っ張り",
-        				rightBumpX,
-        				upperBumpY,
-        				bumpW,
-        				bumpH));
-        
-        room.addObject(
-        		new RoomObject(
-        				"壁出っ張り",
-        				leftBumpX,
-        				lowerBumpY,
-        				bumpW,
-        				bumpH));
-        
-        room.addObject(
-        		new RoomObject(
-        				"壁出っ張り",
-        				rightBumpX,
-        				lowerBumpY,
-        				bumpW,
-        				bumpH));
+     double bumpY1 = 11 + 8.0 / 30.0;
+     double bumpY2 = 24 + 21.0 / 30.0;
+     double bumpY3 = 37 + 22.0 / 30.0;
+     
+     addWallBumpPair(room, roomGridW, 0, bumpY1, bumpW, bumpH);
+     addWallBumpPair(room, roomGridW, 0, bumpY2, bumpW, bumpH);
+     addWallBumpPair(room, roomGridW, 0, bumpY3, bumpW, bumpH);
+         
 
         return room;
     }
     
     public static RoomTemplate createByName(String name) {
 
-        if ("第一教室".equals(name)) {
+        if ("第一教室".equals(name)
+                || "214教室".equals(name)) {
             return createFirstClassroom();
         }
 
         return null;
     }
-    
-    
+
+    private static void addWallBumpPair(
+            RoomTemplate room,
+            double roomGridW,
+            double x,
+            double y,
+            double w,
+            double h) {
+
+        // 左側
+        room.addObject(
+                new RoomObject(
+                        "壁出っ張り",
+                        grid(x),
+                        grid(y),
+                        grid(w),
+                        grid(h)));
+
+        // 右側
+        room.addObject(
+                new RoomObject(
+                        "壁出っ張り",
+                        grid(roomGridW - w),
+                        grid(y),
+                        grid(w),
+                        grid(h)));
+    }
 }
+
