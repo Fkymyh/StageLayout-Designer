@@ -1,17 +1,20 @@
 package view;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 
+import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.JToolBar;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import io.LayoutData;
@@ -43,7 +46,73 @@ public class MainFrame extends JFrame {
         				equipmentPanel,
         				propertyPanel);
         
-        
+        JToolBar toolBar = new JToolBar();
+
+        JButton selectModeButton = new JButton("選択");
+        JButton lineModeButton = new JButton("線");
+
+        JButton blackLineButton = new JButton("黒");
+        JButton redLineButton = new JButton("赤");
+        JButton blueLineButton = new JButton("青");
+        JButton greenLineButton = new JButton("緑");
+
+        JButton thickerButton = new JButton("太く");
+        JButton thinnerButton = new JButton("細く");
+        JButton cancelStartButton = new JButton("始点取消");
+
+        selectModeButton.addActionListener(e -> {
+            canvasPanel.setDrawLineMode(false);
+        });
+
+        lineModeButton.addActionListener(e -> {
+            canvasPanel.setDrawLineMode(true);
+        });
+
+        blackLineButton.addActionListener(e -> {
+            canvasPanel.setCurrentLineColor(Color.BLACK);
+        });
+
+        redLineButton.addActionListener(e -> {
+            canvasPanel.setCurrentLineColor(Color.RED);
+        });
+
+        blueLineButton.addActionListener(e -> {
+            canvasPanel.setCurrentLineColor(Color.BLUE);
+        });
+
+        greenLineButton.addActionListener(e -> {
+            canvasPanel.setCurrentLineColor(Color.GREEN);
+        });
+
+        thickerButton.addActionListener(e -> {
+            canvasPanel.increaseLineStrokeWidth();
+        });
+
+        thinnerButton.addActionListener(e -> {
+            canvasPanel.decreaseLineStrokeWidth();
+        });
+
+        cancelStartButton.addActionListener(e -> {
+            canvasPanel.cancelLineStartPoint();
+        });
+
+        toolBar.add(selectModeButton);
+        toolBar.add(lineModeButton);
+
+        toolBar.addSeparator();
+
+        toolBar.add(blackLineButton);
+        toolBar.add(redLineButton);
+        toolBar.add(blueLineButton);
+        toolBar.add(greenLineButton);
+
+        toolBar.addSeparator();
+
+        toolBar.add(thickerButton);
+        toolBar.add(thinnerButton);
+        toolBar.add(cancelStartButton);
+
+        add(toolBar, BorderLayout.NORTH);
         
     		addWindowListener(new WindowAdapter() {
 

@@ -20,6 +20,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 
+import model.DrawLine;
 import model.Equipment;
 import model.EquipmentFactory;
 import model.LayoutItem;
@@ -37,6 +38,19 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private List<LayoutItem> items = new ArrayList<>();
 	
 	private LayoutItem selectedItem;
+	
+	private boolean drawLineMode = false;
+
+	private Integer lineStartX = null;
+
+	private Integer lineStartY = null;
+	
+	private int mouseX;
+	private int mouseY;
+	
+	private Color currentLineColor = Color.RED;
+
+	private int currentLineStrokeWidth = 3;
 	
 	private LayoutItem copiedItem;
 	
@@ -61,6 +75,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private RoomTemplate roomTemplate;
 	
 	private boolean showNames = true;
+	
+	private List<DrawLine> drawLines = new ArrayList<>();
 	
 	private void showPopupMenu(MouseEvent e){
 
@@ -151,6 +167,20 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    repaint();
 	}
 	
+	public void toggleDrawLineMode() {
+
+	    drawLineMode = !drawLineMode;
+
+	    lineStartX = null;
+	    lineStartY = null;
+
+	    selectedItem = null;
+
+	    refreshPanels();
+
+	    repaint();
+	}
+	
 	public void moveSelectedItem(int dx, int dy) {
 
 	    if (selectedItem == null) {
@@ -180,6 +210,14 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		}
 		
 		drawRoomTemplate(g);
+		
+		drawLines(g);
+		
+		drawLinePreview(g);
+		
+		drawLineStartPoint(g);
+		
+		drawModeNotice(g);
 	
 		
      // 機材描画
@@ -294,6 +332,29 @@ public class CanvasPanel extends JPanel implements MouseListener,
         
 	}
 	
+	private void drawLineStartPoint(Graphics g) {
+
+	    if (!drawLineMode) {
+	        return;
+	    }
+
+	    if (lineStartX == null || lineStartY == null) {
+	        return;
+	    }
+
+	    g.setColor(Color.RED);
+
+	    g.fillOval(
+	            lineStartX - 4,
+	            lineStartY - 4,
+	            8,
+	            8);
+
+	    g.drawString(
+	            "始点",
+	            lineStartX + 6,
+	            lineStartY - 6);
+	}
 	
 	private void drawRoomTemplate(Graphics g) {
 
@@ -301,7 +362,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 
-	    g.setColor(new Color(245, 245, 245));
+	    if (drawLineMode) {
+	        g.setColor(new Color(255, 250, 225));
+	    } else {
+	        g.setColor(new Color(245, 245, 245));
+	    }
 
 	    g.fillRect(
 	            0,
@@ -379,6 +444,43 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 	}
 	
+	private void drawLines(Graphics g) {
+
+	    Graphics2D g2 = (Graphics2D) g.create();
+
+	    for (DrawLine line : drawLines) {
+
+	        g2.setColor(line.getColor());
+
+	        g2.setStroke(
+	                new BasicStroke(
+	                        line.getStrokeWidth(),
+	                        BasicStroke.CAP_ROUND,
+	                        BasicStroke.JOIN_ROUND));
+
+	        g2.drawLine(
+	                line.getStartX(),
+	                line.getStartY(),
+	                line.getEndX(),
+	                line.getEndY());
+
+	        if (showNames
+	                && line.getLabel() != null
+	                && !line.getLabel().isBlank()) {
+
+	            g2.setColor(Color.BLACK);
+	            g2.setStroke(new BasicStroke(1));
+
+	            g2.drawString(
+	                    line.getLabel(),
+	                    line.getStartX() + 5,
+	                    line.getStartY() - 5);
+	        }
+	    }
+
+	    g2.dispose();
+	}
+	
 	private void drawBamiri(Graphics g, LayoutItem item) {
 
 	    String name = item.getEquipment().getName();
@@ -412,55 +514,168 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 	}
 	
+	private void drawModeNotice(Graphics g) {
+
+	    if (!drawLineMode) {
+	        return;
+	    }
+
+	    g.setColor(new Color(255, 240, 180));
+	    g.fillRect(10, 25, 230, 35);
+
+	    g.setColor(Color.ORANGE);
+	    g.drawRect(10, 25, 230, 35);
+
+	    g.setColor(Color.BLACK);
+	    g.drawString(
+	            "線描画モード：クリック2回で線を作成",
+	            20,
+	            48);
+
+	    g.setColor(currentLineColor);
+	    g.fillRect(250, 32, 30, 18);
+
+	    g.setColor(Color.BLACK);
+	    g.drawRect(250, 32, 30, 18);
+
+	    g.drawString(
+	            "太さ " + currentLineStrokeWidth,
+	            290,
+	            48);
+	}
+	
+	private void drawLinePreview(Graphics g) {
+
+	    if (!drawLineMode) {
+	        return;
+	    }
+
+	    if (lineStartX == null || lineStartY == null) {
+	        return;
+	    }
+
+	    Graphics2D g2 = (Graphics2D) g.create();
+
+	    g2.setColor(currentLineColor);
+	    g2.setStroke(
+	            new BasicStroke(
+	                    currentLineStrokeWidth,
+	                    BasicStroke.CAP_ROUND,
+	                    BasicStroke.JOIN_ROUND));
+
+	    g2.drawLine(
+	            lineStartX,
+	            lineStartY,
+	            mouseX,
+	            mouseY);
+
+	    g2.dispose();
+	}
+	
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		
-		selectedItem = findItem(e.getX(), e.getY());
-		
-		refreshPanels();
-		
-		if(selectedItem != null) {
-			
-			repaint();
-			
-			return;
-		}
-		
-		//空いてる場所をダブルクリックした時だけ機材を追加する
-		if (e.getClickCount() < 2) {
-			return;
-		}
-		
-		String name = equipmentPanel.getSelectedEquipment();
-		
-		if (name == null) {
-			return;
-		}
-		
-		Equipment equipment = EquipmentFactory.create(name);
-		
-		int x = e.getX();
-		int y = e.getY();
 
-		if (snapToGrid) {
-		    x = snapValue(x);
-		    y = snapValue(y);
-		}
+	    if (drawLineMode) {
+	    	
+	    		if(e.getButton() != MouseEvent.BUTTON1) {
+	    			return;
+	    		}
 
-		LayoutItem newItem = new LayoutItem(
-		        equipment,
-		        x,
-		        y);
-		
-		items.add(newItem);
-		
-		selectedItem = newItem;
-		
-		refreshPanels();
-		
-		notifyChanged();
-		
-		repaint();
+	        handleDrawLineClick(e);
+
+	        return;
+	    }
+
+	    selectedItem = findItem(e.getX(), e.getY());
+
+	    refreshPanels();
+
+	    if (selectedItem != null) {
+
+	        repaint();
+
+	        return;
+	    }
+
+	    // 空いてる場所をダブルクリックした時だけ機材を追加する
+	    if (e.getClickCount() < 2) {
+	        return;
+	    }
+
+	    String name = equipmentPanel.getSelectedEquipment();
+
+	    if (name == null) {
+	        return;
+	    }
+
+	    Equipment equipment = EquipmentFactory.create(name);
+
+	    int x = e.getX();
+	    int y = e.getY();
+
+	    if (snapToGrid) {
+	        x = snapValue(x);
+	        y = snapValue(y);
+	    }
+
+	    LayoutItem newItem = new LayoutItem(
+	            equipment,
+	            x,
+	            y);
+
+	    items.add(newItem);
+
+	    selectedItem = newItem;
+
+	    refreshPanels();
+
+	    notifyChanged();
+
+	    repaint();
+	}
+	
+	private void handleDrawLineClick(MouseEvent e) {
+
+	    int x = e.getX();
+	    int y = e.getY();
+
+	    if (snapToGrid) {
+	        x = snapValue(x);
+	        y = snapValue(y);
+	    }
+
+	    // 1回目クリック：始点を保存
+	    if (lineStartX == null || lineStartY == null) {
+
+	        lineStartX = x;
+	        lineStartY = y;
+
+	        repaint();
+
+	        return;
+	    }
+
+	    // 2回目クリック：線を追加
+	    DrawLine line =
+	            new DrawLine(
+	                    lineStartX,
+	                    lineStartY,
+	                    x,
+	                    y);
+
+	    line.setColor(currentLineColor);
+	    line.setStrokeWidth(currentLineStrokeWidth);
+
+	    drawLines.add(line);
+	    
+	 // 重要：
+	    // 終点を次の始点にする
+	    lineStartX = x;
+	    lineStartY = y;
+
+	    notifyChanged();
+
+	    repaint();
 	}
 	
 	@Override
@@ -468,8 +683,18 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		requestFocusInWindow();
 		
-		if (e.isPopupTrigger()) {
+		if (e.isPopupTrigger() || e.getButton() == MouseEvent.BUTTON3) {
+			
+			if(drawLineMode) {
+				finishCurrentLine();
+				return;
+			}
+			
 			showPopupMenu(e);
+			return;
+		}
+		
+		if (drawLineMode) {
 			return;
 		}
 		
@@ -492,8 +717,17 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	@Override
 	public void mouseReleased(MouseEvent e) {
 		
-		if (e.isPopupTrigger()) {
+		if (e.isPopupTrigger() || e.getButton() == MouseEvent.BUTTON3){
+			
+			if(drawLineMode) {
+				finishCurrentLine();
+				return;
+			}
 			showPopupMenu(e);
+			return;
+		}
+		
+		if(drawLineMode) {
 			return;
 		}
 		
@@ -513,6 +747,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	@Override
 	public void mouseDragged(MouseEvent e) {
+		
+		if(drawLineMode) {
+			return;
+		}
 		
 		if(selectedItem != null && dragging) {
 			
@@ -539,6 +777,14 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	@Override
 	public void mouseMoved(MouseEvent e) {
 		
+		mouseX = e.getX();
+	    mouseY = e.getY();
+
+	    if (drawLineMode && lineStartX != null && lineStartY != null) {
+	        repaint();
+	        return;
+	    }
+		
 		LayoutItem item = findItem(e.getX(), e.getY());
 		
 		if(item != null) {
@@ -552,13 +798,74 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	@Override
 	public void keyPressed(KeyEvent e) {
 
+	    if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+
+	        if (drawLineMode) {
+	            finishCurrentLine();
+	            return;
+	        }
+	    }
+
+	    if (e.getKeyCode() == KeyEvent.VK_L) {
+
+	        toggleDrawLineMode();
+
+	        return;
+	    }
+
+	    if (drawLineMode) {
+
+	        if (e.getKeyCode() == KeyEvent.VK_1) {
+	            currentLineColor = Color.BLACK;
+	            repaint();
+	            return;
+	        }
+
+	        if (e.getKeyCode() == KeyEvent.VK_2) {
+	            currentLineColor = Color.RED;
+	            repaint();
+	            return;
+	        }
+
+	        if (e.getKeyCode() == KeyEvent.VK_3) {
+	            currentLineColor = Color.BLUE;
+	            repaint();
+	            return;
+	        }
+
+	        if (e.getKeyCode() == KeyEvent.VK_4) {
+	            currentLineColor = Color.GREEN;
+	            repaint();
+	            return;
+	        }
+
+	        if (e.getKeyCode() == KeyEvent.VK_PLUS
+	                || e.getKeyCode() == KeyEvent.VK_EQUALS
+	                || e.getKeyCode() == KeyEvent.VK_ADD
+	                || e.getKeyChar() == '+') {
+
+	            increaseLineStrokeWidth();
+	            return;
+	        }
+
+	        if (e.getKeyCode() == KeyEvent.VK_MINUS
+	                || e.getKeyCode() == KeyEvent.VK_SUBTRACT
+	                || e.getKeyChar() == '-') {
+
+	            decreaseLineStrokeWidth();
+	            return;
+	        }
+
+	        return;
+	    }
+
 	    if (e.getKeyCode() == KeyEvent.VK_DELETE) {
 
 	        deleteSelectedItem();
 
 	        return;
 	    }
-	    
+
 	    int moveAmount = snapToGrid ? GRID_SIZE : 5;
 
 	    if (e.getKeyCode() == KeyEvent.VK_UP) {
@@ -598,23 +905,23 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	        return;
 	    }
-	    
-	    if (e.getKeyCode() == KeyEvent.VK_R) {
-	    	
-	    	if (e.isShiftDown()) {
-	    		rotateSelectedItemReverse();
-	    	}else {
-	    		rotateSelectedItem();
-	    	}
-	    	return;
-	    }
-	    
 
 	    if (e.getKeyCode() == KeyEvent.VK_MINUS
 	            || e.getKeyCode() == KeyEvent.VK_SUBTRACT
 	            || e.getKeyChar() == '-') {
 
 	        resizeSelectedItem(-10);
+
+	        return;
+	    }
+
+	    if (e.getKeyCode() == KeyEvent.VK_R) {
+
+	        if (e.isShiftDown()) {
+	            rotateSelectedItemReverse();
+	        } else {
+	            rotateSelectedItem();
+	        }
 
 	        return;
 	    }
@@ -948,6 +1255,65 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	            drawW,
 	            drawH,
 	            this);
+	}
+	
+	public void setDrawLineMode(boolean drawLineMode) {
+
+	    this.drawLineMode = drawLineMode;
+
+	    lineStartX = null;
+	    lineStartY = null;
+
+	    selectedItem = null;
+
+	    refreshPanels();
+
+	    repaint();
+	}
+
+	public boolean isDrawLineMode() {
+	    return drawLineMode;
+	}
+
+	public void setCurrentLineColor(Color color) {
+
+	    this.currentLineColor = color;
+
+	    repaint();
+	}
+
+	public void increaseLineStrokeWidth() {
+
+	    currentLineStrokeWidth++;
+
+	    repaint();
+	}
+
+	public void decreaseLineStrokeWidth() {
+
+	    currentLineStrokeWidth--;
+
+	    if (currentLineStrokeWidth < 1) {
+	        currentLineStrokeWidth = 1;
+	    }
+
+	    repaint();
+	}
+
+	public void cancelLineStartPoint() {
+
+	    lineStartX = null;
+	    lineStartY = null;
+
+	    repaint();
+	}
+	
+	public void finishCurrentLine() {
+
+	    lineStartX = null;
+	    lineStartY = null;
+
+	    repaint();
 	}
 
 }
