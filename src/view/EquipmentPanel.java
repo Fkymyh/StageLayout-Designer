@@ -3,6 +3,7 @@ package view;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.Image;
 import java.util.ArrayList;
@@ -21,6 +22,14 @@ import model.EquipmentDefinition;
 import model.EquipmentFactory;
 
 public class EquipmentPanel extends JPanel {
+	
+	private static final int PANEL_WIDTH = 170;
+
+    private static final int BUTTON_WIDTH = 72;
+
+    private static final int BUTTON_HEIGHT = 78;
+
+    private static final int ICON_SIZE = 34;
 
     private JTabbedPane tabbedPane;
 
@@ -32,7 +41,7 @@ public class EquipmentPanel extends JPanel {
 
         setLayout(new BorderLayout());
 
-        setPreferredSize(new Dimension(280, 0));
+        setPreferredSize(new Dimension(PANEL_WIDTH, 0));
         
         setBorder(
                 javax.swing.BorderFactory.createTitledBorder("機材パレット"));
@@ -50,7 +59,7 @@ public class EquipmentPanel extends JPanel {
 
         JPanel panel = new JPanel();
 
-        panel.setLayout(new GridLayout(0, 2, 6, 6));
+        panel.setLayout(new GridLayout(0, 2, 4, 4));
 
         for (String name : equipmentNames) {
 
@@ -62,6 +71,9 @@ public class EquipmentPanel extends JPanel {
         }
 
         JScrollPane scrollPane = new JScrollPane(panel);
+        
+        scrollPane.setHorizontalScrollBarPolicy(
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
         tabbedPane.addTab(categoryName, scrollPane);
     }
@@ -72,14 +84,21 @@ public class EquipmentPanel extends JPanel {
 
         JButton button = new JButton();
 
-        button.setText(name);
+        button.setText(shortenName(name));
         
         button.setToolTipText(name);
 
         button.setVerticalTextPosition(JButton.BOTTOM);
         button.setHorizontalTextPosition(JButton.CENTER);
 
-        button.setPreferredSize(new Dimension(115, 95));
+        button.setPreferredSize(
+                new Dimension(BUTTON_WIDTH, BUTTON_HEIGHT));
+
+        button.setMaximumSize(
+                new Dimension(BUTTON_WIDTH, BUTTON_HEIGHT));
+
+        button.setFont(
+                button.getFont().deriveFont(Font.PLAIN, 10f));
 
         button.setBackground(Color.WHITE);
         button.setFocusPainted(false);
@@ -89,8 +108,8 @@ public class EquipmentPanel extends JPanel {
 
             Image scaledImage =
                     equipment.getImage().getScaledInstance(
-                            48,
-                            48,
+                            ICON_SIZE,
+                            ICON_SIZE,
                             Image.SCALE_SMOOTH);
 
             button.setIcon(new ImageIcon(scaledImage));
@@ -106,20 +125,35 @@ public class EquipmentPanel extends JPanel {
         return button;
     }
 
+    private String shortenName(String name) {
+
+        if (name == null) {
+            return "";
+        }
+
+        if (name.length() <= 6) {
+            return name;
+        }
+
+        return name.substring(0, 6);
+    }
+
     private void updateButtonSelection() {
 
         for (Map.Entry<String, JButton> entry : buttons.entrySet()) {
+        		
+        	String name = entry.getKey();
 
             JButton button = entry.getValue();
 
             if (entry.getKey().equals(selectedEquipmentName)) {
 
-                button.setText("▶ " + entry.getKey());
+                button.setText("▶ " + shortenName(name));
                 button.setBackground(new Color(180, 210, 255));
 
             } else {
 
-                button.setText(entry.getKey());
+                button.setText(shortenName(name));
                 button.setBackground(Color.WHITE);
             }
         }

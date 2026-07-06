@@ -1153,8 +1153,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	}
 	
 	private void drawGrid(Graphics g) {
+		
+		int canvasWidth = (int) Math.round(getWidth() / zoom);
+	    int canvasHeight = (int) Math.round(getHeight() / zoom);
 
-	    for (int x = 0; x < getWidth(); x += GRID_SIZE) {
+	    for (int x = 0; x < canvasWidth; x += GRID_SIZE) {
 
 	        int gridIndex = x / GRID_SIZE;
 
@@ -1177,7 +1180,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	            g.setColor(new Color(230, 230, 230));
 	        }
 
-	        g.drawLine(0, y, getWidth(), y);
+	        g.drawLine(0, y, canvasWidth, y);
 	    }
 
 	    drawMeterLabels(g);
@@ -1188,26 +1191,42 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    g.setColor(Color.GRAY);
 	    //5マスごとに表示
 	    int labelStep = GRID_SIZE * 5;
+	    
+	    int canvasWidth = (int) Math.round(getWidth() / zoom);
+	    int canvasHeight = (int) Math.round(getHeight() / zoom);
 
-	    for (int x = 0; x < getWidth(); x += labelStep) {
+	    for (int x = 0; x < canvasWidth; x += labelStep) {
 
 	        int gridNumber = x / GRID_SIZE;
+	        
+	        double meters = gridNumber * METERS_PER_GRID;
 
 	        g.drawString(
-	                gridNumber + "マス",
+	        		    formatMeters(meters),
 	                x + 3,
 	                15);
 	    }
 
-	    for (int y = 0; y < getHeight(); y += labelStep) {
+	    for (int y = 0; y < canvasHeight; y += labelStep) {
 
 	        int gridNumber = y / GRID_SIZE;
+	        
+	        double meters = gridNumber * METERS_PER_GRID;
 
 	        g.drawString(
-	                gridNumber + "マス",
+	        		formatMeters(meters),
 	                3,
 	                y + 15);
 	    }
+	    }
+	    private String formatMeters(double meters) {
+
+	        if (meters == Math.floor(meters)) {
+	            return String.format("%.0fm", meters);
+	        }
+
+	        return String.format("%.1fm", meters);
+	    
 	}
 	
 	
