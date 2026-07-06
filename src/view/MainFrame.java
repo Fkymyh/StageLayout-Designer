@@ -162,9 +162,15 @@ public class MainFrame extends JFrame {
         
         JCheckBox gridCheckBox = new JCheckBox("グリッド", true);
         JCheckBox nameCheckBox = new JCheckBox("名前", true);
+        
+        JCheckBox lineLengthCheckBox =
+                new JCheckBox("線長さ", true);
+        lineLengthCheckBox.setToolTipText(
+                "線の長さをメートルで表示します");
 
         gridCheckBox.setToolTipText("グリッドの表示を切り替えます");
         nameCheckBox.setToolTipText("機材名・表示名の表示を切り替えます");
+        lineLengthCheckBox.setToolTipText("線の長さをメートルで表示します");
 
         JComboBox<String> colorComboBox =
                 new JComboBox<>(new String[] {"赤", "黒", "青", "緑"});
@@ -247,6 +253,19 @@ public class MainFrame extends JFrame {
                 statusLabel.setText("名前表示: OFF");
             }
         });
+        
+        lineLengthCheckBox.addActionListener(e -> {
+
+            boolean selected = lineLengthCheckBox.isSelected();
+
+            canvasPanel.setShowLineLength(selected);
+
+            if (selected) {
+                statusLabel.setText("線の長さ表示: ON");
+            } else {
+                statusLabel.setText("線の長さ表示: OFF");
+            }
+        });
 
         colorComboBox.addActionListener(e -> {
 
@@ -299,6 +318,21 @@ public class MainFrame extends JFrame {
 
             statusLabel.setText("表示倍率: " + selected);
         });
+        
+        lineLengthCheckBox.addActionListener(e -> {
+
+            boolean selected =
+                    lineLengthCheckBox.isSelected();
+
+            canvasPanel.setShowLineLength(selected);
+
+            if (selected) {
+                statusLabel.setText("線の長さ表示: ON");
+            } else {
+                statusLabel.setText("線の長さ表示: OFF");
+            }
+        });
+        
 
         toolBar.add(selectButton);
         toolBar.add(lineButton);
@@ -323,6 +357,22 @@ public class MainFrame extends JFrame {
 
         toolBar.add(gridCheckBox);
         toolBar.add(nameCheckBox);
+        toolBar.add(lineLengthCheckBox);
+
+        lineLengthCheckBox.setToolTipText("線の長さをメートルで表示します");
+        
+        lineLengthCheckBox.addActionListener(e -> {
+
+            boolean selected = lineLengthCheckBox.isSelected();
+
+            canvasPanel.setShowLineLength(selected);
+
+            if (selected) {
+                statusLabel.setText("線の長さ表示: ON");
+            } else {
+                statusLabel.setText("線の長さ表示: OFF");
+            }
+        });
 
         toolBar.addSeparator();
 

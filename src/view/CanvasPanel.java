@@ -60,11 +60,23 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private final int GRID_SIZE = 20;
 	
-	private final double METERS_PER_GRID = 0.3;
+	private static final double DEFAULT_METERS_PER_GRID = 0.5;
+
+	private static final double TEMPLATE_214_METERS_PER_GRID = 0.33;
+
+	private double metersPerGrid = DEFAULT_METERS_PER_GRID;
+	
+	private static final int LEFT_RULER_WIDTH = 35;
+
+	private static final int TOP_RULER_HEIGHT = 25;
 	
 	private int dragOffsetX;
 	
 	private int dragOffsetY;
+	
+	private boolean controlDown = false;
+	
+	private boolean shiftDown = false;
 	
 	private boolean showGrid = true;
 
@@ -76,6 +88,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private boolean showNames = true;
 	
+	private boolean showLineLength = true;
+	
 	private double zoom = 1.0;
 	
 	private final int BASE_WIDTH = 1800;
@@ -83,11 +97,46 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private final int BASE_HEIGHT = 1200;
 	
 	private int toCanvasX(MouseEvent e) {
-	    return (int) Math.round(e.getX() / zoom);
+	    return (int) Math.round((e.getX() - LEFT_RULER_WIDTH) / zoom);
 	}
 
 	private int toCanvasY(MouseEvent e) {
-	    return (int) Math.round(e.getY() / zoom);
+	    return (int) Math.round((e.getY() - TOP_RULER_HEIGHT) / zoom);
+	}
+	
+	private double calculateLineLengthMeters(DrawLine line) {
+
+	    int dx = line.getEndX() - line.getStartX();
+	    int dy = line.getEndY() - line.getStartY();
+
+	    double pixelLength = Math.sqrt(dx * dx + dy * dy);
+
+	    double gridLength = pixelLength / GRID_SIZE;
+
+	    return gridLength * metersPerGrid;
+	}
+	
+	private boolean isInDrawingArea(MouseEvent e) {
+
+	    return e.getX() >= LEFT_RULER_WIDTH
+	            && e.getY() >= TOP_RULER_HEIGHT;
+	}
+	
+	private double calculatePreviewLineLengthMeters(int previewX,
+												   int previewY) {
+
+	    if (lineStartX == null || lineStartY == null) {
+	        return 0;
+	    }
+
+	    int dx = previewX - lineStartX;
+	    int dy = previewY - lineStartY;
+
+	    double pixelLength = Math.sqrt(dx * dx + dy * dy);
+
+	    double gridLength = pixelLength / GRID_SIZE;
+
+	    return gridLength * metersPerGrid;
 	}
 	
 	private List<DrawLine> drawLines = new ArrayList<>();
@@ -218,14 +267,27 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		super.paintComponent(g);
 		
-		Graphics2D g2 = (Graphics2D) g.create();
+		Graphics2D rulerG = (Graphics2D) g.create();
 		
-		g2.scale(zoom,  zoom);
+		 	drawRulers(rulerG);
+
+		    rulerG.dispose();
+
+		    Graphics2D g2 = (Graphics2D) g.create();
+
+		    g2.translate(
+		            LEFT_RULER_WIDTH,
+		            TOP_RULER_HEIGHT);
+
+		    g2.scale(
+		            zoom,
+		            zoom);
+
 		
 		//グリッド線の色
-		if (showGrid) {
-		    drawGrid(g2);
-		}
+		 if (showGrid && roomTemplate == null) {
+		     drawGrid(g2);
+		    }
 		
 		drawRoomTemplate(g2);
 		
@@ -235,12 +297,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		drawLineStartPoint(g2);
 		
-		drawModeNotice(g2);
-		
 		drawItems(g2);
-		
-		// この下の機材描画も g ではなく g2 を使うのが理想
-	    // ただし一気に置き換えると大きいので、ここは次の段階でやる
 
 	    g2.dispose();
 	}
@@ -392,20 +449,19 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 
-	    if (drawLineMode) {
-	        g.setColor(new Color(255, 250, 225));
-	    } else {
-	        g.setColor(new Color(245, 245, 245));
-	    }
+	    // テンプレート背景
+	    g.setColor(new Color(250, 250, 250));
 
 	    g.fillRect(
 	            0,
 	            0,
 	            roomTemplate.getWidth(),
 	            roomTemplate.getHeight());
-	    //テンプレート内だけのグリッド
+
+	    // テンプレート内だけのマス
 	    drawRoomTemplateGrid(g);
 
+	    // テンプレート外枠
 	    g.setColor(Color.GRAY);
 
 	    g.drawRect(
@@ -414,38 +470,39 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	            roomTemplate.getWidth(),
 	            roomTemplate.getHeight());
 
+	    // 教室内の机・柱・ステージなど
 	    for (RoomObject object : roomTemplate.getObjects()) {
-	    	
-	    	if (RoomObject.TYPE_LINE.equals(object.getType())) {
-	    		
-	    		g.drawLine(
-	    				object.getX(),
-	    				object.getY(),
-	    				object.getEndX(),
-	    				object.getEndY());
-	    		
-	    		if (showNames) {
-	    		    g.drawString(
-	    		            object.getName(),
-	    		            object.getX() + 5,
-	    		            object.getY() - 5);
-	    		}
-	    		
-	    	}else {
-	    		
-	    		g.drawRect(
-	    				object.getX(),
-	    				object.getY(),
-	    				object.getWidth(),
-	    				object.getHeight());
-	    		
-	    		if (showNames) {
-	    		    g.drawString(
-	    		            object.getName(),
-	    		            object.getX() + 5,
-	    		            object.getY() + 18);
-	    		}
-	    	}
+
+	        if (RoomObject.TYPE_LINE.equals(object.getType())) {
+
+	            g.drawLine(
+	                    object.getX(),
+	                    object.getY(),
+	                    object.getEndX(),
+	                    object.getEndY());
+
+	            if (showNames) {
+	                g.drawString(
+	                        object.getName(),
+	                        object.getX() + 5,
+	                        object.getY() - 5);
+	            }
+
+	        } else {
+
+	            g.drawRect(
+	                    object.getX(),
+	                    object.getY(),
+	                    object.getWidth(),
+	                    object.getHeight());
+
+	            if (showNames) {
+	                g.drawString(
+	                        object.getName(),
+	                        object.getX() + 5,
+	                        object.getY() + 18);
+	            }
+	        }
 	    }
 	}
 	
@@ -455,10 +512,19 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 
-	    g.setColor(new Color(238, 238, 238));
+	    Graphics2D g2 = (Graphics2D) g.create();
 
 	    for (int x = 0; x <= roomTemplate.getWidth(); x += GRID_SIZE) {
-	        g.drawLine(
+
+	        int gridIndex = x / GRID_SIZE;
+
+	        if (gridIndex % 5 == 0) {
+	            g2.setColor(new Color(170, 170, 170));
+	        } else {
+	            g2.setColor(new Color(210, 210, 210));
+	        }
+
+	        g2.drawLine(
 	                x,
 	                0,
 	                x,
@@ -466,12 +532,23 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 
 	    for (int y = 0; y <= roomTemplate.getHeight(); y += GRID_SIZE) {
-	        g.drawLine(
+
+	        int gridIndex = y / GRID_SIZE;
+
+	        if (gridIndex % 5 == 0) {
+	            g2.setColor(new Color(170, 170, 170));
+	        } else {
+	            g2.setColor(new Color(210, 210, 210));
+	        }
+
+	        g2.drawLine(
 	                0,
 	                y,
 	                roomTemplate.getWidth(),
 	                y);
 	    }
+
+	    g2.dispose();
 	}
 	
 	private void drawLines(Graphics g) {
@@ -493,6 +570,25 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	                line.getStartY(),
 	                line.getEndX(),
 	                line.getEndY());
+	        
+	        int labelX =
+	                (line.getStartX() + line.getEndX()) / 2 + 6;
+
+	        int labelY =
+	                (line.getStartY() + line.getEndY()) / 2 - 6;
+	        
+	        if (showLineLength) {
+
+	            double meters = calculateLineLengthMeters(line);
+
+	            g2.setColor(Color.BLACK);
+	            g2.setStroke(new BasicStroke(1));
+
+	            g2.drawString(
+	                    formatLineLength(meters),
+	                    labelX,
+	                    labelY);
+	        }
 
 	        if (showNames
 	                && line.getLabel() != null
@@ -503,8 +599,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	            g2.drawString(
 	                    line.getLabel(),
-	                    line.getStartX() + 5,
-	                    line.getStartY() - 5);
+	                    labelX,
+	                    labelY - 14);
 	        }
 	    }
 
@@ -557,8 +653,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    g.drawRect(10, 25, 230, 35);
 
 	    g.setColor(Color.BLACK);
+	    String modeText;
+
+	    if (isTemplateMode()) {
+	        modeText = "線描画：Shift=直線固定 / テンプレートのマス優先";
+	    } else {
+	        modeText = "線描画：Shift=直線固定 / Ctrl=1m吸着";
+	    }
+
 	    g.drawString(
-	            "線描画モード：クリック2回で線を作成",
+	            modeText,
 	            20,
 	            48);
 
@@ -587,23 +691,69 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    Graphics2D g2 = (Graphics2D) g.create();
 
 	    g2.setColor(currentLineColor);
+	    
 	    g2.setStroke(
 	            new BasicStroke(
 	                    currentLineStrokeWidth,
 	                    BasicStroke.CAP_ROUND,
 	                    BasicStroke.JOIN_ROUND));
 
+	    int previewX = mouseX;
+	    int previewY = mouseY;
+
+	    int[] adjusted = adjustLinePointForCurrentMode(previewX, previewY);
+
+	    previewX = adjusted[0];
+	    previewY = adjusted[1];
+
 	    g2.drawLine(
 	            lineStartX,
 	            lineStartY,
-	            mouseX,
-	            mouseY);
+	            previewX,
+	            previewY);
+	    if (showLineLength) {
+
+	        double meters = calculatePreviewLineLengthMeters(previewX, previewY);
+	        
+	        String text = formatLineLength(meters);
+
+	        int labelX = (lineStartX + previewX) / 2 + 6;
+	        int labelY = (lineStartY + previewY) / 2 - 6;
+
+	        int boxWidth = 58;
+	        int boxHeight = 18;
+
+	        g2.setColor(Color.WHITE);
+	        g2.fillRect(
+	                labelX - 3,
+	                labelY - 14,
+	                boxWidth,
+	                boxHeight);
+
+	        g2.setColor(Color.GRAY);
+	        g2.drawRect(
+	                labelX - 3,
+	                labelY - 14,
+	                boxWidth,
+	                boxHeight);
+
+	        g2.setColor(Color.BLACK);
+	        g2.drawString(
+	                text,
+	                labelX,
+	                labelY);
+	    }
+
 
 	    g2.dispose();
 	}
 	
 	@Override
 	public void mouseClicked(MouseEvent e) {
+		
+		if(!isInDrawingArea(e)) {
+			return;
+		}
 		
 		int canvasX = toCanvasX(e);
 		int canvasY = toCanvasY(e);
@@ -614,7 +764,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    			return;
 	    		}
 
-	        handleDrawLineClick(canvasX, canvasY);
+	        handleDrawLineClick(
+	        		canvasX, 
+	        		canvasY,
+	        		e.isControlDown(),
+	        		e.isShiftDown());
 
 	        return;
 	    }
@@ -667,12 +821,18 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    repaint();
 	}
 	
-	private void handleDrawLineClick(int x, int y) {
+	private void handleDrawLineClick(int x,
+									int y, 
+									boolean meterSnap,
+									boolean orthogonalLock) {
+		
+		shiftDown = orthogonalLock;
+		controlDown = meterSnap;
 
-	    if (snapToGrid) {
-	        x = snapValue(x);
-	        y = snapValue(y);
-	    }
+		int[] adjusted = adjustLinePointForCurrentMode(x, y);
+
+		x = adjusted[0];
+		y = adjusted[1];
 
 	    // 1回目クリック：始点を保存
 	    if (lineStartX == null || lineStartY == null) {
@@ -712,6 +872,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public void mousePressed(MouseEvent e) {
 		
 		requestFocusInWindow();
+		
+		if (!isInDrawingArea(e)) {
+	        return;
+	    }
 		
 		int canvasX = toCanvasX(e);
 		int canvasY = toCanvasY(e);
@@ -781,6 +945,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	@Override
 	public void mouseDragged(MouseEvent e) {
 		
+		if (!isInDrawingArea(e)) {
+	        return;
+	    }
+		
 		if(drawLineMode) {
 			return;
 		}
@@ -813,8 +981,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	@Override
 	public void mouseMoved(MouseEvent e) {
 		
+		if (!isInDrawingArea(e)) {
+	        setCursor(Cursor.getDefaultCursor());
+	        return;
+	    }
+		
 		mouseX = toCanvasX(e);
 	    mouseY = toCanvasY(e);
+	    
+	    controlDown = e.isControlDown();
+	    shiftDown = e.isShiftDown();
 
 	    if (drawLineMode && lineStartX != null && lineStartY != null) {
 	        repaint();
@@ -1154,8 +1330,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private void drawGrid(Graphics g) {
 		
-		int canvasWidth = (int) Math.round(getWidth() / zoom);
-	    int canvasHeight = (int) Math.round(getHeight() / zoom);
+		int canvasWidth = (int) Math.round((getWidth() - LEFT_RULER_WIDTH) / zoom);
+	    int canvasHeight = (int) Math.round((getHeight() - TOP_RULER_HEIGHT) / zoom);
 
 	    for (int x = 0; x < canvasWidth; x += GRID_SIZE) {
 
@@ -1167,10 +1343,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	            g.setColor(new Color(230, 230, 230));
 	        }
 
-	        g.drawLine(x, 0, x, getHeight());
+	        g.drawLine(x, 0, x, canvasHeight);
 	    }
 
-	    for (int y = 0; y < getHeight(); y += GRID_SIZE) {
+	    for (int y = 0; y < canvasHeight; y += GRID_SIZE) {
 
 	        int gridIndex = y / GRID_SIZE;
 
@@ -1182,47 +1358,141 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	        g.drawLine(0, y, canvasWidth, y);
 	    }
-
-	    drawMeterLabels(g);
+	    
 	}
 	
-	private void drawMeterLabels(Graphics g) {
+	private void drawRulers(Graphics g) {
 
-	    g.setColor(Color.GRAY);
-	    //5マスごとに表示
-	    int labelStep = GRID_SIZE * 5;
-	    
-	    int canvasWidth = (int) Math.round(getWidth() / zoom);
-	    int canvasHeight = (int) Math.round(getHeight() / zoom);
+	    Graphics2D g2 = (Graphics2D) g.create();
 
-	    for (int x = 0; x < canvasWidth; x += labelStep) {
+	    int panelWidth = getWidth();
+	    int panelHeight = getHeight();
 
-	        int gridNumber = x / GRID_SIZE;
-	        
-	        double meters = gridNumber * METERS_PER_GRID;
+	    g2.setColor(new Color(245, 245, 245));
 
-	        g.drawString(
-	        		    formatMeters(meters),
-	                x + 3,
-	                15);
+	    g2.fillRect(
+	            LEFT_RULER_WIDTH,
+	            0,
+	            panelWidth - LEFT_RULER_WIDTH,
+	            TOP_RULER_HEIGHT);
+
+	    g2.fillRect(
+	            0,
+	            TOP_RULER_HEIGHT,
+	            LEFT_RULER_WIDTH,
+	            panelHeight - TOP_RULER_HEIGHT);
+
+	    g2.setColor(new Color(235, 235, 235));
+
+	    g2.fillRect(
+	            0,
+	            0,
+	            LEFT_RULER_WIDTH,
+	            TOP_RULER_HEIGHT);
+
+	    g2.setColor(Color.GRAY);
+
+	    g2.drawLine(
+	            LEFT_RULER_WIDTH,
+	            0,
+	            LEFT_RULER_WIDTH,
+	            panelHeight);
+
+	    g2.drawLine(
+	            0,
+	            TOP_RULER_HEIGHT,
+	            panelWidth,
+	            TOP_RULER_HEIGHT);
+
+	    double pixelsPerMeter =
+	            (GRID_SIZE / metersPerGrid) * zoom;
+
+	    double pixelsPerHalfMeter =
+	            pixelsPerMeter / 2.0;
+
+	    for (double x = 0;
+	            LEFT_RULER_WIDTH + x < panelWidth;
+	            x += pixelsPerHalfMeter) {
+
+	        int drawX =
+	                LEFT_RULER_WIDTH + (int) Math.round(x);
+
+	        boolean major =
+	                Math.abs(
+	                        (x / pixelsPerMeter)
+	                        - Math.round(x / pixelsPerMeter))
+	                        < 0.001;
+
+	        int tickHeight = major ? 10 : 5;
+
+	        g2.setColor(Color.GRAY);
+
+	        g2.drawLine(
+	                drawX,
+	                TOP_RULER_HEIGHT - tickHeight,
+	                drawX,
+	                TOP_RULER_HEIGHT);
+
+	        if (major) {
+
+	            int meter =
+	                    (int) Math.round(x / pixelsPerMeter);
+
+	            g2.setColor(Color.BLACK);
+
+	            g2.drawString(
+	                    meter + "m",
+	                    drawX + 2,
+	                    14);
+	        }
 	    }
 
-	    for (int y = 0; y < canvasHeight; y += labelStep) {
+	    for (double y = 0;
+	            TOP_RULER_HEIGHT + y < panelHeight;
+	            y += pixelsPerHalfMeter) {
 
-	        int gridNumber = y / GRID_SIZE;
-	        
-	        double meters = gridNumber * METERS_PER_GRID;
+	        int drawY =
+	                TOP_RULER_HEIGHT + (int) Math.round(y);
 
-	        g.drawString(
-	        		formatMeters(meters),
-	                3,
-	                y + 15);
+	        boolean major =
+	                Math.abs(
+	                        (y / pixelsPerMeter)
+	                        - Math.round(y / pixelsPerMeter))
+	                        < 0.001;
+
+	        int tickWidth = major ? 10 : 5;
+
+	        g2.setColor(Color.GRAY);
+
+	        g2.drawLine(
+	                LEFT_RULER_WIDTH - tickWidth,
+	                drawY,
+	                LEFT_RULER_WIDTH,
+	                drawY);
+
+	        if (major) {
+
+	            int meter =
+	                    (int) Math.round(y / pixelsPerMeter);
+
+	            g2.setColor(Color.BLACK);
+
+	            g2.drawString(
+	                    meter + "m",
+	                    2,
+	                    drawY + 4);
+	        }
 	    }
-	    }
-	    private String formatMeters(double meters) {
 
-	        if (meters == Math.floor(meters)) {
-	            return String.format("%.0fm", meters);
+	    g2.dispose();
+	}
+	
+	
+	
+	    private String formatLineLength(double meters) {
+
+	        if (meters < 10) {
+	            return String.format("%.2fm", meters);
 	        }
 
 	        return String.format("%.1fm", meters);
@@ -1370,16 +1640,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    this.zoom = zoom;
 	    
-	    int width = (int) Math.round(BASE_WIDTH * zoom);
-	    int height = (int) Math.round(BASE_HEIGHT * zoom);
+	    int width = LEFT_RULER_WIDTH + (int) Math.round(BASE_WIDTH * zoom);
+	    int height = TOP_RULER_HEIGHT + (int) Math.round(BASE_HEIGHT * zoom);
 	    
 	    if (roomTemplate != null) {
 	    	int margin = 200;
 
-	        width = (int) Math.round(
+	        width = LEFT_RULER_WIDTH + (int) Math.round(
 	                (roomTemplate.getWidth() + margin) * zoom);
 
-	        height = (int) Math.round(
+	        height = TOP_RULER_HEIGHT + (int) Math.round(
 	                (roomTemplate.getHeight() + margin) * zoom);
 	    }
 	    
@@ -1397,7 +1667,132 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    this.roomTemplate = roomTemplate;
 
+	    if (roomTemplate == null) {
+
+	        metersPerGrid = DEFAULT_METERS_PER_GRID;
+
+	    } else {
+
+	        metersPerGrid = TEMPLATE_214_METERS_PER_GRID;
+	    }
+
 	    setZoom(zoom);
+
+	    repaint();
 	}
+	
+	public void setShowLineLength(boolean showLineLength) {
+	    this.showLineLength = showLineLength;
+	    repaint();
+	}
+	
+	
+
+	public boolean isShowLineLength() {
+	    return showLineLength;
+	}
+	
+	private double getPixelsPerMeter() {
+	    return GRID_SIZE / metersPerGrid;
+	}
+	
+	private int snapToMeterValue(int value) {
+
+	    double pixelsPerMeter = getPixelsPerMeter();
+
+	    return (int) Math.round(Math.round(value / pixelsPerMeter) * pixelsPerMeter);
+	}
+	
+	private int[] applyOrthogonalLock(int x, int y) {
+
+	    if (lineStartX == null || lineStartY == null) {
+	        return new int[] {x, y};
+	    }
+
+	    int dx = Math.abs(x - lineStartX);
+	    int dy = Math.abs(y - lineStartY);
+
+	    if (dx >= dy) {
+	        y = lineStartY;
+	    } else {
+	        x = lineStartX;
+	    }
+
+	    return new int[] {x, y};
+	}
+	
+	private int[] snapLineLengthToMeter(int x, int y) {
+
+	    if (lineStartX == null || lineStartY == null) {
+	        return new int[] {x, y};
+	    }
+
+	    int dx = x - lineStartX;
+	    int dy = y - lineStartY;
+
+	    double length = Math.sqrt(dx * dx + dy * dy);
+
+	    if (length == 0) {
+	        return new int[] {x, y};
+	    }
+
+	    double pixelsPerMeter = getPixelsPerMeter();
+
+	    double snappedLength =
+	            Math.round(length / pixelsPerMeter) * pixelsPerMeter;
+
+	    if (snappedLength < pixelsPerMeter) {
+	        snappedLength = pixelsPerMeter;
+	    }
+
+	    double scale = snappedLength / length;
+
+	    int snappedX =
+	            lineStartX + (int) Math.round(dx * scale);
+
+	    int snappedY =
+	            lineStartY + (int) Math.round(dy * scale);
+
+	    return new int[] {snappedX, snappedY};
+	}
+	
+	private int[] adjustLinePointForCurrentMode(int x, int y) {
+
+	    if (shiftDown) {
+	        int[] locked = applyOrthogonalLock(x, y);
+	        x = locked[0];
+	        y = locked[1];
+	    }
+	    
+	    if (isTemplateMode()) {
+
+	        if (snapToGrid) {
+	            x = snapValue(x);
+	            y = snapValue(y);
+	        }
+
+	        return new int[] {x, y};
+	    }
+
+
+	    if (controlDown) {
+	    		
+	    		int[] snapped = snapLineLengthToMeter(x, y);
+	    			x = snapped[0];
+	    			y = snapped[1];
+	        
+	    } else if (snapToGrid) {
+	        x = snapValue(x);
+	        y = snapValue(y);
+	    }
+
+	    return new int[] {x, y};
+	}
+	
+	private boolean isTemplateMode() {
+	    return roomTemplate != null;
+	}
+	
+	
 
 }
