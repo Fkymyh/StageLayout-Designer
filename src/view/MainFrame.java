@@ -2,548 +2,310 @@ package view;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.io.File;
+import java.awt.Component;
+import java.awt.Dimension;
 
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
-import javax.swing.JOptionPane;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
 import javax.swing.JToolBar;
-import javax.swing.filechooser.FileNameExtensionFilter;
 
-import io.LayoutData;
-import io.LayoutFileManager;
-import model.ProjectInfo;
+import model.RoomTemplate;
 import model.RoomTemplateFactory;
 
 public class MainFrame extends JFrame {
-	
-	private File currentFile;
-	
-	private boolean modified = false;
-	
-	private ProjectInfo projectInfo = new ProjectInfo();
+
+    private EquipmentPanel equipmentPanel;
+    private PropertyPanel propertyPanel;
+    private CanvasPanel canvasPanel;
+
+    private JLabel statusLabel;
 
     public MainFrame() {
 
         setTitle("Stage Layout Designer");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1400, 900);
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
-        EquipmentPanel equipmentPanel = new EquipmentPanel();
-        
-        PropertyPanel propertyPanel = new PropertyPanel();
-        
-        CanvasPanel canvasPanel = 
-        		new CanvasPanel(
-        				equipmentPanel,
-        				propertyPanel);
-        
+        equipmentPanel = new EquipmentPanel();
+        propertyPanel = new PropertyPanel();
+        canvasPanel = new CanvasPanel(equipmentPanel, propertyPanel);
+
+        setLayout(new BorderLayout());
+
+        setJMenuBar(createMenuBar());
+
+        add(createToolBar(), BorderLayout.NORTH);
+        add(createLeftPanel(), BorderLayout.WEST);
+        add(createCenterPanel(), BorderLayout.CENTER);
+        add(createRightPanel(), BorderLayout.EAST);
+        add(createStatusBar(), BorderLayout.SOUTH);
+    }
+
+    private JMenuBar createMenuBar() {
+
+        JMenuBar menuBar = new JMenuBar();
+
+        JMenu fileMenu = new JMenu("ファイル");
+        JMenuItem newItem = new JMenuItem("新規");
+        JMenuItem exitItem = new JMenuItem("終了");
+
+        newItem.addActionListener(e -> {
+            canvasPanel.clearItems();
+            statusLabel.setText("新規作成しました");
+        });
+
+        exitItem.addActionListener(e -> {
+            dispose();
+        });
+
+        fileMenu.add(newItem);
+        fileMenu.addSeparator();
+        fileMenu.add(exitItem);
+
+        JMenu templateMenu = new JMenu("テンプレート");
+        JMenuItem classroomItem = new JMenuItem("214教室");
+
+        classroomItem.addActionListener(e -> {
+
+            RoomTemplate template =
+                    RoomTemplateFactory.createFirstClassroom();
+
+            canvasPanel.setRoomTemplate(template);
+
+            statusLabel.setText("テンプレート: 214教室");
+        });
+
+        JMenuItem clearTemplateItem = new JMenuItem("テンプレート解除");
+
+        clearTemplateItem.addActionListener(e -> {
+            canvasPanel.setRoomTemplate(null);
+            statusLabel.setText("テンプレートを解除しました");
+        });
+
+        templateMenu.add(classroomItem);
+        templateMenu.add(clearTemplateItem);
+
+        JMenu viewMenu = new JMenu("表示");
+
+        JMenuItem showGridItem = new JMenuItem("グリッド表示");
+        showGridItem.addActionListener(e -> {
+            canvasPanel.setShowGrid(true);
+            statusLabel.setText("グリッド: ON");
+        });
+
+        JMenuItem hideGridItem = new JMenuItem("グリッド非表示");
+        hideGridItem.addActionListener(e -> {
+            canvasPanel.setShowGrid(false);
+            statusLabel.setText("グリッド: OFF");
+        });
+
+        JMenuItem showNamesItem = new JMenuItem("名前表示");
+        showNamesItem.addActionListener(e -> {
+            canvasPanel.setShowNames(true);
+            statusLabel.setText("名前表示: ON");
+        });
+
+        JMenuItem hideNamesItem = new JMenuItem("名前非表示");
+        hideNamesItem.addActionListener(e -> {
+            canvasPanel.setShowNames(false);
+            statusLabel.setText("名前表示: OFF");
+        });
+
+        viewMenu.add(showGridItem);
+        viewMenu.add(hideGridItem);
+        viewMenu.addSeparator();
+        viewMenu.add(showNamesItem);
+        viewMenu.add(hideNamesItem);
+
+        menuBar.add(fileMenu);
+        menuBar.add(templateMenu);
+        menuBar.add(viewMenu);
+
+        return menuBar;
+    }
+
+    private JToolBar createToolBar() {
+
         JToolBar toolBar = new JToolBar();
 
-        JButton selectModeButton = new JButton("選択");
-        JButton lineModeButton = new JButton("線");
+        JButton selectButton = new JButton("選択");
+        JButton lineButton = new JButton("線");
+        JButton finishLineButton = new JButton("線終了");
+        JButton deleteButton = new JButton("削除");
+        JButton rotateButton = new JButton("回転");
+        JButton enlargeButton = new JButton("拡大");
+        JButton shrinkButton = new JButton("縮小");
 
-        JButton blackLineButton = new JButton("黒");
-        JButton redLineButton = new JButton("赤");
-        JButton blueLineButton = new JButton("青");
-        JButton greenLineButton = new JButton("緑");
+        JCheckBox gridCheckBox = new JCheckBox("グリッド", true);
+        JCheckBox nameCheckBox = new JCheckBox("名前", true);
 
-        JButton thickerButton = new JButton("太く");
-        JButton thinnerButton = new JButton("細く");
-        JButton cancelStartButton = new JButton("始点取消");
+        JComboBox<String> colorComboBox =
+                new JComboBox<>(new String[] {"赤", "黒", "青", "緑"});
 
-        selectModeButton.addActionListener(e -> {
+        JComboBox<Integer> strokeComboBox =
+                new JComboBox<>(new Integer[] {1, 2, 3, 4, 5, 6, 8, 10});
+
+        strokeComboBox.setSelectedItem(3);
+
+        selectButton.addActionListener(e -> {
             canvasPanel.setDrawLineMode(false);
+            statusLabel.setText("モード: 選択");
         });
 
-        lineModeButton.addActionListener(e -> {
+        lineButton.addActionListener(e -> {
             canvasPanel.setDrawLineMode(true);
+            statusLabel.setText("モード: 線描画");
         });
 
-        blackLineButton.addActionListener(e -> {
-            canvasPanel.setCurrentLineColor(Color.BLACK);
+        finishLineButton.addActionListener(e -> {
+            canvasPanel.finishCurrentLine();
+            statusLabel.setText("線の始点を解除しました");
         });
 
-        redLineButton.addActionListener(e -> {
-            canvasPanel.setCurrentLineColor(Color.RED);
+        deleteButton.addActionListener(e -> {
+            canvasPanel.deleteSelectedItem();
+            statusLabel.setText("選択中のアイテムを削除しました");
         });
 
-        blueLineButton.addActionListener(e -> {
-            canvasPanel.setCurrentLineColor(Color.BLUE);
+        rotateButton.addActionListener(e -> {
+            canvasPanel.rotateSelectedItem();
+            statusLabel.setText("選択中のアイテムを回転しました");
         });
 
-        greenLineButton.addActionListener(e -> {
-            canvasPanel.setCurrentLineColor(Color.GREEN);
+        enlargeButton.addActionListener(e -> {
+            canvasPanel.resizeSelectedItem(10);
+            statusLabel.setText("選択中のアイテムを拡大しました");
         });
 
-        thickerButton.addActionListener(e -> {
-            canvasPanel.increaseLineStrokeWidth();
+        shrinkButton.addActionListener(e -> {
+            canvasPanel.resizeSelectedItem(-10);
+            statusLabel.setText("選択中のアイテムを縮小しました");
         });
 
-        thinnerButton.addActionListener(e -> {
-            canvasPanel.decreaseLineStrokeWidth();
-        });
+        gridCheckBox.addActionListener(e -> {
 
-        cancelStartButton.addActionListener(e -> {
-            canvasPanel.cancelLineStartPoint();
-        });
+            boolean selected = gridCheckBox.isSelected();
 
-        toolBar.add(selectModeButton);
-        toolBar.add(lineModeButton);
+            canvasPanel.setShowGrid(selected);
 
-        toolBar.addSeparator();
-
-        toolBar.add(blackLineButton);
-        toolBar.add(redLineButton);
-        toolBar.add(blueLineButton);
-        toolBar.add(greenLineButton);
-
-        toolBar.addSeparator();
-
-        toolBar.add(thickerButton);
-        toolBar.add(thinnerButton);
-        toolBar.add(cancelStartButton);
-
-        add(toolBar, BorderLayout.NORTH);
-        
-    		addWindowListener(new WindowAdapter() {
-
-    			@Override
-    			public void windowClosing(WindowEvent e) {
-
-    				if (!confirmSaveIfNeeded(canvasPanel)) {
-    					return;
-    				}
-
-    				dispose();
-    				System.exit(0);
-    			}
-    		});
-        
-        canvasPanel.setChangeCallback(() -> {
-        	
-        		canvasPanel.repaint();
-        	
-        		setModified(true);
-        		
-
-        });
-        
-        propertyPanel.setUpdateCallback(() -> {
-
-            canvasPanel.repaint();
-
-            setModified(true);
-        });
-        
-        JScrollPane canvasScrollPane = new JScrollPane(canvasPanel);
-        
-        JSplitPane horizontalSplitPane = new JSplitPane(
-        		JSplitPane.HORIZONTAL_SPLIT,
-        		equipmentPanel,
-        		canvasScrollPane);
-        
-        horizontalSplitPane.setDividerLocation(280);
-        horizontalSplitPane.setResizeWeight(0.0);
-        
-        JSplitPane mainSplitPane = new JSplitPane(
-                JSplitPane.VERTICAL_SPLIT,
-                horizontalSplitPane,
-                propertyPanel);
-
-        mainSplitPane.setResizeWeight(1.0);
-
-        int bottomPanelHeight = 220;
-
-        mainSplitPane.addComponentListener(new ComponentAdapter() {
-
-            @Override
-            public void componentResized(ComponentEvent e) {
-
-                int dividerLocation =
-                        mainSplitPane.getHeight() - bottomPanelHeight;
-
-                if (dividerLocation > 0) {
-                    mainSplitPane.setDividerLocation(dividerLocation);
-                }
+            if (selected) {
+                statusLabel.setText("グリッド: ON");
+            } else {
+                statusLabel.setText("グリッド: OFF");
             }
         });
 
-        add(mainSplitPane, BorderLayout.CENTER);
-        
-        		
-        
-        MenuBar menuBar = new MenuBar();
+        nameCheckBox.addActionListener(e -> {
 
-        setJMenuBar(menuBar);
-        
-     // 保存処理
-        menuBar.getSaveItem().addActionListener(e -> {
+            boolean selected = nameCheckBox.isSelected();
 
-            saveLayout(canvasPanel);
+            canvasPanel.setShowNames(selected);
 
-        });
-        
-     // 名前を付けて保存処理
-        menuBar.getSaveAsItem().addActionListener(e -> {
-
-            saveLayoutAs(canvasPanel);
-
-        });
-     // 開く処理
-        menuBar.getOpenItem().addActionListener(e -> {
-        	
-        		if (!confirmSaveIfNeeded(canvasPanel)) {
-        			return;
-        		}
-
-            JFileChooser chooser = new JFileChooser();
-
-            FileNameExtensionFilter filter =
-                    new FileNameExtensionFilter(
-                            "Stage Layout File (*.stage)",
-                            "stage");
-
-            chooser.setFileFilter(filter);
-
-            if (chooser.showOpenDialog(this)
-                    == JFileChooser.APPROVE_OPTION) {
-
-                try {
-
-                    File file = chooser.getSelectedFile();
-
-                    LayoutData data =
-                            LayoutFileManager.load(
-                                    file.getAbsolutePath());
-
-                    projectInfo = data.getProjectInfo();
-
-                    canvasPanel.setItems(data.getItems());
-                    
-                    canvasPanel.setRoomTemplate(
-                            RoomTemplateFactory.createByName(
-                                    projectInfo.getTemplateName()));
-                    
-                    currentFile = file;
-
-                    setModified(false);
-
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "読み込みました。",
-                            "読込完了",
-                            JOptionPane.INFORMATION_MESSAGE);
-
-                } catch (Exception ex) {
-
-                    ex.printStackTrace();
-
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "読み込みに失敗しました。",
-                            "エラー",
-                            JOptionPane.ERROR_MESSAGE);
-                }
+            if (selected) {
+                statusLabel.setText("名前表示: ON");
+            } else {
+                statusLabel.setText("名前表示: OFF");
             }
         });
-        
-        
-     // 新規作成処理
-        menuBar.getNewItem().addActionListener(e -> {
-        	
-        		if (!confirmSaveIfNeeded(canvasPanel)) {
-        			return;
-        		}
 
-            int result = JOptionPane.showConfirmDialog(
-            		this,
-            		"現在のレイアウトを破棄して新規作成しますか？",
-            		"新規作成",
-            		JOptionPane.YES_NO_OPTION);
-            
-            if (result == JOptionPane.YES_OPTION) {
-            	
-            		
-            		
-            		canvasPanel.clearItems();
+        colorComboBox.addActionListener(e -> {
 
-            		projectInfo = new ProjectInfo();
+            String colorName = (String) colorComboBox.getSelectedItem();
 
-            		canvasPanel.setRoomTemplate(null);
-
-            		currentFile = null;
-
-            		setModified(false);
-            		
+            if ("赤".equals(colorName)) {
+                canvasPanel.setCurrentLineColor(Color.RED);
+            } else if ("黒".equals(colorName)) {
+                canvasPanel.setCurrentLineColor(Color.BLACK);
+            } else if ("青".equals(colorName)) {
+                canvasPanel.setCurrentLineColor(Color.BLUE);
+            } else if ("緑".equals(colorName)) {
+                canvasPanel.setCurrentLineColor(Color.GREEN);
             }
 
+            statusLabel.setText("線の色: " + colorName);
         });
-        
-     // 終了処理
-        menuBar.getExitItem().addActionListener(e -> {
-        	
-        	if (!confirmSaveIfNeeded(canvasPanel)) {
+
+        strokeComboBox.addActionListener(e -> {
+
+            Integer strokeWidth =
+                    (Integer) strokeComboBox.getSelectedItem();
+
+            if (strokeWidth == null) {
                 return;
             }
 
-            int result = JOptionPane.showConfirmDialog(
-                    this,
-                    "アプリを終了しますか？",
-                    "終了確認",
-                    JOptionPane.YES_NO_OPTION);
+            canvasPanel.setCurrentLineStrokeWidth(strokeWidth);
 
-            if (result == JOptionPane.YES_OPTION) {
-                dispose();
-                System.exit(0);
-            }
-        });
-        
-     // プロジェクト：案件情報
-        menuBar.getProjectInfoItem().addActionListener(e -> {
-
-            ProjectInfoDialog dialog =
-                    new ProjectInfoDialog(
-                            this,
-                            projectInfo,
-                            () -> {
-                                setModified(true);
-                            });
-
-            dialog.setVisible(true);
-        });
-        
-     // 会場テンプレート：第一教室
-        menuBar.getFirstClassroomItem().addActionListener(e -> {
-
-            canvasPanel.setRoomTemplate(
-                    RoomTemplateFactory.createFirstClassroom());
-            
-            projectInfo.setTemplateName("第一教室");
-
-            setModified(true);
-        });
-        
-     // 会場テンプレート：なし
-        menuBar.getClearTemplateItem().addActionListener(e -> {
-
-            canvasPanel.setRoomTemplate(null);
-            
-            projectInfo.setTemplateName("");
-
-            setModified(true);
-        });
-        
-     // グリッド表示ON/OFF
-        menuBar.getGridVisibleItem().addActionListener(e -> {
-
-            canvasPanel.setShowGrid(
-                    menuBar.getGridVisibleItem().isSelected());
+            statusLabel.setText("線の太さ: " + strokeWidth + "px");
         });
 
-        // グリッド吸着ON/OFF
-        menuBar.getSnapToGridItem().addActionListener(e -> {
+        toolBar.add(selectButton);
+        toolBar.add(lineButton);
+        toolBar.add(finishLineButton);
 
-            canvasPanel.setSnapToGrid(
-                    menuBar.getSnapToGridItem().isSelected());
-        });
-        
-        //名前のON/OFF
-        menuBar.getShowNamesItem().addActionListener(e -> {
-            canvasPanel.setShowNames(
-                    menuBar.getShowNamesItem().isSelected());
-        });
-        
-     // 編集メニュー：削除
-        menuBar.getDeleteItem().addActionListener(e -> {
+        toolBar.addSeparator();
 
-            canvasPanel.deleteSelectedItem();
+        toolBar.add(deleteButton);
+        toolBar.add(rotateButton);
+        toolBar.add(enlargeButton);
+        toolBar.add(shrinkButton);
 
-        });
+        toolBar.addSeparator();
 
-        // 編集メニュー：コピー
-        menuBar.getCopyItem().addActionListener(e -> {
+        toolBar.add(new JLabel(" 色: "));
+        toolBar.add(colorComboBox);
 
-            canvasPanel.copySelectedItem();
+        toolBar.add(new JLabel(" 太さ: "));
+        toolBar.add(strokeComboBox);
 
-        });
+        toolBar.addSeparator();
 
-        // 編集メニュー：貼り付け
-        menuBar.getPasteItem().addActionListener(e -> {
+        toolBar.add(gridCheckBox);
+        toolBar.add(nameCheckBox);
 
-            canvasPanel.pasteCopiedItem();
-
-        });
-        //プレビュー処理
-        menuBar.getPreviewItem().addActionListener(e -> {
-
-        	PreviewDialog dialog =
-        	        new PreviewDialog(
-        	                this,
-        	                projectInfo,
-        	                canvasPanel.getItems(),
-        	                canvasPanel.getRoomTemplate(),
-        	                PreviewDialog.ORIENTATION_LANDSCAPE);
-
-        	dialog.setVisible(true);
-        });
-        
-     // 編集メニュー：回転
-        menuBar.getRotateItem().addActionListener(e -> {
-
-            canvasPanel.rotateSelectedItem();
-
-        });
-        updateTitle();
-
-    }
-    private void updateTitle() {
-
-        String title;
-
-        if (currentFile == null) {
-            title = "Stage Layout Designer - 新規レイアウト";
-        } else {
-            title = "Stage Layout Designer - " + currentFile.getName();
-        }
-
-        if (modified) {
-            title += " *";
-        }
-
-        setTitle(title);
-    }
-    
-    private void saveLayout(CanvasPanel canvasPanel) {
-
-        if (currentFile == null) {
-            saveLayoutAs(canvasPanel);
-            return;
-        }
-
-        try {
-
-        	LayoutFileManager.save(
-        	        canvasPanel.getItems(),
-        	        projectInfo,
-        	        currentFile.getAbsolutePath());
-            
-            setModified(false);
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "保存しました。",
-                    "保存完了",
-                    JOptionPane.INFORMATION_MESSAGE);
-
-        } catch (Exception ex) {
-
-            ex.printStackTrace();
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "保存に失敗しました。",
-                    "エラー",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }
-    
-    private void saveLayoutAs(CanvasPanel canvasPanel) {
-
-        JFileChooser chooser = new JFileChooser();
-
-        FileNameExtensionFilter filter =
-                new FileNameExtensionFilter(
-                        "Stage Layout File (*.stage)",
-                        "stage");
-
-        chooser.setFileFilter(filter);
-
-        if (chooser.showSaveDialog(this)
-                == JFileChooser.APPROVE_OPTION) {
-
-            try {
-
-                File file = chooser.getSelectedFile();
-
-                if (!file.getName().toLowerCase().endsWith(".stage")) {
-                    file = new File(file.getAbsolutePath() + ".stage");
-                }
-
-                LayoutFileManager.save(
-                        canvasPanel.getItems(),
-                        projectInfo,
-                        file.getAbsolutePath());
-
-                currentFile = file;
-                
-                setModified(false);
-
-                updateTitle();
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "保存しました。",
-                        "保存完了",
-                        JOptionPane.INFORMATION_MESSAGE);
-
-            } catch (Exception ex) {
-
-                ex.printStackTrace();
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "保存に失敗しました。",
-                        "エラー",
-                        JOptionPane.ERROR_MESSAGE);
-            }
-        }
-    }
-    
-    private boolean confirmSaveIfNeeded(CanvasPanel canvasPanel) {
-    	
-    	if (!modified) {
-    		return true;
-    	}
-    	
-    	int result = JOptionPane.showConfirmDialog(
-    			this,
-    			"保存されていない変更があります。\n保存しますか？",
-    			"保存確認",
-    			JOptionPane.YES_NO_CANCEL_OPTION);
-    	
-    	if (result == JOptionPane.CANCEL_OPTION
-    			|| result == JOptionPane.CLOSED_OPTION) {
-    		
-    		return false;
-    	}
-    	
-    	if (result == JOptionPane.YES_OPTION) {
-    		
-    		saveLayout(canvasPanel);
-    		
-    		return !modified;
-    	}
-    	
-    	return true;
-    }
-    	
-    
-    	
-    
-    private void setModified(boolean modified) {
-
-        this.modified = modified;
-
-        updateTitle();
+        return toolBar;
     }
 
+    private Component createLeftPanel() {
+
+        JScrollPane scrollPane = new JScrollPane(equipmentPanel);
+
+        scrollPane.setPreferredSize(new Dimension(230, 0));
+
+        return scrollPane;
+    }
+
+    private Component createCenterPanel() {
+
+        JScrollPane scrollPane = new JScrollPane(canvasPanel);
+
+        return scrollPane;
+    }
+
+    private Component createRightPanel() {
+
+        propertyPanel.setPreferredSize(new Dimension(280, 0));
+
+        return propertyPanel;
+    }
+
+    private Component createStatusBar() {
+
+        JPanel panel = new JPanel(new BorderLayout());
+
+        statusLabel = new JLabel("準備完了");
+
+        panel.add(statusLabel, BorderLayout.WEST);
+
+        return panel;
+    }
 }

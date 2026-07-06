@@ -1315,5 +1315,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    repaint();
 	}
+	
+	public void setCurrentLineStrokeWidth(int strokeWidth) {
+
+	    if (strokeWidth < 1) {
+	        strokeWidth = 1;
+	    }
+
+	    this.currentLineStrokeWidth = strokeWidth;
+
+	    repaint();
+	}
 
 }
