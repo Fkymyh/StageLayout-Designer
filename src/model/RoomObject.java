@@ -2,8 +2,11 @@ package model;
 
 public class RoomObject {
 	
-	public static final String TYPE_RECT = "RECT";
 	public static final String TYPE_LINE = "LINE";
+	public static final String TYPE_RECT = "RECT";
+	public static final String TYPE_CIRCLE = "CIRCLE";
+	public static final String TYPE_ARC = "ARC";
+	public static final String TYPE_TEXT = "TEXT";
 	
 	private String type;
 	
@@ -51,6 +54,49 @@ public class RoomObject {
 		object.endY = endY;
 		
 		return object;
+	}
+	
+	public static RoomObject createCircle(
+	        String name,
+	        int x,
+	        int y,
+	        int width,
+	        int height) {
+
+	    RoomObject object =
+	            new RoomObject(name, x, y, width, height);
+
+	    object.type = TYPE_CIRCLE;
+
+	    return object;
+	}
+
+	public static RoomObject createArc(
+	        String name,
+	        int x,
+	        int y,
+	        int width,
+	        int height) {
+
+	    RoomObject object =
+	            new RoomObject(name, x, y, width, height);
+
+	    object.type = TYPE_ARC;
+
+	    return object;
+	}
+
+	public static RoomObject createText(
+	        String name,
+	        int x,
+	        int y) {
+
+	    RoomObject object =
+	            new RoomObject(name, x, y, 0, 0);
+
+	    object.type = TYPE_TEXT;
+
+	    return object;
 	}
 	
 	public String getType() {

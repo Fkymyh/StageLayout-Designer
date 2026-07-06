@@ -88,6 +88,18 @@ public class MainFrame extends JFrame {
 
             statusLabel.setText("テンプレート: 214教室");
         });
+        
+        JMenuItem outdoorStageItem = new JMenuItem("大学野外ステージ");
+
+        outdoorStageItem.addActionListener(e -> {
+
+            RoomTemplate template =
+                    RoomTemplateFactory.createOutdoorStage();
+
+            canvasPanel.setRoomTemplate(template);
+
+            statusLabel.setText("テンプレート: 大学野外ステージ");
+        });
 
         JMenuItem clearTemplateItem = new JMenuItem("テンプレート解除");
 
@@ -97,6 +109,8 @@ public class MainFrame extends JFrame {
         });
 
         templateMenu.add(classroomItem);
+        templateMenu.add(outdoorStageItem);
+        templateMenu.addSeparator();
         templateMenu.add(clearTemplateItem);
 
         JMenu viewMenu = new JMenu("表示");
@@ -318,21 +332,7 @@ public class MainFrame extends JFrame {
 
             statusLabel.setText("表示倍率: " + selected);
         });
-        
-        lineLengthCheckBox.addActionListener(e -> {
-
-            boolean selected =
-                    lineLengthCheckBox.isSelected();
-
-            canvasPanel.setShowLineLength(selected);
-
-            if (selected) {
-                statusLabel.setText("線の長さ表示: ON");
-            } else {
-                statusLabel.setText("線の長さ表示: OFF");
-            }
-        });
-        
+               
 
         toolBar.add(selectButton);
         toolBar.add(lineButton);
@@ -358,21 +358,6 @@ public class MainFrame extends JFrame {
         toolBar.add(gridCheckBox);
         toolBar.add(nameCheckBox);
         toolBar.add(lineLengthCheckBox);
-
-        lineLengthCheckBox.setToolTipText("線の長さをメートルで表示します");
-        
-        lineLengthCheckBox.addActionListener(e -> {
-
-            boolean selected = lineLengthCheckBox.isSelected();
-
-            canvasPanel.setShowLineLength(selected);
-
-            if (selected) {
-                statusLabel.setText("線の長さ表示: ON");
-            } else {
-                statusLabel.setText("線の長さ表示: OFF");
-            }
-        });
 
         toolBar.addSeparator();
 

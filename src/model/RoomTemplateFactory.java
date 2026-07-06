@@ -136,6 +136,75 @@ public class RoomTemplateFactory {
 
         return room;
     }
+	
+	public static RoomTemplate createOutdoorStage() {
+
+	    RoomTemplate room =
+	            new RoomTemplate(
+	                    "大学野外ステージ",
+	                    grid(45),
+	                    grid(30));
+
+	    // 芝生・ステージ範囲の目安
+	    room.addObject(
+	            new RoomObject(
+	                    "ステージ床",
+	                    grid(12),
+	                    grid(15),
+	                    grid(21),
+	                    grid(6)));
+
+	    // 弧状の厚い壁
+	    room.addObject(
+	            RoomObject.createArc(
+	                    "弧状壁",
+	                    grid(8),
+	                    grid(3),
+	                    grid(29),
+	                    grid(18)));
+
+	    // 円柱4本 左右対称
+	    room.addObject(
+	            RoomObject.createCircle(
+	                    "柱L1",
+	                    grid(11),
+	                    grid(11),
+	                    grid(1.5),
+	                    grid(1.5)));
+
+	    room.addObject(
+	            RoomObject.createCircle(
+	                    "柱L2",
+	                    grid(15),
+	                    grid(8),
+	                    grid(1.5),
+	                    grid(1.5)));
+
+	    room.addObject(
+	            RoomObject.createCircle(
+	                    "柱R1",
+	                    grid(32.5),
+	                    grid(11),
+	                    grid(1.5),
+	                    grid(1.5)));
+
+	    room.addObject(
+	            RoomObject.createCircle(
+	                    "柱R2",
+	                    grid(28.5),
+	                    grid(8),
+	                    grid(1.5),
+	                    grid(1.5)));
+
+	    // 名前
+	    room.addObject(
+	            RoomObject.createText(
+	                    "大学野外ステージ",
+	                    grid(17),
+	                    grid(24)));
+
+	    return room;
+	}
     
     public static RoomTemplate createByName(String name) {
 
@@ -143,9 +212,15 @@ public class RoomTemplateFactory {
                 || "214教室".equals(name)) {
             return createFirstClassroom();
         }
+        
+        if ("大学野外ステージ".equals(name)) {
+            return createOutdoorStage();
+        }
 
         return null;
     }
+    
+    
 
     private static void addWallBumpPair(
             RoomTemplate room,

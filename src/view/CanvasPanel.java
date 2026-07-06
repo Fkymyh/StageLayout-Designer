@@ -473,38 +473,34 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    // 教室内の机・柱・ステージなど
 	    for (RoomObject object : roomTemplate.getObjects()) {
 
-	        if (RoomObject.TYPE_LINE.equals(object.getType())) {
+	        switch (object.getType()) {
 
-	            g.drawLine(
-	                    object.getX(),
-	                    object.getY(),
-	                    object.getEndX(),
-	                    object.getEndY());
+	            case RoomObject.TYPE_LINE:
+	                drawRoomLine(g, object);
+	                break;
 
-	            if (showNames) {
-	                g.drawString(
-	                        object.getName(),
-	                        object.getX() + 5,
-	                        object.getY() - 5);
-	            }
+	            case RoomObject.TYPE_CIRCLE:
+	                drawRoomCircle(g, object);
+	                break;
 
-	        } else {
+	            case RoomObject.TYPE_ARC:
+	                drawRoomArc(g, object);
+	                break;
 
-	            g.drawRect(
-	                    object.getX(),
-	                    object.getY(),
-	                    object.getWidth(),
-	                    object.getHeight());
+	            case RoomObject.TYPE_TEXT:
+	                drawRoomText(g, object);
+	                break;
 
-	            if (showNames) {
-	                g.drawString(
-	                        object.getName(),
-	                        object.getX() + 5,
-	                        object.getY() + 18);
-	            }
+	            case RoomObject.TYPE_RECT:
+	            default:
+	                drawRoomRect(g, object);
+	                break;
 	        }
 	    }
+	    
 	}
+	
+	
 	
 	private void drawRoomTemplateGrid(Graphics g) {
 
@@ -550,7 +546,98 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    g2.dispose();
 	}
+	private void drawRoomLine(Graphics g, RoomObject object) {
+
+	    g.setColor(Color.DARK_GRAY);
+
+	    g.drawLine(
+	            object.getX(),
+	            object.getY(),
+	            object.getEndX(),
+	            object.getEndY());
+
+	    drawRoomObjectName(g, object);
+	}
 	
+	private void drawRoomRect(Graphics g, RoomObject object) {
+
+	    g.setColor(Color.DARK_GRAY);
+
+	    g.drawRect(
+	            object.getX(),
+	            object.getY(),
+	            object.getWidth(),
+	            object.getHeight());
+
+	    drawRoomObjectName(g, object);
+	}
+	
+	private void drawRoomCircle(Graphics g, RoomObject object) {
+
+	    Graphics2D g2 = (Graphics2D) g.create();
+
+	    g2.setColor(Color.DARK_GRAY);
+	    g2.setStroke(new BasicStroke(2));
+
+	    g2.drawOval(
+	            object.getX(),
+	            object.getY(),
+	            object.getWidth(),
+	            object.getHeight());
+
+	    g2.dispose();
+
+	    drawRoomObjectName(g, object);
+	}
+	
+	private void drawRoomArc(Graphics g, RoomObject object) {
+
+	    Graphics2D g2 = (Graphics2D) g.create();
+
+	    g2.setColor(Color.BLACK);
+	    g2.setStroke(new BasicStroke(8));
+
+	    // 0度から180度の半円アーチ
+	    g2.drawArc(
+	            object.getX(),
+	            object.getY(),
+	            object.getWidth(),
+	            object.getHeight(),
+	            0,
+	            180);
+
+	    g2.dispose();
+
+	    drawRoomObjectName(g, object);
+	}
+	
+	private void drawRoomText(Graphics g, RoomObject object) {
+
+	    g.setColor(Color.BLACK);
+
+	    g.drawString(
+	            object.getName(),
+	            object.getX(),
+	            object.getY());
+	}
+	
+	private void drawRoomObjectName(Graphics g, RoomObject object) {
+
+	    if (!showNames) {
+	        return;
+	    }
+
+	    if (object.getName() == null || object.getName().isBlank()) {
+	        return;
+	    }
+
+	    g.setColor(Color.BLACK);
+
+	    g.drawString(
+	            object.getName(),
+	            object.getX() + 5,
+	            object.getY() + 18);
+	}
 	private void drawLines(Graphics g) {
 
 	    Graphics2D g2 = (Graphics2D) g.create();
