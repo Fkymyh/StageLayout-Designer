@@ -76,6 +76,20 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private boolean showNames = true;
 	
+	private double zoom = 1.0;
+	
+	private final int BASE_WIDTH = 1800;
+	
+	private final int BASE_HEIGHT = 1200;
+	
+	private int toCanvasX(MouseEvent e) {
+	    return (int) Math.round(e.getX() / zoom);
+	}
+
+	private int toCanvasY(MouseEvent e) {
+	    return (int) Math.round(e.getY() / zoom);
+	}
+	
 	private List<DrawLine> drawLines = new ArrayList<>();
 	
 	private void showPopupMenu(MouseEvent e){
@@ -114,7 +128,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		setBackground(Color.WHITE);
 		
 		
-		setPreferredSize(new Dimension(1800, 1200));
+		setPreferredSize(new Dimension(BASE_WIDTH, BASE_HEIGHT));
 		
 		
 		
@@ -204,23 +218,37 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		super.paintComponent(g);
 		
+		Graphics2D g2 = (Graphics2D) g.create();
+		
+		g2.scale(zoom,  zoom);
+		
 		//グリッド線の色
 		if (showGrid) {
-		    drawGrid(g);
+		    drawGrid(g2);
 		}
 		
-		drawRoomTemplate(g);
+		drawRoomTemplate(g2);
 		
-		drawLines(g);
+		drawLines(g2);
 		
-		drawLinePreview(g);
+		drawLinePreview(g2);
 		
-		drawLineStartPoint(g);
+		drawLineStartPoint(g2);
 		
-		drawModeNotice(g);
+		drawModeNotice(g2);
+		
+		drawItems(g2);
+		
+		// この下の機材描画も g ではなく g2 を使うのが理想
+	    // ただし一気に置き換えると大きいので、ここは次の段階でやる
+
+	    g2.dispose();
+	}
 	
 		
      // 機材描画
+	private void drawItems(Graphics g) {
+		
         g.setColor(Color.BLACK);
 
         for(LayoutItem item : items){
@@ -231,6 +259,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         	    drawBamiri(g, item);
 
         	    g.setColor(Color.BLACK);
+        	    
         	    if (showNames) {
         	        g.drawString(
         	                item.getDisplayName(),
@@ -246,6 +275,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         		}else {
         			g.setColor(item.getEquipment().getColor());
         		}
+        		
         		//四角を描く
         		Equipment equipment = item.getEquipment();
 
@@ -574,6 +604,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	@Override
 	public void mouseClicked(MouseEvent e) {
+		
+		int canvasX = toCanvasX(e);
+		int canvasY = toCanvasY(e);
 
 	    if (drawLineMode) {
 	    	
@@ -581,12 +614,12 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    			return;
 	    		}
 
-	        handleDrawLineClick(e);
+	        handleDrawLineClick(canvasX, canvasY);
 
 	        return;
 	    }
 
-	    selectedItem = findItem(e.getX(), e.getY());
+	    selectedItem = findItem(canvasX, canvasY);
 
 	    refreshPanels();
 
@@ -610,8 +643,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    Equipment equipment = EquipmentFactory.create(name);
 
-	    int x = e.getX();
-	    int y = e.getY();
+	    int x = canvasX;
+	    int y = canvasY;
 
 	    if (snapToGrid) {
 	        x = snapValue(x);
@@ -634,10 +667,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    repaint();
 	}
 	
-	private void handleDrawLineClick(MouseEvent e) {
-
-	    int x = e.getX();
-	    int y = e.getY();
+	private void handleDrawLineClick(int x, int y) {
 
 	    if (snapToGrid) {
 	        x = snapValue(x);
@@ -683,6 +713,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		requestFocusInWindow();
 		
+		int canvasX = toCanvasX(e);
+		int canvasY = toCanvasY(e);
+		
 		if (e.isPopupTrigger() || e.getButton() == MouseEvent.BUTTON3) {
 			
 			if(drawLineMode) {
@@ -698,12 +731,12 @@ public class CanvasPanel extends JPanel implements MouseListener,
 			return;
 		}
 		
-		selectedItem = findItem(e.getX(), e.getY());
+		selectedItem = findItem(canvasX, canvasY);
 		
 		if(selectedItem != null) {
 			
-			dragOffsetX = e.getX() - selectedItem.getX();
-			dragOffsetY = e.getY() - selectedItem.getY();
+			dragOffsetX = canvasX - selectedItem.getX();
+			dragOffsetY = canvasY - selectedItem.getY();
 			
 			dragging = true;
 		}
@@ -752,11 +785,14 @@ public class CanvasPanel extends JPanel implements MouseListener,
 			return;
 		}
 		
+		int canvasX = toCanvasX(e);
+		int canvasY = toCanvasY(e);
+		
 		if(selectedItem != null && dragging) {
 			
 			
-			int x = e.getX() - dragOffsetX;
-			int y = e.getY() - dragOffsetY;
+			int x = canvasX - dragOffsetX;
+			int y = canvasY - dragOffsetY;
 
 			if (snapToGrid) {
 
@@ -777,15 +813,15 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	@Override
 	public void mouseMoved(MouseEvent e) {
 		
-		mouseX = e.getX();
-	    mouseY = e.getY();
+		mouseX = toCanvasX(e);
+	    mouseY = toCanvasY(e);
 
 	    if (drawLineMode && lineStartX != null && lineStartY != null) {
 	        repaint();
 	        return;
 	    }
 		
-		LayoutItem item = findItem(e.getX(), e.getY());
+		LayoutItem item = findItem(mouseX, mouseY);
 		
 		if(item != null) {
 			
@@ -1112,30 +1148,6 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 	}
 	
-	public void setRoomTemplate(RoomTemplate roomTemplate) {
-
-	    this.roomTemplate = roomTemplate;
-
-	    if (roomTemplate != null) {
-
-	        int margin = 200;
-
-	        setPreferredSize(
-	                new Dimension(
-	                        roomTemplate.getWidth() + margin,
-	                        roomTemplate.getHeight() + margin));
-	    }else {
-	    	
-	    	revalidate();
-	    	
-	    	repaint();
-	    }
-
-	    revalidate();
-
-	    repaint();
-	}
-	
 	public RoomTemplate getRoomTemplate() {
 	    return roomTemplate;
 	}
@@ -1325,6 +1337,48 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    this.currentLineStrokeWidth = strokeWidth;
 
 	    repaint();
+	}
+	
+	public void setZoom(double zoom) {
+
+	    if (zoom < 0.5) {
+	        zoom = 0.5;
+	    }
+
+	    if (zoom > 2.0) {
+	        zoom = 2.0;
+	    }
+
+	    this.zoom = zoom;
+	    
+	    int width = (int) Math.round(BASE_WIDTH * zoom);
+	    int height = (int) Math.round(BASE_HEIGHT * zoom);
+	    
+	    if (roomTemplate != null) {
+	    	int margin = 200;
+
+	        width = (int) Math.round(
+	                (roomTemplate.getWidth() + margin) * zoom);
+
+	        height = (int) Math.round(
+	                (roomTemplate.getHeight() + margin) * zoom);
+	    }
+	    
+	    setPreferredSize(new Dimension(width, height));
+
+	    revalidate();
+	    repaint();
+	}
+
+	public double getZoom() {
+	    return zoom;
+	}
+	
+	public void setRoomTemplate(RoomTemplate roomTemplate) {
+
+	    this.roomTemplate = roomTemplate;
+
+	    setZoom(zoom);
 	}
 
 }

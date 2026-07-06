@@ -8,11 +8,14 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 
 import model.LayoutItem;
 
@@ -35,130 +38,189 @@ public class PropertyPanel extends JPanel {
     private JTextArea labelArea;
 
     private Runnable updateCallback;
+    
+    private JTextField equipmentField;
+    
+    private JTextField labelField;
+    
+    private JTextField quantityField;
+    
+    private JTextField widthField;
+    
+    private JTextField heightField;
+
+    private JButton applyButton;
 
     private List<LayoutItem> allItems;
 
     public PropertyPanel() {
+    	
+    	setLayout(new BorderLayout());
+    	
+    	JPanel editPanel = createEditPanel();
+    	
+    	add(editPanel, BorderLayout.NORTH);
+    	
+    	JScrollPane summaryScrollPane = createSummaryPanel();
+    	
+    	add(summaryScrollPane, BorderLayout.CENTER);
+    }
+    
+    private JPanel createEditPanel() {
+    	
+    	JPanel editPanel = new JPanel();
+    	
+    	editPanel.setLayout(new BoxLayout(editPanel, BoxLayout.Y_AXIS));
+    	
+    	editPanel.setBorder(
+    			BorderFactory.createTitledBorder("選択中のアイテム"));
+    	
+    	equipmentField = new JTextField();
+    	labelField = new JTextField();
+    quantityField = new JTextField();
+    widthField = new JTextField();
+    heightField = new JTextField();
+    memoArea = new JTextArea(5, 20);
+    
 
-        setPreferredSize(new Dimension(0, 140));
+    equipmentField.setEditable(false);
 
-        setLayout(new BorderLayout());
+    setupTextField(equipmentField);
+    setupTextField(labelField);
 
-        JPanel editPanel = new JPanel(new GridLayout(13, 1));
+    quantityField.setPreferredSize(new Dimension(55, 28));
+    widthField.setPreferredSize(new Dimension(55, 28));
+    heightField.setPreferredSize(new Dimension(55, 28));
 
-        editPanel.setPreferredSize(new Dimension(260, 0));
-        
-        editPanel.setBorder(
-                BorderFactory.createTitledBorder("配置済み機材の編集"));
+    memoArea.setLineWrap(true);
+    memoArea.setWrapStyleWord(true);
 
-        equipmentArea = new JTextArea();
-        labelArea = new JTextArea();
-        quantityArea = new JTextArea();
-        widthArea = new JTextArea();
-        heightArea = new JTextArea();
-        memoArea = new JTextArea(4, 20);
+    JScrollPane memoScrollPane = new JScrollPane(memoArea);
+    memoScrollPane.setPreferredSize(new Dimension(220, 110));
+    memoScrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
 
-        equipmentArea.setEditable(false);
+    JButton saveButton = new JButton("反映");
+    saveButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
 
-        JButton saveButton = new JButton("反映");
+    editPanel.add(new JLabel("機材名"));
+    editPanel.add(equipmentField);
+    editPanel.add(Box.createVerticalStrut(10));
 
-        editPanel.add(new JLabel("機材名"));
-        editPanel.add(equipmentArea);
-        
-        editPanel.add(new JLabel("表示名"));
-        editPanel.add(labelArea);
+    editPanel.add(new JLabel("表示名"));
+    editPanel.add(labelField);
+    editPanel.add(Box.createVerticalStrut(10));
 
-        editPanel.add(new JLabel("必要数"));
-        editPanel.add(quantityArea);
+    editPanel.add(createNumberPanel());
+    editPanel.add(Box.createVerticalStrut(10));
 
-        editPanel.add(new JLabel("幅"));
-        editPanel.add(widthArea);
+    editPanel.add(new JLabel("注意事項"));
+    editPanel.add(memoScrollPane);
+    editPanel.add(Box.createVerticalStrut(10));
 
-        editPanel.add(new JLabel("高さ"));
-        editPanel.add(heightArea);
+    editPanel.add(saveButton);
 
-        editPanel.add(new JLabel("注意事項"));
-        editPanel.add(memoArea);
+    saveButton.addActionListener(e -> applyChanges());
 
-        editPanel.add(saveButton);
+    return editPanel;
 
-        add(editPanel, BorderLayout.WEST);
+    }
+    
+    private void setupTextField(JTextField textField) {
 
-        summaryArea = new JTextArea(3, 25);
+        textField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+        textField.setPreferredSize(new Dimension(220, 28));
+    }
+
+    private JPanel createNumberPanel() {
+
+        JPanel numberPanel = new JPanel(new GridLayout(2, 3, 6, 4));
+
+        numberPanel.add(new JLabel("必要数"));
+        numberPanel.add(new JLabel("幅"));
+        numberPanel.add(new JLabel("高さ"));
+
+        numberPanel.add(quantityField);
+        numberPanel.add(widthField);
+        numberPanel.add(heightField);
+
+        numberPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+
+        return numberPanel;
+    }
+
+    private JScrollPane createSummaryPanel() {
+
+        summaryArea = new JTextArea(8, 25);
         summaryArea.setEditable(false);
-        
+
         JScrollPane summaryScrollPane =
                 new JScrollPane(summaryArea);
-        
+
         summaryScrollPane.setPreferredSize(
-        		new Dimension(220, 80));
-        
+                new Dimension(220, 160));
 
         summaryScrollPane.setBorder(
                 BorderFactory.createTitledBorder("必要機材一覧"));
-        
-        JPanel summaryPanel = new JPanel(new BorderLayout());
-        summaryPanel.add(summaryScrollPane, BorderLayout.NORTH);
 
-        add(summaryScrollPane, BorderLayout.CENTER);
+        return summaryScrollPane;
+    }
 
-        saveButton.addActionListener(e -> {
+    private void applyChanges() {
 
-            if (currentItem == null) {
-                return;
+        if (currentItem == null) {
+            return;
+        }
+
+        try {
+
+            int quantity =
+                    Integer.parseInt(quantityField.getText().trim());
+
+            int width =
+                    Integer.parseInt(widthField.getText().trim());
+
+            int height =
+                    Integer.parseInt(heightField.getText().trim());
+
+            if (quantity < 1) {
+                quantity = 1;
             }
 
-            try {
-
-                int quantity =
-                        Integer.parseInt(quantityArea.getText().trim());
-
-                int width =
-                        Integer.parseInt(widthArea.getText().trim());
-
-                int height =
-                        Integer.parseInt(heightArea.getText().trim());
-
-                if (quantity < 1) {
-                    quantity = 1;
-                }
-
-                if (width < 10) {
-                    width = 10;
-                }
-
-                if (height < 10) {
-                    height = 10;
-                }
-
-                currentItem.setQuantity(quantity);
-
-                currentItem.setSize(width, height);
-                
-                currentItem.setLabel(labelArea.getText());
-
-                currentItem.setMemo(memoArea.getText());
-
-                displayItem(currentItem);
-
-                displaySummary(allItems);
-
-                if (updateCallback != null) {
-                    updateCallback.run();
-                }
-
-            } catch (NumberFormatException ex) {
-
-                quantityArea.setText(
-                        String.valueOf(currentItem.getQuantity()));
-
-                widthArea.setText(
-                        String.valueOf(currentItem.getWidth()));
-
-                heightArea.setText(
-                        String.valueOf(currentItem.getHeight()));
+            if (width < 10) {
+                width = 10;
             }
-        });
+
+            if (height < 10) {
+                height = 10;
+            }
+
+            currentItem.setQuantity(quantity);
+
+            currentItem.setSize(width, height);
+
+            currentItem.setLabel(labelField.getText());
+
+            currentItem.setMemo(memoArea.getText());
+
+            displayItem(currentItem);
+
+            displaySummary(allItems);
+
+            if (updateCallback != null) {
+                updateCallback.run();
+            }
+
+        } catch (NumberFormatException ex) {
+
+            quantityField.setText(
+                    String.valueOf(currentItem.getQuantity()));
+
+            widthField.setText(
+                    String.valueOf(currentItem.getWidth()));
+
+            heightField.setText(
+                    String.valueOf(currentItem.getHeight()));
+        }
     }
 
     public void displayItem(LayoutItem item) {
@@ -167,29 +229,29 @@ public class PropertyPanel extends JPanel {
 
         if (item == null) {
 
-            equipmentArea.setText("");
-            labelArea.setText("");
-            quantityArea.setText("");
-            widthArea.setText("");
-            heightArea.setText("");
+            equipmentField.setText("");
+            labelField.setText("");
+            quantityField.setText("");
+            widthField.setText("");
+            heightField.setText("");
             memoArea.setText("");
 
             return;
         }
 
-        equipmentArea.setText(
+        equipmentField.setText(
                 item.getEquipment().getName());
-        
-        labelArea.setText(
-        		item.getLabel());
 
-        quantityArea.setText(
+        labelField.setText(
+                item.getLabel());
+
+        quantityField.setText(
                 String.valueOf(item.getQuantity()));
 
-        widthArea.setText(
+        widthField.setText(
                 String.valueOf(item.getWidth()));
 
-        heightArea.setText(
+        heightField.setText(
                 String.valueOf(item.getHeight()));
 
         memoArea.setText(
@@ -239,4 +301,6 @@ public class PropertyPanel extends JPanel {
 
         this.updateCallback = updateCallback;
     }
+
+    
 }

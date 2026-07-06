@@ -38,6 +38,11 @@ public class MainFrame extends JFrame {
         equipmentPanel = new EquipmentPanel();
         propertyPanel = new PropertyPanel();
         canvasPanel = new CanvasPanel(equipmentPanel, propertyPanel);
+        
+        propertyPanel.setUpdateCallback(() -> {
+            canvasPanel.repaint();
+            statusLabel.setText("変更を反映しました");
+        });
 
         setLayout(new BorderLayout());
 
@@ -136,17 +141,30 @@ public class MainFrame extends JFrame {
     private JToolBar createToolBar() {
 
         JToolBar toolBar = new JToolBar();
+        
+        toolBar.setFloatable(false);
 
         JButton selectButton = new JButton("選択");
-        JButton lineButton = new JButton("線");
+        JButton lineButton = new JButton("線を引く");
         JButton finishLineButton = new JButton("線終了");
         JButton deleteButton = new JButton("削除");
         JButton rotateButton = new JButton("回転");
         JButton enlargeButton = new JButton("拡大");
         JButton shrinkButton = new JButton("縮小");
-
+        
+        selectButton.setToolTipText("配置済みの機材を選択・移動します");
+        lineButton.setToolTipText("クリックして線を連続で描画します");
+        finishLineButton.setToolTipText("現在の線の始点を解除します");
+        deleteButton.setToolTipText("選択中の機材を削除します");
+        rotateButton.setToolTipText("選択中の機材を15度回転します");
+        enlargeButton.setToolTipText("選択中の機材を大きくします");
+        shrinkButton.setToolTipText("選択中の機材を小さくします");
+        
         JCheckBox gridCheckBox = new JCheckBox("グリッド", true);
         JCheckBox nameCheckBox = new JCheckBox("名前", true);
+
+        gridCheckBox.setToolTipText("グリッドの表示を切り替えます");
+        nameCheckBox.setToolTipText("機材名・表示名の表示を切り替えます");
 
         JComboBox<String> colorComboBox =
                 new JComboBox<>(new String[] {"赤", "黒", "青", "緑"});
@@ -155,6 +173,19 @@ public class MainFrame extends JFrame {
                 new JComboBox<>(new Integer[] {1, 2, 3, 4, 5, 6, 8, 10});
 
         strokeComboBox.setSelectedItem(3);
+        
+        colorComboBox.setMaximumSize(new Dimension(80, 28));
+        colorComboBox.setPreferredSize(new Dimension(80, 28));
+
+        strokeComboBox.setMaximumSize(new Dimension(60, 28));
+        strokeComboBox.setPreferredSize(new Dimension(60, 28));
+        
+        JComboBox<String> zoomComboBox =
+                new JComboBox<>(new String[] {"50%", "75%", "100%", "125%", "150%", "200%"});
+
+        zoomComboBox.setSelectedItem("100%");
+        zoomComboBox.setMaximumSize(new Dimension(80, 28));
+        zoomComboBox.setPreferredSize(new Dimension(80, 28));
 
         selectButton.addActionListener(e -> {
             canvasPanel.setDrawLineMode(false);
@@ -247,6 +278,27 @@ public class MainFrame extends JFrame {
 
             statusLabel.setText("線の太さ: " + strokeWidth + "px");
         });
+        
+        zoomComboBox.addActionListener(e -> {
+
+            String selected = (String) zoomComboBox.getSelectedItem();
+
+            if ("50%".equals(selected)) {
+                canvasPanel.setZoom(0.5);
+            } else if ("75%".equals(selected)) {
+                canvasPanel.setZoom(0.75);
+            } else if ("100%".equals(selected)) {
+                canvasPanel.setZoom(1.0);
+            } else if ("125%".equals(selected)) {
+                canvasPanel.setZoom(1.25);
+            } else if ("150%".equals(selected)) {
+                canvasPanel.setZoom(1.5);
+            } else if ("200%".equals(selected)) {
+                canvasPanel.setZoom(2.0);
+            }
+
+            statusLabel.setText("表示倍率: " + selected);
+        });
 
         toolBar.add(selectButton);
         toolBar.add(lineButton);
@@ -272,6 +324,11 @@ public class MainFrame extends JFrame {
         toolBar.add(gridCheckBox);
         toolBar.add(nameCheckBox);
 
+        toolBar.addSeparator();
+
+        toolBar.add(new JLabel(" 表示: "));
+        toolBar.add(zoomComboBox);
+
         return toolBar;
     }
 
@@ -279,7 +336,7 @@ public class MainFrame extends JFrame {
 
         JScrollPane scrollPane = new JScrollPane(equipmentPanel);
 
-        scrollPane.setPreferredSize(new Dimension(230, 0));
+        scrollPane.setPreferredSize(new Dimension(180, 0));
 
         return scrollPane;
     }
@@ -293,7 +350,7 @@ public class MainFrame extends JFrame {
 
     private Component createRightPanel() {
 
-        propertyPanel.setPreferredSize(new Dimension(280, 0));
+        propertyPanel.setPreferredSize(new Dimension(240, 0));
 
         return propertyPanel;
     }
