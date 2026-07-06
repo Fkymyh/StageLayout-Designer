@@ -17,6 +17,8 @@ public class LayoutItem {
     private int rotation = 0;
 
     private String memo = "";
+    
+    private String label = "";
 
     public LayoutItem(Equipment equipment, int x, int y) {
 
@@ -101,5 +103,22 @@ public class LayoutItem {
         if (rotation < 0) {
             rotation += 360;
         }
+    }
+    
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(String label) {
+        this.label = label;
+    }
+
+    public String getDisplayName() {
+
+        if (label != null && !label.isBlank()) {
+            return label;
+        }
+
+        return equipment.getName();
     }
 }

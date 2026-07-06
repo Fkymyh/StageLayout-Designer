@@ -195,9 +195,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
         	    g.setColor(Color.BLACK);
         	    if (showNames) {
         	        g.drawString(
-        	                item.getEquipment().getName(),
+        	                item.getDisplayName(),
         	                item.getX() + 8,
-        	                item.getY() + item.getHeight() + 15);
+        	                getRotatedLabelY(item));
         	    }
 
         	    continue;
@@ -285,9 +285,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
         	
         		if (showNames) {
         		    g.drawString(
-        		            item.getEquipment().getName(),
+        		            item.getDisplayName(),
         		            item.getX() + 8,
-        		            item.getY() + item.getHeight() + 15);
+        		            getRotatedLabelY(item));
         		}
 
         }
@@ -717,6 +717,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		item.setQuantity(copiedItem.getQuantity());
 		
+		item.setLabel(copiedItem.getLabel());
+		
 		items.add(item);
 		
 		selectedItem =item;
@@ -898,6 +900,24 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public boolean isShowNames() {
 	    return showNames;
 	}
+	
+	private int getRotatedLabelY(LayoutItem item) {
+
+	    double radians = Math.toRadians(item.getRotation());
+
+	    double sin = Math.abs(Math.sin(radians));
+	    double cos = Math.abs(Math.cos(radians));
+
+	    int rotatedHeight =
+	            (int) Math.round(
+	                    item.getWidth() * sin
+	                    + item.getHeight() * cos);
+
+	    int centerY = item.getY() + item.getHeight() / 2;
+
+	    return centerY + rotatedHeight / 2 + 18;
+	}
+	
 	private void drawImageKeepingAspectRatio(
 	        Graphics2D g2,
 	        Image image,

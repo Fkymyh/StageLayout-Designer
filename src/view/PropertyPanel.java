@@ -31,6 +31,8 @@ public class PropertyPanel extends JPanel {
     private JTextArea summaryArea;
 
     private LayoutItem currentItem;
+    
+    private JTextArea labelArea;
 
     private Runnable updateCallback;
 
@@ -42,7 +44,7 @@ public class PropertyPanel extends JPanel {
 
         setLayout(new BorderLayout());
 
-        JPanel editPanel = new JPanel(new GridLayout(11, 1));
+        JPanel editPanel = new JPanel(new GridLayout(13, 1));
 
         editPanel.setPreferredSize(new Dimension(260, 0));
         
@@ -50,6 +52,7 @@ public class PropertyPanel extends JPanel {
                 BorderFactory.createTitledBorder("配置済み機材の編集"));
 
         equipmentArea = new JTextArea();
+        labelArea = new JTextArea();
         quantityArea = new JTextArea();
         widthArea = new JTextArea();
         heightArea = new JTextArea();
@@ -61,6 +64,9 @@ public class PropertyPanel extends JPanel {
 
         editPanel.add(new JLabel("機材名"));
         editPanel.add(equipmentArea);
+        
+        editPanel.add(new JLabel("表示名"));
+        editPanel.add(labelArea);
 
         editPanel.add(new JLabel("必要数"));
         editPanel.add(quantityArea);
@@ -128,6 +134,8 @@ public class PropertyPanel extends JPanel {
                 currentItem.setQuantity(quantity);
 
                 currentItem.setSize(width, height);
+                
+                currentItem.setLabel(labelArea.getText());
 
                 currentItem.setMemo(memoArea.getText());
 
@@ -160,6 +168,7 @@ public class PropertyPanel extends JPanel {
         if (item == null) {
 
             equipmentArea.setText("");
+            labelArea.setText("");
             quantityArea.setText("");
             widthArea.setText("");
             heightArea.setText("");
@@ -170,6 +179,9 @@ public class PropertyPanel extends JPanel {
 
         equipmentArea.setText(
                 item.getEquipment().getName());
+        
+        labelArea.setText(
+        		item.getLabel());
 
         quantityArea.setText(
                 String.valueOf(item.getQuantity()));

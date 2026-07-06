@@ -68,6 +68,13 @@ public class MainFrame extends JFrame {
 
         });
         
+        propertyPanel.setUpdateCallback(() -> {
+
+            canvasPanel.repaint();
+
+            setModified(true);
+        });
+        
         JScrollPane canvasScrollPane = new JScrollPane(canvasPanel);
         
         JSplitPane horizontalSplitPane = new JSplitPane(
@@ -85,7 +92,7 @@ public class MainFrame extends JFrame {
 
         mainSplitPane.setResizeWeight(1.0);
 
-        int bottomPanelHeight = 170;
+        int bottomPanelHeight = 220;
 
         mainSplitPane.addComponentListener(new ComponentAdapter() {
 
@@ -103,7 +110,6 @@ public class MainFrame extends JFrame {
 
         add(mainSplitPane, BorderLayout.CENTER);
         
-        add(mainSplitPane, BorderLayout.CENTER);
         		
         
         MenuBar menuBar = new MenuBar();
