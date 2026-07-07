@@ -86,6 +86,18 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private RoomTemplate roomTemplate;
 	
+	private List<RoomObject> customRoomObjects = new ArrayList<>(); 
+
+	private String roomObjectAddMode = null;
+
+	private RoomObject selectedRoomObject;
+	
+	private boolean draggingRoomObject = false;
+
+	private int roomObjectDragOffsetX;
+
+	private int roomObjectDragOffsetY;
+	
 	private boolean showNames = true;
 	
 	private boolean showLineLength = true;
@@ -149,10 +161,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    deleteItem.addActionListener(event -> {
 
-	        if(selectedItem != null){
-
-	        	deleteSelectedItem();
-
+	    	if (selectedItem != null || selectedRoomObject != null) {
+	            deleteSelectedItem();
 	        }
 
 	    });
@@ -190,6 +200,29 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	}
 	
 	public void resizeSelectedItem(int delta) {
+		
+		if (selectedRoomObject != null) {
+
+	        int newWidth = selectedRoomObject.getWidth() + delta;
+	        int newHeight = selectedRoomObject.getHeight() + delta;
+
+	        if (newWidth < 10) {
+	            newWidth = 10;
+	        }
+
+	        if (newHeight < 10) {
+	            newHeight = 10;
+	        }
+
+	        selectedRoomObject.setWidth(newWidth);
+	        selectedRoomObject.setHeight(newHeight);
+
+	        notifyChanged();
+
+	        repaint();
+
+	        return;
+	    }
 
 	    if (selectedItem == null) {
 	        return;
@@ -245,6 +278,18 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	}
 	
 	public void moveSelectedItem(int dx, int dy) {
+		
+		if (selectedRoomObject != null) {
+
+	        selectedRoomObject.setX(selectedRoomObject.getX() + dx);
+	        selectedRoomObject.setY(selectedRoomObject.getY() + dy);
+
+	        notifyChanged();
+
+	        repaint();
+
+	        return;
+	    }
 
 	    if (selectedItem == null) {
 	        return;
@@ -290,6 +335,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		    }
 		
 		drawRoomTemplate(g2);
+		
+		drawCustomRoomObjects(g2);
 		
 		drawLines(g2);
 		
@@ -844,12 +891,28 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		int canvasX = toCanvasX(e);
 		int canvasY = toCanvasY(e);
+		
+		if ("RECT".equals(roomObjectAddMode)) {
+
+		    int x = canvasX;
+		    int y = canvasY;
+
+		    if (snapToGrid) {
+		        x = snapValue(x);
+		        y = snapValue(y);
+		    }
+
+		    addRoomRect(x, y);
+
+		    return;
+		}
 
 	    if (drawLineMode) {
 	    	
 	    		if(e.getButton() != MouseEvent.BUTTON1) {
 	    			return;
 	    		}
+	    		
 
 	        handleDrawLineClick(
 	        		canvasX, 
@@ -859,6 +922,19 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	        return;
 	    }
+	    
+		selectedRoomObject = findRoomObject(canvasX, canvasY);
+
+		if (selectedRoomObject != null) {
+
+		    selectedItem = null;
+
+		    refreshPanels();
+
+		    repaint();
+
+		    return;
+		}
 
 	    selectedItem = findItem(canvasX, canvasY);
 
@@ -900,6 +976,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    items.add(newItem);
 
 	    selectedItem = newItem;
+	    selectedRoomObject = null;
 
 	    refreshPanels();
 
@@ -982,6 +1059,22 @@ public class CanvasPanel extends JPanel implements MouseListener,
 			return;
 		}
 		
+		selectedRoomObject = findRoomObject(canvasX, canvasY);
+
+		if (selectedRoomObject != null) {
+
+		    selectedItem = null;
+
+		    roomObjectDragOffsetX = canvasX - selectedRoomObject.getX();
+		    roomObjectDragOffsetY = canvasY - selectedRoomObject.getY();
+
+		    draggingRoomObject = true;
+
+		    repaint();
+
+		    return;
+		}
+		
 		selectedItem = findItem(canvasX, canvasY);
 		
 		if(selectedItem != null) {
@@ -1019,6 +1112,12 @@ public class CanvasPanel extends JPanel implements MouseListener,
 			notifyChanged();
 		}
 		
+		if (draggingRoomObject) {
+		    notifyChanged();
+		}
+
+		draggingRoomObject = false;
+		
 		dragging = false;
 		
 	}
@@ -1042,6 +1141,24 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		int canvasX = toCanvasX(e);
 		int canvasY = toCanvasY(e);
+		
+		if (draggingRoomObject && selectedRoomObject != null) {
+
+		    int x = canvasX - roomObjectDragOffsetX;
+		    int y = canvasY - roomObjectDragOffsetY;
+
+		    if (snapToGrid) {
+		        x = snapValue(x);
+		        y = snapValue(y);
+		    }
+
+		    selectedRoomObject.setX(x);
+		    selectedRoomObject.setY(y);
+
+		    repaint();
+
+		    return;
+		}
 		
 		if(selectedItem != null && dragging) {
 			
@@ -1273,6 +1390,19 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	
 	public void deleteSelectedItem() {
+		
+		if (selectedRoomObject != null) {
+
+		    customRoomObjects.remove(selectedRoomObject);
+
+		    selectedRoomObject = null;
+
+		    notifyChanged();
+
+		    repaint();
+
+		    return;
+		}
 		
 		if (selectedItem == null) {
 			return;
@@ -1880,6 +2010,95 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    return roomTemplate != null;
 	}
 	
+	public void setRoomObjectAddMode(String mode) {
+
+	    this.roomObjectAddMode = mode;
+
+	    setDrawLineMode(false);
+
+	    selectedItem = null;
+	    selectedRoomObject = null;
+
+	    repaint();
+	}
 	
+	private void addRoomRect(int x, int y) {
+
+	    int width = gridSizeForRoomObject(10);
+	    int height = gridSizeForRoomObject(5);
+
+	    RoomObject object =
+	            new RoomObject(
+	                    "ステージ床",
+	                    x,
+	                    y,
+	                    width,
+	                    height);
+
+	    customRoomObjects.add(object);
+
+	    selectedRoomObject = object;
+
+	    notifyChanged();
+
+	    repaint();
+	}
+
+	private int gridSizeForRoomObject(int gridCount) {
+	    return gridCount * GRID_SIZE;
+	}
+	
+	private void drawCustomRoomObjects(Graphics g) {
+		
+		 Graphics2D g2 = (Graphics2D) g.create();
+
+	    for (RoomObject object : customRoomObjects) {
+
+	        if (object == selectedRoomObject) {
+	        		g2.setColor(new Color(80, 130, 255));
+	            g2.setStroke(new BasicStroke(3));
+	            
+	        } else {
+	            g2.setColor(Color.DARK_GRAY);
+	            g2.setStroke(new BasicStroke(1));
+	        }
+
+	        g2.drawRect(
+	                object.getX(),
+	                object.getY(),
+	                object.getWidth(),
+	                object.getHeight());
+
+	        if (showNames) {
+	            g2.setColor(Color.BLACK);
+	            g2.setStroke(new BasicStroke(1));
+	            
+	            g2.drawString(
+	                    object.getName(),
+	                    object.getX() + 5,
+	                    object.getY() + 18);
+	        }
+	    }
+	    g2.dispose();
+	}
+	
+	private RoomObject findRoomObject(int x, int y) {
+
+	    for (RoomObject object : customRoomObjects) {
+
+	        Rectangle rect =
+	                new Rectangle(
+	                        object.getX(),
+	                        object.getY(),
+	                        object.getWidth(),
+	                        object.getHeight());
+
+	        if (rect.contains(x, y)) {
+	            return object;
+	        }
+	    }
+
+	    return null;
+	}
 
 }
