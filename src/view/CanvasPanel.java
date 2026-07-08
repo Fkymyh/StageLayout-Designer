@@ -98,6 +98,18 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	private int roomObjectDragOffsetY;
 	
+	private boolean resizingRoomObject = false;
+
+	private int resizeStartMouseX;
+
+	private int resizeStartMouseY;
+
+	private int resizeStartWidth;
+
+	private int resizeStartHeight;
+
+	private static final int RESIZE_HANDLE_SIZE = 8;
+	
 	private boolean showNames = true;
 	
 	private boolean showLineLength = true;
@@ -132,6 +144,28 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    return e.getX() >= LEFT_RULER_WIDTH
 	            && e.getY() >= TOP_RULER_HEIGHT;
+	}
+	
+	private boolean isOnRoomObjectResizeHandle(RoomObject object, int x, int y) {
+
+	    if (object == null) {
+	        return false;
+	    }
+
+	    int handleX =
+	            object.getX() + object.getWidth() - RESIZE_HANDLE_SIZE / 2;
+
+	    int handleY =
+	            object.getY() + object.getHeight() - RESIZE_HANDLE_SIZE / 2;
+
+	    Rectangle handleRect =
+	            new Rectangle(
+	                    handleX,
+	                    handleY,
+	                    RESIZE_HANDLE_SIZE,
+	                    RESIZE_HANDLE_SIZE);
+
+	    return handleRect.contains(x, y);
 	}
 	
 	private double calculatePreviewLineLengthMeters(int previewX,
@@ -1077,6 +1111,25 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    if (drawLineMode) {
 	        return;
 	    }
+	    
+	    if (selectedRoomObject != null
+	            && isOnRoomObjectResizeHandle(
+	                    selectedRoomObject,
+	                    canvasX,
+	                    canvasY)) {
+
+	        resizingRoomObject = true;
+
+	        resizeStartMouseX = canvasX;
+	        resizeStartMouseY = canvasY;
+
+	        resizeStartWidth = selectedRoomObject.getWidth();
+	        resizeStartHeight = selectedRoomObject.getHeight();
+
+	        repaint();
+
+	        return;
+	    }
 
 	    // 先に機材を探す
 	    selectedItem = findItem(canvasX, canvasY);
@@ -1144,17 +1197,21 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		if (dragging) {
 			notifyChanged();
 		}
-		
+
 		if (draggingRoomObject) {
 		    notifyChanged();
 		}
 
+		if (resizingRoomObject) {
+		    notifyChanged();
+		}
+
 		draggingRoomObject = false;
-		
+
+		resizingRoomObject = false;
+
 		dragging = false;
-		
 	}
-	
 	@Override
 	public void mouseEntered(MouseEvent e) {}
 	
@@ -1174,6 +1231,35 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		int canvasX = toCanvasX(e);
 		int canvasY = toCanvasY(e);
+		
+		if (resizingRoomObject && selectedRoomObject != null) {
+
+		    int dx = canvasX - resizeStartMouseX;
+		    int dy = canvasY - resizeStartMouseY;
+
+		    int newWidth = resizeStartWidth + dx;
+		    int newHeight = resizeStartHeight + dy;
+
+		    if (snapToGrid) {
+		        newWidth = snapValue(newWidth);
+		        newHeight = snapValue(newHeight);
+		    }
+
+		    if (newWidth < 10) {
+		        newWidth = 10;
+		    }
+
+		    if (newHeight < 10) {
+		        newHeight = 10;
+		    }
+
+		    selectedRoomObject.setWidth(newWidth);
+		    selectedRoomObject.setHeight(newHeight);
+
+		    repaint();
+
+		    return;
+		}
 		
 		if (draggingRoomObject && selectedRoomObject != null) {
 
@@ -1231,6 +1317,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    if (drawLineMode && lineStartX != null && lineStartY != null) {
 	        repaint();
+	        return;
+	    }
+	    
+	    if (selectedRoomObject != null
+	            && isOnRoomObjectResizeHandle(
+	                    selectedRoomObject,
+	                    mouseX,
+	                    mouseY)) {
+
+	        setCursor(Cursor.getPredefinedCursor(Cursor.SE_RESIZE_CURSOR));
 	        return;
 	    }
 		
@@ -1830,6 +1926,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    lineStartY = null;
 
 	    selectedItem = null;
+	    selectedRoomObject = null;
 
 	    refreshPanels();
 
@@ -2120,6 +2217,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	                object.getY(),
 	                object.getWidth(),
 	                object.getHeight());
+	        
+	        if (object == selectedRoomObject) {
+	            drawRoomObjectResizeHandle(g2, object);
+	        }
 
 	        if (showNames) {
 	            g2.setColor(Color.BLACK);
@@ -2133,6 +2234,32 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 	    g2.dispose();
 	}
+	
+	private void drawRoomObjectResizeHandle(Graphics2D g2, RoomObject object) {
+
+	    int handleX =
+	            object.getX() + object.getWidth() - RESIZE_HANDLE_SIZE / 2;
+
+	    int handleY =
+	            object.getY() + object.getHeight() - RESIZE_HANDLE_SIZE / 2;
+
+	    g2.setColor(Color.WHITE);
+
+	    g2.fillRect(
+	            handleX,
+	            handleY,
+	            RESIZE_HANDLE_SIZE,
+	            RESIZE_HANDLE_SIZE);
+
+	    g2.setColor(Color.BLACK);
+
+	    g2.drawRect(
+	            handleX,
+	            handleY,
+	            RESIZE_HANDLE_SIZE,
+	            RESIZE_HANDLE_SIZE);
+	}
+	
 	
 	private RoomObject findRoomObject(int x, int y) {
 
