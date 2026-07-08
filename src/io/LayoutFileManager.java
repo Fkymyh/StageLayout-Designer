@@ -7,15 +7,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import model.DrawLine;
 import model.Equipment;
 import model.EquipmentFactory;
 import model.LayoutItem;
 import model.ProjectInfo;
+import model.RoomObject;
 
 public class LayoutFileManager {
 
     public static void save(
     				List<LayoutItem> items,
+    				List<RoomObject> customRoomObjects,
+    		        List<DrawLine> drawLines,
     				ProjectInfo projectInfo,
     				String fileName)
     				throws IOException {
@@ -44,6 +48,40 @@ public class LayoutFileManager {
         	        item.getRotation() + "," +
         	        item.getQuantity() + "," +
         	        item.getMemo());
+
+            writer.write("\n");
+        }
+        
+        writer.write("#ROOM_OBJECTS\n");
+
+        for (RoomObject object : customRoomObjects) {
+
+            writer.write(
+                    escape(object.getType()) + "," +
+                    escape(object.getName()) + "," +
+                    object.getX() + "," +
+                    object.getY() + "," +
+                    object.getWidth() + "," +
+                    object.getHeight() + "," +
+                    object.getEndX() + "," +
+                    object.getEndY());
+
+            writer.write("\n");
+        }
+
+        writer.write("#LINES\n");
+
+        for (DrawLine line : drawLines) {
+
+            writer.write(
+                    line.getStartX() + "," +
+                    line.getStartY() + "," +
+                    line.getEndX() + "," +
+                    line.getEndY() + "," +
+                    line.getColor().getRed() + "," +
+                    line.getColor().getGreen() + "," +
+                    line.getColor().getBlue() + "," +
+                    line.getStrokeWidth());
 
             writer.write("\n");
         }
@@ -107,13 +145,15 @@ public class LayoutFileManager {
         ProjectInfo projectInfo = new ProjectInfo();
 
         List<LayoutItem> items = new ArrayList<>();
+        List<RoomObject> customRoomObjects = new ArrayList<>();
+        List<DrawLine> drawLines = new ArrayList<>();
 
         BufferedReader reader =
                 new BufferedReader(new FileReader(fileName));
 
         String line;
 
-        boolean itemMode = false;
+        String mode = "";
 
         while ((line = reader.readLine()) != null) {
 
@@ -122,16 +162,26 @@ public class LayoutFileManager {
             }
 
             if (line.equals("#PROJECT")) {
-                itemMode = false;
+                mode = "PROJECT";
                 continue;
             }
 
             if (line.equals("#ITEMS")) {
-                itemMode = true;
+                mode = "ITEMS";
+                continue;
+            }
+            
+            if (line.equals("#ROOM_OBJECTS")) {
+                mode = "ROOM_OBJECTS";
                 continue;
             }
 
-            if (!itemMode && line.contains("=")) {
+            if (line.equals("#LINES")) {
+                mode = "LINES";
+                continue;
+            }
+
+            if ("PROJECT".equals(mode) && line.contains("=")) {
 
                 String[] parts = line.split("=", 2);
 
@@ -171,71 +221,150 @@ public class LayoutFileManager {
 
                 continue;
             }
+            
+            if ("ITEMS".equals(mode)) {
 
-            String[] data = splitEscapedCsv(line);
+                String[] data = splitEscapedCsv(line);
 
-            String name = data[0];
-            int x = Integer.parseInt(data[1]);
-            int y = Integer.parseInt(data[2]);
+                String name = data[0];
+                int x = Integer.parseInt(data[1]);
+                int y = Integer.parseInt(data[2]);
 
-            Equipment equipment = EquipmentFactory.create(name);
+                Equipment equipment = EquipmentFactory.create(name);
 
-            LayoutItem item = new LayoutItem(equipment, x, y);
-
-            if (data.length >= 8) {
-
-                int width = Integer.parseInt(data[3]);
-                int height = Integer.parseInt(data[4]);
-                int rotation = Integer.parseInt(data[5]);
-                int quantity = Integer.parseInt(data[6]);
-
-                String memo = "";
+                LayoutItem item = new LayoutItem(equipment, x, y);
 
                 if (data.length >= 8) {
-                    memo = unescape(data[7]);
+
+                    int width = Integer.parseInt(data[3]);
+                    int height = Integer.parseInt(data[4]);
+                    int rotation = Integer.parseInt(data[5]);
+                    int quantity = Integer.parseInt(data[6]);
+
+                    String memo = "";
+
+                    if (data.length >= 8) {
+                        memo = unescape(data[7]);
+                    }
+
+                    item.setSize(width, height);
+                    item.setRotation(rotation);
+                    item.setQuantity(quantity);
+                    item.setMemo(memo);
+
+                } else if (data.length >= 6) {
+
+                    int width = Integer.parseInt(data[3]);
+                    int height = Integer.parseInt(data[4]);
+                    int quantity = Integer.parseInt(data[5]);
+
+                    String memo = "";
+
+                    if (data.length >= 7) {
+                        memo = unescape(data[6]);
+                    }
+
+                    item.setSize(width, height);
+                    item.setQuantity(quantity);
+                    item.setMemo(memo);
+
+                } else {
+
+                    int quantity = Integer.parseInt(data[3]);
+
+                    String memo = "";
+
+                    if (data.length >= 5) {
+                        memo = unescape(data[4]);
+                    }
+
+                    item.setQuantity(quantity);
+                    item.setMemo(memo);
                 }
 
-                item.setSize(width, height);
-                item.setRotation(rotation);
-                item.setQuantity(quantity);
-                item.setMemo(memo);
+                items.add(item);
 
-            } else if (data.length >= 6) {
-
-                int width = Integer.parseInt(data[3]);
-                int height = Integer.parseInt(data[4]);
-                int quantity = Integer.parseInt(data[5]);
-
-                String memo = "";
-
-                if (data.length >= 7) {
-                    memo = unescape(data[6]);
-                }
-
-                item.setSize(width, height);
-                item.setQuantity(quantity);
-                item.setMemo(memo);
-
-            } else {
-
-                int quantity = Integer.parseInt(data[3]);
-
-                String memo = "";
-
-                if (data.length >= 5) {
-                    memo = unescape(data[4]);
-                }
-
-                item.setQuantity(quantity);
-                item.setMemo(memo);
+                continue;
             }
 
-            items.add(item);
+            if ("ROOM_OBJECTS".equals(mode)) {
+
+                String[] data = splitEscapedCsv(line);
+
+                String type = unescape(data[0]);
+                String name = unescape(data[1]);
+
+                int x = Integer.parseInt(data[2]);
+                int y = Integer.parseInt(data[3]);
+                int width = Integer.parseInt(data[4]);
+                int height = Integer.parseInt(data[5]);
+
+                RoomObject object;
+
+                if (RoomObject.TYPE_CIRCLE.equals(type)) {
+
+                    object =
+                            RoomObject.createCircle(
+                                    name,
+                                    x,
+                                    y,
+                                    width,
+                                    height);
+
+                } else {
+
+                    object =
+                            new RoomObject(
+                                    name,
+                                    x,
+                                    y,
+                                    width,
+                                    height);
+                }
+
+                customRoomObjects.add(object);
+
+                continue;
+            }
+
+            if ("LINES".equals(mode)) {
+
+                String[] data = splitEscapedCsv(line);
+
+                int startX = Integer.parseInt(data[0]);
+                int startY = Integer.parseInt(data[1]);
+                int endX = Integer.parseInt(data[2]);
+                int endY = Integer.parseInt(data[3]);
+
+                int red = Integer.parseInt(data[4]);
+                int green = Integer.parseInt(data[5]);
+                int blue = Integer.parseInt(data[6]);
+
+                int strokeWidth = Integer.parseInt(data[7]);
+
+                DrawLine drawLine =
+                        new DrawLine(
+                                startX,
+                                startY,
+                                endX,
+                                endY);
+
+                drawLine.setColor(new java.awt.Color(red, green, blue));
+                drawLine.setStrokeWidth(strokeWidth);
+
+                drawLines.add(drawLine);
+
+                continue;
+            }
         }
 
         reader.close();
 
-        return new LayoutData(projectInfo, items);
+        return new LayoutData(
+                projectInfo,
+                items,
+                customRoomObjects,
+                drawLines);
     }
     
     private static String[] splitEscapedCsv(String line) {

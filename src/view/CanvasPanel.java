@@ -107,6 +107,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private int resizeStartWidth;
 
 	private int resizeStartHeight;
+	
+	private boolean resizingItem = false;
+
+	private int itemResizeStartMouseX;
+
+	private int itemResizeStartMouseY;
+
+	private int itemResizeStartWidth;
+
+	private int itemResizeStartHeight;
 
 	private static final int RESIZE_HANDLE_SIZE = 8;
 	
@@ -157,6 +167,28 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    int handleY =
 	            object.getY() + object.getHeight() - RESIZE_HANDLE_SIZE / 2;
+
+	    Rectangle handleRect =
+	            new Rectangle(
+	                    handleX,
+	                    handleY,
+	                    RESIZE_HANDLE_SIZE,
+	                    RESIZE_HANDLE_SIZE);
+
+	    return handleRect.contains(x, y);
+	}
+	
+	private boolean isOnItemResizeHandle(LayoutItem item, int x, int y) {
+
+	    if (item == null) {
+	        return false;
+	    }
+
+	    int handleX =
+	            item.getX() + item.getWidth() - RESIZE_HANDLE_SIZE / 2;
+
+	    int handleY =
+	            item.getY() + item.getHeight() - RESIZE_HANDLE_SIZE / 2;
 
 	    Rectangle handleRect =
 	            new Rectangle(
@@ -459,6 +491,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
         					item.getY(),
         					item.getWidth(),
         					item.getHeight());
+        			
+        			drawItemResizeHandle(g2, item);
         			
         		}else {
         			
@@ -1129,6 +1163,25 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 	    
+	    if (selectedItem != null
+	            && isOnItemResizeHandle(
+	                    selectedItem,
+	                    canvasX,
+	                    canvasY)) {
+
+	        resizingItem = true;
+
+	        itemResizeStartMouseX = canvasX;
+	        itemResizeStartMouseY = canvasY;
+
+	        itemResizeStartWidth = selectedItem.getWidth();
+	        itemResizeStartHeight = selectedItem.getHeight();
+
+	        repaint();
+
+	        return;
+	    }
+	    
 	    if (selectedRoomObject != null
 	            && isOnRoomObjectResizeHandle(
 	                    selectedRoomObject,
@@ -1222,10 +1275,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		if (resizingRoomObject) {
 		    notifyChanged();
 		}
+		
+		if (resizingItem) {
+		    notifyChanged();
+		}
 
 		draggingRoomObject = false;
 
 		resizingRoomObject = false;
+		
+		resizingItem = false;
 
 		dragging = false;
 	}
@@ -1248,6 +1307,36 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		int canvasX = toCanvasX(e);
 		int canvasY = toCanvasY(e);
+		
+		if (resizingItem && selectedItem != null) {
+
+		    int dx = canvasX - itemResizeStartMouseX;
+		    int dy = canvasY - itemResizeStartMouseY;
+
+		    int newWidth = itemResizeStartWidth + dx;
+		    int newHeight = itemResizeStartHeight + dy;
+
+		    if (snapToGrid) {
+		        newWidth = snapValue(newWidth);
+		        newHeight = snapValue(newHeight);
+		    }
+
+		    if (newWidth < 10) {
+		        newWidth = 10;
+		    }
+
+		    if (newHeight < 10) {
+		        newHeight = 10;
+		    }
+
+		    selectedItem.setSize(newWidth, newHeight);
+
+		    refreshPanels();
+
+		    repaint();
+
+		    return;
+		}
 		
 		if (resizingRoomObject && selectedRoomObject != null) {
 
@@ -1320,6 +1409,32 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	@Override
 	public void mouseMoved(MouseEvent e) {
+		
+		if (!isInDrawingArea(e)) {
+	        setCursor(Cursor.getDefaultCursor());
+	        return;
+	    }
+
+	    mouseX = toCanvasX(e);
+	    mouseY = toCanvasY(e);
+
+	    controlDown = e.isControlDown();
+	    shiftDown = e.isShiftDown();
+
+	    if (drawLineMode && lineStartX != null && lineStartY != null) {
+	        repaint();
+	        return;
+	    }
+	    
+		if (selectedItem != null
+		        && isOnItemResizeHandle(
+		                selectedItem,
+		                mouseX,
+		                mouseY)) {
+
+		    setCursor(Cursor.getPredefinedCursor(Cursor.SE_RESIZE_CURSOR));
+		    return;
+		}
 		
 		if (!isInDrawingArea(e)) {
 	        setCursor(Cursor.getDefaultCursor());
@@ -1648,6 +1763,38 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		notifyChanged();
 		
 		repaint();
+	}
+	
+	public void clearAll() {
+
+	    items.clear();
+
+	    customRoomObjects.clear();
+
+	    drawLines.clear();
+
+	    selectedItem = null;
+	    selectedRoomObject = null;
+	    copiedItem = null;
+
+	    drawLineMode = false;
+	    roomObjectAddMode = null;
+
+	    lineStartX = null;
+	    lineStartY = null;
+
+	    dragging = false;
+	    draggingRoomObject = false;
+	    resizingRoomObject = false;
+	    resizingItem = false;
+
+	    refreshPanels();
+
+	    notifyChanged();
+
+	    repaint();
+
+	    requestFocusInWindow();
 	}
 	
 	public void setShowGrid(boolean showGrid) {
@@ -2342,6 +2489,58 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    selectedRoomObject = null;
 
 	    repaint();
+	}
+	
+	public List<RoomObject> getCustomRoomObjects() {
+	    return customRoomObjects;
+	}
+
+	public void setCustomRoomObjects(List<RoomObject> customRoomObjects) {
+
+	    this.customRoomObjects = customRoomObjects;
+
+	    selectedRoomObject = null;
+
+	    repaint();
+	}
+
+	public List<DrawLine> getDrawLines() {
+	    return drawLines;
+	}
+
+	public void setDrawLines(List<DrawLine> drawLines) {
+
+	    this.drawLines = drawLines;
+
+	    lineStartX = null;
+	    lineStartY = null;
+
+	    repaint();
+	}
+	
+	private void drawItemResizeHandle(Graphics2D g2, LayoutItem item) {
+
+	    int handleX =
+	            item.getX() + item.getWidth() - RESIZE_HANDLE_SIZE / 2;
+
+	    int handleY =
+	            item.getY() + item.getHeight() - RESIZE_HANDLE_SIZE / 2;
+
+	    g2.setColor(Color.WHITE);
+
+	    g2.fillRect(
+	            handleX,
+	            handleY,
+	            RESIZE_HANDLE_SIZE,
+	            RESIZE_HANDLE_SIZE);
+
+	    g2.setColor(Color.BLACK);
+
+	    g2.drawRect(
+	            handleX,
+	            handleY,
+	            RESIZE_HANDLE_SIZE,
+	            RESIZE_HANDLE_SIZE);
 	}
 
 }

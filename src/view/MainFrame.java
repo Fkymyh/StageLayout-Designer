@@ -8,15 +8,20 @@ import java.awt.Dimension;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JToolBar;
 
+import io.LayoutData;
+import io.LayoutFileManager;
+import model.ProjectInfo;
 import model.RoomTemplate;
 import model.RoomTemplateFactory;
 
@@ -61,11 +66,114 @@ public class MainFrame extends JFrame {
 
         JMenu fileMenu = new JMenu("ファイル");
         JMenuItem newItem = new JMenuItem("新規");
+        JMenuItem saveItem = new JMenuItem("保存");
+        JMenuItem loadItem = new JMenuItem("読み込み");
         JMenuItem exitItem = new JMenuItem("終了");
 
         newItem.addActionListener(e -> {
-            canvasPanel.clearItems();
+            canvasPanel.clearAll();
+            canvasPanel.requestFocusInWindow();
             statusLabel.setText("新規作成しました");
+        });
+        
+        saveItem.addActionListener(e -> {
+
+            JFileChooser fileChooser = new JFileChooser();
+
+            int result = fileChooser.showSaveDialog(this);
+
+            if (result != JFileChooser.APPROVE_OPTION) {
+                return;
+            }
+
+            String fileName =
+                    fileChooser.getSelectedFile().getAbsolutePath();
+
+            ProjectInfo projectInfo = new ProjectInfo();
+
+            projectInfo.setTitle("ステージレイアウト");
+            projectInfo.setDate("");
+            projectInfo.setPlace("");
+            projectInfo.setPlanner("");
+            projectInfo.setNote("");
+
+            if (canvasPanel.getRoomTemplate() != null) {
+                projectInfo.setTemplateName(canvasPanel.getRoomTemplate().getName());
+            } else {
+                projectInfo.setTemplateName("");
+            }
+
+            try {
+
+                LayoutFileManager.save(
+                        canvasPanel.getItems(),
+                        canvasPanel.getCustomRoomObjects(),
+                        canvasPanel.getDrawLines(),
+                        projectInfo,
+                        fileName);
+
+                statusLabel.setText("保存しました: " + fileName);
+
+            } catch (Exception ex) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "保存に失敗しました。\n" + ex.getMessage());
+
+                ex.printStackTrace();
+            }
+        });
+        
+        loadItem.addActionListener(e -> {
+
+            JFileChooser fileChooser = new JFileChooser();
+
+            int result = fileChooser.showOpenDialog(this);
+
+            if (result != JFileChooser.APPROVE_OPTION) {
+                return;
+            }
+
+            String fileName =
+                    fileChooser.getSelectedFile().getAbsolutePath();
+
+            try {
+
+                LayoutData data =
+                        LayoutFileManager.load(fileName);
+
+                canvasPanel.setItems(data.getItems());
+                canvasPanel.setCustomRoomObjects(data.getCustomRoomObjects());
+                canvasPanel.setDrawLines(data.getDrawLines());
+
+                ProjectInfo projectInfo = data.getProjectInfo();
+
+                if ("214教室".equals(projectInfo.getTemplateName())
+                        || "第一教室".equals(projectInfo.getTemplateName())) {
+
+                    canvasPanel.setRoomTemplate(
+                            RoomTemplateFactory.createFirstClassroom());
+
+                } else if ("大学野外ステージ".equals(projectInfo.getTemplateName())) {
+
+                    canvasPanel.setRoomTemplate(
+                            RoomTemplateFactory.createOutdoorStage());
+
+                } else {
+
+                    canvasPanel.setRoomTemplate(null);
+                }
+
+                statusLabel.setText("読み込みました: " + fileName);
+
+            } catch (Exception ex) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "読み込みに失敗しました。\n" + ex.getMessage());
+
+                ex.printStackTrace();
+            }
         });
 
         exitItem.addActionListener(e -> {
@@ -73,6 +181,9 @@ public class MainFrame extends JFrame {
         });
 
         fileMenu.add(newItem);
+        fileMenu.addSeparator();
+        fileMenu.add(saveItem);
+        fileMenu.add(loadItem);
         fileMenu.addSeparator();
         fileMenu.add(exitItem);
 
