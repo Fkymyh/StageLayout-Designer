@@ -210,7 +210,7 @@ public class MainFrame extends JFrame {
         zoomComboBox.setPreferredSize(new Dimension(80, 28));
 
         selectButton.addActionListener(e -> {
-            canvasPanel.setDrawLineMode(false);
+        		canvasPanel.setSelectMode();;
             statusLabel.setText("モード: 選択");
         });
 
@@ -218,6 +218,12 @@ public class MainFrame extends JFrame {
             canvasPanel.setDrawLineMode(true);
             statusLabel.setText("モード: 線描画");
         });
+        
+        roomRectButton.addActionListener(e -> {
+            canvasPanel.setRoomObjectAddMode("RECT");
+            statusLabel.setText("モード: 四角エリア追加");
+        });
+             
 
         finishLineButton.addActionListener(e -> {
             canvasPanel.finishCurrentLine();
@@ -335,11 +341,7 @@ public class MainFrame extends JFrame {
             statusLabel.setText("表示倍率: " + selected);
         });
         
-        roomRectButton.addActionListener(e -> {
-            canvasPanel.setRoomObjectAddMode("RECT");
-            statusLabel.setText("モード: 四角エリア追加");
-        });
-               
+          
 
         toolBar.add(selectButton);
         toolBar.add(lineButton);

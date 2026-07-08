@@ -266,11 +266,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public void toggleDrawLineMode() {
 
 	    drawLineMode = !drawLineMode;
+	    
+	    if(drawLineMode) {
+	    		roomObjectAddMode = null;
+	    }
 
 	    lineStartX = null;
 	    lineStartY = null;
 
 	    selectedItem = null;
+	    selectedRoomObject = null;
 
 	    refreshPanels();
 
@@ -892,21 +897,22 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		int canvasX = toCanvasX(e);
 		int canvasY = toCanvasY(e);
 		
+		// 四角エリア追加モード
 		if ("RECT".equals(roomObjectAddMode)) {
 
-		    int x = canvasX;
-		    int y = canvasY;
+	        int x = canvasX;
+	        int y = canvasY;
 
-		    if (snapToGrid) {
-		        x = snapValue(x);
-		        y = snapValue(y);
-		    }
+	        if (snapToGrid) {
+	            x = snapValue(x);
+	            y = snapValue(y);
+	        }
 
-		    addRoomRect(x, y);
+	        addRoomRect(x, y);
 
-		    return;
-		}
-
+	        return;
+	    }
+		// 線描画モード
 	    if (drawLineMode) {
 	    	
 	    		if(e.getButton() != MouseEvent.BUTTON1) {
@@ -922,33 +928,46 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	        return;
 	    }
-	    
-		selectedRoomObject = findRoomObject(canvasX, canvasY);
-
-		if (selectedRoomObject != null) {
-
-		    selectedItem = null;
-
-		    refreshPanels();
-
-		    repaint();
-
-		    return;
-		}
-
+	 
+		// 機材選択を先にする
 	    selectedItem = findItem(canvasX, canvasY);
 
-	    refreshPanels();
 
 	    if (selectedItem != null) {
+	    	
+	    		selectedRoomObject = null;
+	    		
+	    		refreshPanels();
 
 	        repaint();
 
 	        return;
 	    }
+	    
+	    // 次に四角エリア選択
+	 	selectedRoomObject = findRoomObject(canvasX, canvasY);
+
+	 	if (selectedRoomObject != null) {
+
+	 		 selectedItem = null;
+
+	 		 refreshPanels();
+
+	 		 repaint();
+
+	 		 return;
+	 		}
 
 	    // 空いてる場所をダブルクリックした時だけ機材を追加する
 	    if (e.getClickCount() < 2) {
+	    	
+	    		selectedItem = null;
+	        selectedRoomObject = null;
+
+	        refreshPanels();
+
+	        repaint();
+
 	        return;
 	    }
 
@@ -1034,61 +1053,75 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	@Override
 	public void mousePressed(MouseEvent e) {
-		
-		requestFocusInWindow();
-		
-		if (!isInDrawingArea(e)) {
+
+	    requestFocusInWindow();
+
+	    if (!isInDrawingArea(e)) {
 	        return;
 	    }
-		
-		int canvasX = toCanvasX(e);
-		int canvasY = toCanvasY(e);
-		
-		if (e.isPopupTrigger() || e.getButton() == MouseEvent.BUTTON3) {
-			
-			if(drawLineMode) {
-				finishCurrentLine();
-				return;
-			}
-			
-			showPopupMenu(e);
-			return;
-		}
-		
-		if (drawLineMode) {
-			return;
-		}
-		
-		selectedRoomObject = findRoomObject(canvasX, canvasY);
 
-		if (selectedRoomObject != null) {
+	    int canvasX = toCanvasX(e);
+	    int canvasY = toCanvasY(e);
 
-		    selectedItem = null;
+	    if (e.isPopupTrigger() || e.getButton() == MouseEvent.BUTTON3) {
 
-		    roomObjectDragOffsetX = canvasX - selectedRoomObject.getX();
-		    roomObjectDragOffsetY = canvasY - selectedRoomObject.getY();
+	        if (drawLineMode) {
+	            finishCurrentLine();
+	            return;
+	        }
 
-		    draggingRoomObject = true;
+	        showPopupMenu(e);
+	        return;
+	    }
 
-		    repaint();
+	    if (drawLineMode) {
+	        return;
+	    }
 
-		    return;
-		}
-		
-		selectedItem = findItem(canvasX, canvasY);
-		
-		if(selectedItem != null) {
-			
-			dragOffsetX = canvasX - selectedItem.getX();
-			dragOffsetY = canvasY - selectedItem.getY();
-			
-			dragging = true;
-		}
-		
-		refreshPanels();
-		
-		
-		repaint();
+	    // 先に機材を探す
+	    selectedItem = findItem(canvasX, canvasY);
+
+	    if (selectedItem != null) {
+
+	        selectedRoomObject = null;
+
+	        dragOffsetX = canvasX - selectedItem.getX();
+	        dragOffsetY = canvasY - selectedItem.getY();
+
+	        dragging = true;
+
+	        refreshPanels();
+
+	        repaint();
+
+	        return;
+	    }
+
+	    // 次に四角エリアを探す
+	    selectedRoomObject = findRoomObject(canvasX, canvasY);
+
+	    if (selectedRoomObject != null) {
+
+	        selectedItem = null;
+
+	        roomObjectDragOffsetX = canvasX - selectedRoomObject.getX();
+	        roomObjectDragOffsetY = canvasY - selectedRoomObject.getY();
+
+	        draggingRoomObject = true;
+
+	        refreshPanels();
+
+	        repaint();
+
+	        return;
+	    }
+
+	    selectedItem = null;
+	    selectedRoomObject = null;
+
+	    refreshPanels();
+
+	    repaint();
 	}
 	
 	@Override
@@ -1206,10 +1239,20 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		if(item != null) {
 			
 			setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		}else {
-			setCursor(Cursor.getDefaultCursor());
+			return;
 		}
+		
+		RoomObject roomObject = findRoomObject(mouseX, mouseY);
+
+	    if (roomObject != null) {
+	        setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+	        return;
+	    }
+
+	    setCursor(Cursor.getDefaultCursor());
 	}
+		
+		
 	
 	@Override
 	public void keyPressed(KeyEvent e) {
@@ -1778,6 +1821,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public void setDrawLineMode(boolean drawLineMode) {
 
 	    this.drawLineMode = drawLineMode;
+	    
+	    if (drawLineMode) {
+	        roomObjectAddMode = null;
+	    }
 
 	    lineStartX = null;
 	    lineStartY = null;
@@ -2013,11 +2060,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public void setRoomObjectAddMode(String mode) {
 
 	    this.roomObjectAddMode = mode;
-
-	    setDrawLineMode(false);
+	    
+	    drawLineMode = false;
+	    
+	    lineStartX = null;
+	    lineStartY = null;
 
 	    selectedItem = null;
 	    selectedRoomObject = null;
+	    
+	    refreshPanels();
 
 	    repaint();
 	}
@@ -2099,6 +2151,21 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 
 	    return null;
+	}
+	
+	public void setSelectMode() {
+
+	    drawLineMode = false;
+
+	    roomObjectAddMode = null;
+
+	    lineStartX = null;
+	    lineStartY = null;
+
+	    selectedItem = null;
+	    selectedRoomObject = null;
+
+	    repaint();
 	}
 
 }
