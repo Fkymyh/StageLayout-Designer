@@ -946,6 +946,21 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	        return;
 	    }
+		//円柱追加モード
+		if ("CIRCLE".equals(roomObjectAddMode)) {
+
+	 	    int x = canvasX;
+	 	    int y = canvasY;
+
+	 	    if (snapToGrid) {
+	 	        x = snapValue(x);
+	 	        y = snapValue(y);
+	 	    }
+
+	 	    addRoomCircle(x, y);
+
+	 	    return;
+	 	}
 		// 線描画モード
 	    if (drawLineMode) {
 	    	
@@ -991,6 +1006,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	 		 return;
 	 		}
+	 	
+	 	
 
 	    // 空いてる場所をダブルクリックした時だけ機材を追加する
 	    if (e.getClickCount() < 2) {
@@ -2192,6 +2209,27 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    repaint();
 	}
+	
+	private void addRoomCircle(int x, int y) {
+
+	    int size = gridSizeForRoomObject(2);
+
+	    RoomObject object =
+	            RoomObject.createCircle(
+	                    "柱",
+	                    x,
+	                    y,
+	                    size,
+	                    size);
+
+	    customRoomObjects.add(object);
+
+	    selectedRoomObject = object;
+
+	    notifyChanged();
+
+	    repaint();
+	}
 
 	private int gridSizeForRoomObject(int gridCount) {
 	    return gridCount * GRID_SIZE;
@@ -2212,11 +2250,22 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	            g2.setStroke(new BasicStroke(1));
 	        }
 
-	        g2.drawRect(
-	                object.getX(),
-	                object.getY(),
-	                object.getWidth(),
-	                object.getHeight());
+	        if (RoomObject.TYPE_CIRCLE.equals(object.getType())) {
+
+	            g2.drawOval(
+	                    object.getX(),
+	                    object.getY(),
+	                    object.getWidth(),
+	                    object.getHeight());
+
+	        } else {
+
+	            g2.drawRect(
+	                    object.getX(),
+	                    object.getY(),
+	                    object.getWidth(),
+	                    object.getHeight());
+	        }
 	        
 	        if (object == selectedRoomObject) {
 	            drawRoomObjectResizeHandle(g2, object);

@@ -166,6 +166,7 @@ public class MainFrame extends JFrame {
         JButton enlargeButton = new JButton("拡大");
         JButton shrinkButton = new JButton("縮小");
         JButton roomRectButton = new JButton("四角エリア");
+        JButton roomCircleButton = new JButton("円柱");
         
         selectButton.setToolTipText("配置済みの機材を選択・移動します");
         lineButton.setToolTipText("クリックして線を連続で描画します");
@@ -175,6 +176,7 @@ public class MainFrame extends JFrame {
         enlargeButton.setToolTipText("選択中の機材を大きくします");
         shrinkButton.setToolTipText("選択中の機材を小さくします");
         roomRectButton.setToolTipText("ステージ床や客席などの四角形エリアを追加します");
+        roomCircleButton.setToolTipText("柱やポールなどの円形エリアを追加します");
         
         JCheckBox gridCheckBox = new JCheckBox("グリッド", true);
         JCheckBox nameCheckBox = new JCheckBox("名前", true);
@@ -248,6 +250,11 @@ public class MainFrame extends JFrame {
         shrinkButton.addActionListener(e -> {
             canvasPanel.resizeSelectedItem(-10);
             statusLabel.setText("選択中のアイテムを縮小しました");
+        });
+        
+        roomCircleButton.addActionListener(e -> {
+            canvasPanel.setRoomObjectAddMode("CIRCLE");
+            statusLabel.setText("モード: 円柱追加");
         });
 
         gridCheckBox.addActionListener(e -> {
@@ -347,6 +354,7 @@ public class MainFrame extends JFrame {
         toolBar.add(lineButton);
         toolBar.add(roomRectButton);
         toolBar.add(finishLineButton);
+        toolBar.add(roomCircleButton);
 
         toolBar.addSeparator();
 

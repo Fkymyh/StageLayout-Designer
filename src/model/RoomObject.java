@@ -99,6 +99,7 @@ public class RoomObject {
 	    return object;
 	}
 	
+	
 	public String getType() {
 		return type;
 	}
