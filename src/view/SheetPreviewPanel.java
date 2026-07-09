@@ -8,6 +8,7 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.Shape;
 import java.awt.image.BufferedImage;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -143,7 +144,7 @@ public class SheetPreviewPanel extends JPanel{
 
         g.setFont(new Font("SansSerif", Font.BOLD, 22));
 
-        String title = projectInfo.getTitle();
+        String title = safe(projectInfo == null ? "" : projectInfo.getTitle());
 
         if (title == null || title.isBlank()) {
             title = "Stage Layout";
@@ -157,17 +158,17 @@ public class SheetPreviewPanel extends JPanel{
         g.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
         g.drawString(
-                "Date: " + projectInfo.getDate(),
+                "Date: " + safe(projectInfo == null ? "" : projectInfo.getDate()),
                 pageX + 20,
                 pageY + 30);
 
         g.drawString(
-                "Venue: " + projectInfo.getPlace(),
+                "Venue: " + safe(projectInfo == null ? "" : projectInfo.getPlace()),
                 pageX + 20,
                 pageY + 50);
 
         g.drawString(
-                "Planner: " + projectInfo.getPlanner(),
+                "Planner: " + safe(projectInfo == null ? "" : projectInfo.getPlanner()),
                 pageX + pageW - 250,
                 pageY + 30);
     }
@@ -179,22 +180,27 @@ public class SheetPreviewPanel extends JPanel{
             int pageW,
             int pageH) {
 
-        int x = pageX + 60;
-        int y = pageY + 80;
-        int w = pageW - 120;
-        int h = 420;
+        int x = pageX + 50;
+        int y = pageY + 70;
+        int w = pageW - 100;
+        int h = 470;
 
+        g.setColor(new Color(252, 252, 252));
+        g.fillRect(x, y, w, h);
         g.setColor(Color.BLACK);
         g.drawRect(x, y, w, h);
 
         g.setFont(new Font("SansSerif", Font.PLAIN, 12));
         g.drawString("レイアウト図", x + 10, y + 20);
 
-        drawGrid(g, x, y, w, h);
+        int layoutX = x + 1;
+        int layoutY = y + 30;
+        int layoutW = w - 2;
+        int layoutH = h - 31;
 
-        drawPreviewItems(g, x, y, w, h);
-    
-        // 次の段階でここに機材配置を縮小描画する
+        drawGrid(g, layoutX, layoutY, layoutW, layoutH);
+
+        drawPreviewItems(g, layoutX, layoutY, layoutW, layoutH);
     }
 
     private void drawEquipmentList(
@@ -205,9 +211,9 @@ public class SheetPreviewPanel extends JPanel{
             int pageH) {
 
         int x = pageX + 60;
-        int y = pageY + 530;
+        int y = pageY + 560;
         int w = 460;
-        int h = 190;
+        int h = 140;
 
         g.setColor(Color.BLACK);
         g.drawRect(x, y, w, h);
@@ -223,10 +229,12 @@ public class SheetPreviewPanel extends JPanel{
 
         for (Map.Entry<String, Integer> entry : summary.entrySet()) {
 
-            g.drawString(
+            drawFittedString(
+                    g,
                     entry.getKey() + " × " + entry.getValue(),
                     x + 20,
-                    textY);
+                    textY,
+                    w - 40);
 
             textY += 22;
 
@@ -244,19 +252,19 @@ public class SheetPreviewPanel extends JPanel{
             int pageH) {
 
         int x = pageX + 560;
-        int y = pageY + 530;
+        int y = pageY + 560;
         int w = 500;
-        int h = 190;
+        int h = 140;
 
         g.setColor(Color.BLACK);
         g.drawRect(x, y, w, h);
 
         g.setFont(new Font("SansSerif", Font.BOLD, 14));
-        g.drawString("Notes", x + 15, y + 25);
+        g.drawString("メモ", x + 15, y + 25);
 
         g.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
-        String note = projectInfo.getNote();
+        String note = projectInfo == null ? "" : projectInfo.getNote();
 
         if (note == null) {
             note = "";
@@ -268,7 +276,7 @@ public class SheetPreviewPanel extends JPanel{
 
         for (String line : lines) {
 
-            g.drawString(line, x + 20, textY);
+            drawFittedString(g, line, x + 20, textY, w - 40);
 
             textY += 22;
 
@@ -286,9 +294,9 @@ public class SheetPreviewPanel extends JPanel{
             int pageH) {
 
         int x = pageX + 180;
-        int y = pageY + pageH - 60;
+        int y = pageY + pageH - 45;
         int w = pageW - 360;
-        int h = 35;
+        int h = 25;
 
         g.setColor(Color.BLACK);
         g.drawRect(x, y, w, h);
@@ -296,19 +304,19 @@ public class SheetPreviewPanel extends JPanel{
         g.setFont(new Font("SansSerif", Font.PLAIN, 12));
 
         g.drawString(
-                "Title: " + projectInfo.getTitle(),
+                "Event: " + safe(projectInfo == null ? "" : projectInfo.getTitle()),
                 x + 10,
-                y + 23);
+                y + 17);
 
         g.drawString(
-                "Date: " + projectInfo.getDate(),
+                "Date: " + safe(projectInfo == null ? "" : projectInfo.getDate()),
                 x + 360,
-                y + 23);
+                y + 17);
 
         g.drawString(
-                "Place: " + projectInfo.getPlace(),
+                "Venue: " + safe(projectInfo == null ? "" : projectInfo.getPlace()),
                 x + 520,
-                y + 23);
+                y + 17);
     }
 
     private Map<String, Integer> createEquipmentSummary() {
@@ -467,11 +475,14 @@ public class SheetPreviewPanel extends JPanel{
 
         double scale = Math.min(scaleX, scaleY);
 
-        if (scale > 1.0) {
-            scale = 1.0;
+        if (scale > 2.0) {
+            scale = 2.0;
         }
 
         Graphics2D g2 = (Graphics2D) g.create();
+        Shape oldClip = g2.getClip();
+
+        g2.setClip(areaX, areaY, areaW, areaH);
 
         int contentDrawW = (int) (contentW * scale);
         int contentDrawH = (int) (contentH * scale);
@@ -566,7 +577,42 @@ public class SheetPreviewPanel extends JPanel{
             }
         }
 
+        g2.setClip(oldClip);
         g2.dispose();
+    }
+
+    private String safe(String value) {
+
+        return value == null ? "" : value;
+    }
+
+    private void drawFittedString(
+            Graphics g,
+            String text,
+            int x,
+            int y,
+            int maxWidth) {
+
+        if (text == null) {
+            text = "";
+        }
+
+        FontMetrics metrics = g.getFontMetrics();
+
+        if (metrics.stringWidth(text) <= maxWidth) {
+            g.drawString(text, x, y);
+            return;
+        }
+
+        String suffix = "...";
+        int suffixWidth = metrics.stringWidth(suffix);
+
+        while (!text.isEmpty()
+                && metrics.stringWidth(text) + suffixWidth > maxWidth) {
+            text = text.substring(0, text.length() - 1);
+        }
+
+        g.drawString(text + suffix, x, y);
     }
 
     private void drawCustomRoomObjects(

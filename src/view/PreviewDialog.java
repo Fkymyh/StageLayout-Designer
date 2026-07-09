@@ -63,10 +63,13 @@ public class PreviewDialog extends JDialog{
 		JPanel buttonPanel = new JPanel();
 
 		JButton exportButton = new JButton("PNG画像として保存");
+		JButton closeButton = new JButton("閉じる");
 
 		exportButton.addActionListener(e -> exportPreviewImage(previewPanel));
+		closeButton.addActionListener(e -> dispose());
 
 		buttonPanel.add(exportButton);
+		buttonPanel.add(closeButton);
 
 		add(buttonPanel, BorderLayout.SOUTH);
 		
