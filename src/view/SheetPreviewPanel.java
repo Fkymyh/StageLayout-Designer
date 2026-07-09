@@ -1,17 +1,20 @@
 package view;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.image.BufferedImage;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.swing.JPanel;
 
+import model.DrawLine;
 import model.LayoutItem;
 import model.ProjectInfo;
 import model.RoomObject;
@@ -22,6 +25,10 @@ public class SheetPreviewPanel extends JPanel{
 	private ProjectInfo projectInfo;
 	
 	private List<LayoutItem> items;
+
+	private List<RoomObject> customRoomObjects;
+
+	private List<DrawLine> drawLines;
 	
 	private RoomTemplate roomTemplate;
 	
@@ -32,11 +39,15 @@ public class SheetPreviewPanel extends JPanel{
 	public SheetPreviewPanel(
 			ProjectInfo projectInfo,
 			List<LayoutItem> items,
+			List<RoomObject> customRoomObjects,
+			List<DrawLine> drawLines,
 			RoomTemplate roomTemplate,
 			String orientation) {
 		
 		this.projectInfo = projectInfo;
 		this.items = items;
+		this.customRoomObjects = customRoomObjects;
+		this.drawLines = drawLines;
 		this.roomTemplate = roomTemplate;
 		this.orientation = orientation;
 		
@@ -90,6 +101,36 @@ public class SheetPreviewPanel extends JPanel{
         drawFooter(g2, pageX, pageY, pageW, pageH);
         
         g2.dispose();
+    }
+
+    public BufferedImage createExportImage() {
+
+        int width = 1120;
+        int height = 780;
+
+        BufferedImage image =
+                new BufferedImage(
+                        width,
+                        height,
+                        BufferedImage.TYPE_INT_RGB);
+
+        Graphics2D g2 = image.createGraphics();
+
+        g2.setColor(Color.WHITE);
+        g2.fillRect(0, 0, width, height);
+
+        g2.setColor(Color.BLACK);
+        g2.drawRect(0, 0, width - 1, height - 1);
+
+        drawHeader(g2, 0, 0, width);
+        drawLayoutArea(g2, 0, 0, width, height);
+        drawEquipmentList(g2, 0, 0, width, height);
+        drawNoteArea(g2, 0, 0, width, height);
+        drawFooter(g2, 0, 0, width, height);
+
+        g2.dispose();
+
+        return image;
     }
 
     private void drawHeader(
@@ -315,6 +356,8 @@ public class SheetPreviewPanel extends JPanel{
             int areaH) {
 
         if ((items == null || items.isEmpty())
+                && (customRoomObjects == null || customRoomObjects.isEmpty())
+                && (drawLines == null || drawLines.isEmpty())
                 && roomTemplate == null) {
             return;
         }
@@ -336,19 +379,66 @@ public class SheetPreviewPanel extends JPanel{
             maxX = Integer.MIN_VALUE;
             maxY = Integer.MIN_VALUE;
 
-            for (LayoutItem item : items) {
+            if (items != null) {
 
-                minX = Math.min(minX, item.getX());
-                minY = Math.min(minY, item.getY());
+                for (LayoutItem item : items) {
 
-                maxX = Math.max(
-                        maxX,
-                        item.getX() + item.getWidth());
+                    minX = Math.min(minX, item.getX());
+                    minY = Math.min(minY, item.getY());
 
-                maxY = Math.max(
-                        maxY,
-                        item.getY() + item.getHeight());
+                    maxX = Math.max(
+                            maxX,
+                            item.getX() + item.getWidth());
+
+                    maxY = Math.max(
+                            maxY,
+                            item.getY() + item.getHeight());
+                }
             }
+
+            if (customRoomObjects != null) {
+
+                for (RoomObject object : customRoomObjects) {
+
+                    minX = Math.min(minX, object.getX());
+                    minY = Math.min(minY, object.getY());
+
+                    maxX = Math.max(
+                            maxX,
+                            object.getX() + object.getWidth());
+
+                    maxY = Math.max(
+                            maxY,
+                            object.getY() + object.getHeight());
+                }
+            }
+
+            if (drawLines != null) {
+
+                for (DrawLine line : drawLines) {
+
+                    minX = Math.min(
+                            minX,
+                            Math.min(line.getStartX(), line.getEndX()));
+
+                    minY = Math.min(
+                            minY,
+                            Math.min(line.getStartY(), line.getEndY()));
+
+                    maxX = Math.max(
+                            maxX,
+                            Math.max(line.getStartX(), line.getEndX()));
+
+                    maxY = Math.max(
+                            maxY,
+                            Math.max(line.getStartY(), line.getEndY()));
+                }
+            }
+        }
+
+        if (minX == Integer.MAX_VALUE || minY == Integer.MAX_VALUE) {
+            minX = 0;
+            minY = 0;
         }
 
         int contentW = maxX - minX;
@@ -386,6 +476,18 @@ public class SheetPreviewPanel extends JPanel{
                 areaY,
                 areaW,
                 areaH,
+                scale,
+                offsetX,
+                offsetY);
+
+        drawCustomRoomObjects(
+                g2,
+                scale,
+                offsetX,
+                offsetY);
+
+        drawPreviewLines(
+                g2,
                 scale,
                 offsetX,
                 offsetY);
@@ -454,6 +556,86 @@ public class SheetPreviewPanel extends JPanel{
 
         g2.dispose();
     }
+
+    private void drawCustomRoomObjects(
+            Graphics2D g2,
+            double scale,
+            int offsetX,
+            int offsetY) {
+
+        if (customRoomObjects == null) {
+            return;
+        }
+
+        for (RoomObject object : customRoomObjects) {
+
+            int x = offsetX + (int) (object.getX() * scale);
+            int y = offsetY + (int) (object.getY() * scale);
+            int w = Math.max(4, (int) (object.getWidth() * scale));
+            int h = Math.max(4, (int) (object.getHeight() * scale));
+
+            if (RoomObject.TYPE_CIRCLE.equals(object.getType())) {
+
+                g2.setColor(new Color(130, 136, 142));
+                g2.fillOval(x, y, w, h);
+
+                g2.setColor(Color.BLACK);
+                g2.drawOval(x, y, w, h);
+
+            } else {
+
+                g2.setColor(new Color(232, 235, 238));
+                g2.fillRect(x, y, w, h);
+
+                g2.setColor(Color.BLACK);
+                g2.drawRect(x, y, w, h);
+            }
+
+            if (object.getName() != null && !object.getName().isBlank()) {
+                g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
+                g2.setColor(Color.BLACK);
+                g2.drawString(object.getName(), x + 4, y + 14);
+            }
+        }
+    }
+
+    private void drawPreviewLines(
+            Graphics2D g2,
+            double scale,
+            int offsetX,
+            int offsetY) {
+
+        if (drawLines == null) {
+            return;
+        }
+
+        for (DrawLine line : drawLines) {
+
+            int x1 = offsetX + (int) (line.getStartX() * scale);
+            int y1 = offsetY + (int) (line.getStartY() * scale);
+            int x2 = offsetX + (int) (line.getEndX() * scale);
+            int y2 = offsetY + (int) (line.getEndY() * scale);
+
+            g2.setColor(line.getColor());
+            g2.setStroke(
+                    new BasicStroke(
+                            Math.max(1, (float) (line.getStrokeWidth() * scale))));
+
+            g2.drawLine(x1, y1, x2, y2);
+
+            if (line.getLabel() != null && !line.getLabel().isBlank()) {
+                g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
+                g2.setColor(Color.BLACK);
+                g2.drawString(
+                        line.getLabel(),
+                        (x1 + x2) / 2 + 4,
+                        (y1 + y2) / 2 - 4);
+            }
+        }
+
+        g2.setStroke(new BasicStroke(1));
+    }
+
     private void drawRoomTemplate(
             Graphics g,
             int areaX,

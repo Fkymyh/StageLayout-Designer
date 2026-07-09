@@ -23,13 +23,13 @@ import model.EquipmentFactory;
 
 public class EquipmentPanel extends JPanel {
 	
-	private static final int PANEL_WIDTH = 170;
+	private static final int PANEL_WIDTH = 320;
 
-    private static final int BUTTON_WIDTH = 72;
+    private static final int BUTTON_WIDTH = 92;
 
-    private static final int BUTTON_HEIGHT = 78;
+    private static final int BUTTON_HEIGHT = 92;
 
-    private static final int ICON_SIZE = 34;
+    private static final int ICON_SIZE = 48;
 
     private JTabbedPane tabbedPane;
 
@@ -59,7 +59,7 @@ public class EquipmentPanel extends JPanel {
 
         JPanel panel = new JPanel();
 
-        panel.setLayout(new GridLayout(0, 2, 4, 4));
+        panel.setLayout(new GridLayout(0, 3, 6, 6));
 
         for (String name : equipmentNames) {
 

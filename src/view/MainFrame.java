@@ -31,6 +31,8 @@ public class MainFrame extends JFrame {
     private PropertyPanel propertyPanel;
     private CanvasPanel canvasPanel;
 
+    private ProjectInfo projectInfo = new ProjectInfo();
+
     private JLabel statusLabel;
 
     public MainFrame() {
@@ -68,10 +70,13 @@ public class MainFrame extends JFrame {
         JMenuItem newItem = new JMenuItem("新規");
         JMenuItem saveItem = new JMenuItem("保存");
         JMenuItem loadItem = new JMenuItem("読み込み");
+        JMenuItem projectInfoItem = new JMenuItem("案件情報");
+        JMenuItem previewItem = new JMenuItem("提出用プレビュー");
         JMenuItem exitItem = new JMenuItem("終了");
 
         newItem.addActionListener(e -> {
             canvasPanel.clearAll();
+            projectInfo = new ProjectInfo();
             canvasPanel.requestFocusInWindow();
             statusLabel.setText("新規作成しました");
         });
@@ -88,14 +93,6 @@ public class MainFrame extends JFrame {
 
             String fileName =
                     fileChooser.getSelectedFile().getAbsolutePath();
-
-            ProjectInfo projectInfo = new ProjectInfo();
-
-            projectInfo.setTitle("ステージレイアウト");
-            projectInfo.setDate("");
-            projectInfo.setPlace("");
-            projectInfo.setPlanner("");
-            projectInfo.setNote("");
 
             if (canvasPanel.getRoomTemplate() != null) {
                 projectInfo.setTemplateName(canvasPanel.getRoomTemplate().getName());
@@ -146,7 +143,11 @@ public class MainFrame extends JFrame {
                 canvasPanel.setCustomRoomObjects(data.getCustomRoomObjects());
                 canvasPanel.setDrawLines(data.getDrawLines());
 
-                ProjectInfo projectInfo = data.getProjectInfo();
+                projectInfo = data.getProjectInfo();
+
+                if (projectInfo == null) {
+                    projectInfo = new ProjectInfo();
+                }
 
                 if ("214教室".equals(projectInfo.getTemplateName())
                         || "第一教室".equals(projectInfo.getTemplateName())) {
@@ -180,7 +181,34 @@ public class MainFrame extends JFrame {
             dispose();
         });
 
+        projectInfoItem.addActionListener(e -> {
+            ProjectInfoDialog dialog =
+                    new ProjectInfoDialog(
+                            this,
+                            projectInfo,
+                            () -> statusLabel.setText("案件情報を更新しました"));
+
+            dialog.setVisible(true);
+        });
+
+        previewItem.addActionListener(e -> {
+            PreviewDialog dialog =
+                    new PreviewDialog(
+                            this,
+                            projectInfo,
+                            canvasPanel.getItems(),
+                            canvasPanel.getCustomRoomObjects(),
+                            canvasPanel.getDrawLines(),
+                            canvasPanel.getRoomTemplate(),
+                            PreviewDialog.ORIENTATION_LANDSCAPE);
+
+            dialog.setVisible(true);
+        });
+
         fileMenu.add(newItem);
+        fileMenu.addSeparator();
+        fileMenu.add(projectInfoItem);
+        fileMenu.add(previewItem);
         fileMenu.addSeparator();
         fileMenu.add(saveItem);
         fileMenu.add(loadItem);
@@ -278,6 +306,8 @@ public class MainFrame extends JFrame {
         JButton shrinkButton = new JButton("縮小");
         JButton roomRectButton = new JButton("四角エリア");
         JButton roomCircleButton = new JButton("円柱");
+        JButton projectInfoButton = new JButton("案件情報");
+        JButton previewButton = new JButton("提出確認");
         
         selectButton.setToolTipText("配置済みの機材を選択・移動します");
         lineButton.setToolTipText("クリックして線を連続で描画します");
@@ -288,6 +318,8 @@ public class MainFrame extends JFrame {
         shrinkButton.setToolTipText("選択中の機材を小さくします");
         roomRectButton.setToolTipText("ステージ床や客席などの四角形エリアを追加します");
         roomCircleButton.setToolTipText("柱やポールなどの円形エリアを追加します");
+        projectInfoButton.setToolTipText("タイトル、日付、会場名、担当者、メモを入力します");
+        previewButton.setToolTipText("提出用の1枚レイアウトを確認し、PNG画像として保存できます");
         
         JCheckBox gridCheckBox = new JCheckBox("グリッド", true);
         JCheckBox nameCheckBox = new JCheckBox("名前", true);
@@ -300,6 +332,9 @@ public class MainFrame extends JFrame {
         gridCheckBox.setToolTipText("グリッドの表示を切り替えます");
         nameCheckBox.setToolTipText("機材名・表示名の表示を切り替えます");
         lineLengthCheckBox.setToolTipText("線の長さをメートルで表示します");
+
+        JCheckBox stageLockCheckBox = new JCheckBox("ステージ固定", false);
+        stageLockCheckBox.setToolTipText("ステージ床や柱などの会場パーツを固定します");
 
         JComboBox<String> colorComboBox =
                 new JComboBox<>(new String[] {"赤", "黒", "青", "緑"});
@@ -366,6 +401,43 @@ public class MainFrame extends JFrame {
         roomCircleButton.addActionListener(e -> {
             canvasPanel.setRoomObjectAddMode("CIRCLE");
             statusLabel.setText("モード: 円柱追加");
+        });
+
+        projectInfoButton.addActionListener(e -> {
+            ProjectInfoDialog dialog =
+                    new ProjectInfoDialog(
+                            this,
+                            projectInfo,
+                            () -> statusLabel.setText("案件情報を更新しました"));
+
+            dialog.setVisible(true);
+        });
+
+        previewButton.addActionListener(e -> {
+            PreviewDialog dialog =
+                    new PreviewDialog(
+                            this,
+                            projectInfo,
+                            canvasPanel.getItems(),
+                            canvasPanel.getCustomRoomObjects(),
+                            canvasPanel.getDrawLines(),
+                            canvasPanel.getRoomTemplate(),
+                            PreviewDialog.ORIENTATION_LANDSCAPE);
+
+            dialog.setVisible(true);
+        });
+
+        stageLockCheckBox.addActionListener(e -> {
+
+            boolean selected = stageLockCheckBox.isSelected();
+
+            canvasPanel.setStageLocked(selected);
+
+            if (selected) {
+                statusLabel.setText("ステージ固定: ON");
+            } else {
+                statusLabel.setText("ステージ固定: OFF");
+            }
         });
 
         gridCheckBox.addActionListener(e -> {
@@ -461,14 +533,23 @@ public class MainFrame extends JFrame {
         
           
 
-        toolBar.add(selectButton);
-        toolBar.add(lineButton);
-        toolBar.add(roomRectButton);
-        toolBar.add(finishLineButton);
-        toolBar.add(roomCircleButton);
+        toolBar.add(new JLabel(" 提出: "));
+        toolBar.add(projectInfoButton);
+        toolBar.add(previewButton);
 
         toolBar.addSeparator();
 
+        toolBar.add(new JLabel(" モード: "));
+        toolBar.add(selectButton);
+        toolBar.add(lineButton);
+        toolBar.add(roomRectButton);
+        toolBar.add(roomCircleButton);
+        toolBar.add(finishLineButton);
+        toolBar.add(stageLockCheckBox);
+
+        toolBar.addSeparator();
+
+        toolBar.add(new JLabel(" 編集: "));
         toolBar.add(deleteButton);
         toolBar.add(rotateButton);
         toolBar.add(enlargeButton);
@@ -476,6 +557,7 @@ public class MainFrame extends JFrame {
 
         toolBar.addSeparator();
 
+        toolBar.add(new JLabel(" 線設定: "));
         toolBar.add(new JLabel(" 色: "));
         toolBar.add(colorComboBox);
 
@@ -484,13 +566,14 @@ public class MainFrame extends JFrame {
 
         toolBar.addSeparator();
 
+        toolBar.add(new JLabel(" 表示: "));
         toolBar.add(gridCheckBox);
         toolBar.add(nameCheckBox);
         toolBar.add(lineLengthCheckBox);
 
         toolBar.addSeparator();
 
-        toolBar.add(new JLabel(" 表示: "));
+        toolBar.add(new JLabel(" 倍率: "));
         toolBar.add(zoomComboBox);
 
         return toolBar;
@@ -500,7 +583,7 @@ public class MainFrame extends JFrame {
 
         JScrollPane scrollPane = new JScrollPane(equipmentPanel);
 
-        scrollPane.setPreferredSize(new Dimension(180, 0));
+        scrollPane.setPreferredSize(new Dimension(320, 0));
 
         return scrollPane;
     }

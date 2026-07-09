@@ -1,13 +1,22 @@
 package view;
 
 import java.awt.BorderLayout;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.List;
 
+import javax.imageio.ImageIO;
+import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
+import model.DrawLine;
 import model.LayoutItem;
 import model.ProjectInfo;
+import model.RoomObject;
 import model.RoomTemplate;
 
 public class PreviewDialog extends JDialog{
@@ -20,6 +29,8 @@ public class PreviewDialog extends JDialog{
 			MainFrame owner,
 			ProjectInfo projectInfo,
 			List<LayoutItem> items,
+			List<RoomObject> customRoomObjects,
+			List<DrawLine> drawLines,
 			RoomTemplate roomTemplate,
 			String orientation) {
 		
@@ -39,6 +50,8 @@ public class PreviewDialog extends JDialog{
 				new SheetPreviewPanel(
 						projectInfo,
 						items,
+						customRoomObjects,
+						drawLines,
 						roomTemplate,
 						orientation);
 		
@@ -46,8 +59,56 @@ public class PreviewDialog extends JDialog{
 				new JScrollPane(previewPanel);
 		
 		add(scrollPane, BorderLayout.CENTER);
+
+		JPanel buttonPanel = new JPanel();
+
+		JButton exportButton = new JButton("PNG画像として保存");
+
+		exportButton.addActionListener(e -> exportPreviewImage(previewPanel));
+
+		buttonPanel.add(exportButton);
+
+		add(buttonPanel, BorderLayout.SOUTH);
 		
 		
+	}
+
+	private void exportPreviewImage(SheetPreviewPanel previewPanel) {
+
+	    JFileChooser fileChooser = new JFileChooser();
+
+	    fileChooser.setSelectedFile(new File("stage-layout.png"));
+
+	    int result = fileChooser.showSaveDialog(this);
+
+	    if (result != JFileChooser.APPROVE_OPTION) {
+	        return;
+	    }
+
+	    File file = fileChooser.getSelectedFile();
+
+	    if (!file.getName().toLowerCase().endsWith(".png")) {
+	        file = new File(file.getParentFile(), file.getName() + ".png");
+	    }
+
+	    try {
+
+	        BufferedImage image = previewPanel.createExportImage();
+
+	        ImageIO.write(image, "png", file);
+
+	        JOptionPane.showMessageDialog(
+	                this,
+	                "PNG画像を保存しました。\n" + file.getAbsolutePath());
+
+	    } catch (Exception ex) {
+
+	        JOptionPane.showMessageDialog(
+	                this,
+	                "PNG画像の保存に失敗しました。\n" + ex.getMessage());
+
+	        ex.printStackTrace();
+	    }
 	}
 	
 

@@ -4,6 +4,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -123,6 +124,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private boolean showNames = true;
 	
 	private boolean showLineLength = true;
+
+	private boolean stageLocked = false;
+
+	private static final Color STAGE_FILL_COLOR = new Color(232, 235, 238);
+
+	private static final Color SEAT_AREA_FILL_COLOR = new Color(226, 236, 244);
+
+	private static final Color COLUMN_FILL_COLOR = new Color(130, 136, 142);
+
+	private static final Color ROOM_OBJECT_BORDER_COLOR = new Color(78, 84, 90);
 	
 	private double zoom = 1.0;
 	
@@ -269,6 +280,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		if (selectedRoomObject != null) {
 
+			if (isLockedRoomObject(selectedRoomObject)) {
+				return;
+			}
+
 	        int newWidth = selectedRoomObject.getWidth() + delta;
 	        int newHeight = selectedRoomObject.getHeight() + delta;
 
@@ -351,6 +366,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public void moveSelectedItem(int dx, int dy) {
 		
 		if (selectedRoomObject != null) {
+
+			if (isLockedRoomObject(selectedRoomObject)) {
+				return;
+			}
 
 	        selectedRoomObject.setX(selectedRoomObject.getX() + dx);
 	        selectedRoomObject.setY(selectedRoomObject.getY() + dy);
@@ -1028,7 +1047,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 	    
 	    // 次に四角エリア選択
-	 	selectedRoomObject = findRoomObject(canvasX, canvasY);
+	 	selectedRoomObject = findEditableRoomObject(canvasX, canvasY);
 
 	 	if (selectedRoomObject != null) {
 
@@ -1183,6 +1202,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 	    
 	    if (selectedRoomObject != null
+	            && !isLockedRoomObject(selectedRoomObject)
 	            && isOnRoomObjectResizeHandle(
 	                    selectedRoomObject,
 	                    canvasX,
@@ -1221,7 +1241,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 
 	    // 次に四角エリアを探す
-	    selectedRoomObject = findRoomObject(canvasX, canvasY);
+	    selectedRoomObject = findEditableRoomObject(canvasX, canvasY);
 
 	    if (selectedRoomObject != null) {
 
@@ -1453,6 +1473,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 	    
 	    if (selectedRoomObject != null
+	            && !isLockedRoomObject(selectedRoomObject)
 	            && isOnRoomObjectResizeHandle(
 	                    selectedRoomObject,
 	                    mouseX,
@@ -1470,7 +1491,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 			return;
 		}
 		
-		RoomObject roomObject = findRoomObject(mouseX, mouseY);
+		RoomObject roomObject = findEditableRoomObject(mouseX, mouseY);
 
 	    if (roomObject != null) {
 	        setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -1663,6 +1684,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public void deleteSelectedItem() {
 		
 		if (selectedRoomObject != null) {
+
+			if (isLockedRoomObject(selectedRoomObject)) {
+				return;
+			}
 
 		    customRoomObjects.remove(selectedRoomObject);
 
@@ -2388,17 +2413,25 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    for (RoomObject object : customRoomObjects) {
 
-	        if (object == selectedRoomObject) {
-	        		g2.setColor(new Color(80, 130, 255));
-	            g2.setStroke(new BasicStroke(3));
-	            
-	        } else {
-	            g2.setColor(Color.DARK_GRAY);
-	            g2.setStroke(new BasicStroke(1));
-	        }
+	        boolean selected =
+	                object == selectedRoomObject
+	                && !isLockedRoomObject(object);
+
+	        Color fillColor = getRoomObjectFillColor(object);
 
 	        if (RoomObject.TYPE_CIRCLE.equals(object.getType())) {
 
+	            g2.setColor(fillColor);
+	            g2.fillOval(
+	                    object.getX(),
+	                    object.getY(),
+	                    object.getWidth(),
+	                    object.getHeight());
+
+	            g2.setColor(selected
+	                    ? new Color(80, 130, 255)
+	                    : ROOM_OBJECT_BORDER_COLOR);
+	            g2.setStroke(new BasicStroke(selected ? 3 : 1));
 	            g2.drawOval(
 	                    object.getX(),
 	                    object.getY(),
@@ -2407,6 +2440,17 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	        } else {
 
+	            g2.setColor(fillColor);
+	            g2.fillRect(
+	                    object.getX(),
+	                    object.getY(),
+	                    object.getWidth(),
+	                    object.getHeight());
+
+	            g2.setColor(selected
+	                    ? new Color(80, 130, 255)
+	                    : ROOM_OBJECT_BORDER_COLOR);
+	            g2.setStroke(new BasicStroke(selected ? 3 : 1));
 	            g2.drawRect(
 	                    object.getX(),
 	                    object.getY(),
@@ -2414,21 +2458,53 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	                    object.getHeight());
 	        }
 	        
-	        if (object == selectedRoomObject) {
+	        if (selected) {
 	            drawRoomObjectResizeHandle(g2, object);
 	        }
 
 	        if (showNames) {
-	            g2.setColor(Color.BLACK);
-	            g2.setStroke(new BasicStroke(1));
-	            
-	            g2.drawString(
-	                    object.getName(),
-	                    object.getX() + 5,
-	                    object.getY() + 18);
+	            drawCenteredRoomObjectName(g2, object);
 	        }
 	    }
 	    g2.dispose();
+	}
+
+	private Color getRoomObjectFillColor(RoomObject object) {
+
+	    if (RoomObject.TYPE_CIRCLE.equals(object.getType())) {
+	        return COLUMN_FILL_COLOR;
+	    }
+
+	    String name = object.getName();
+
+	    if (name != null
+	            && (name.contains("客席") || name.contains("Audience"))) {
+	        return SEAT_AREA_FILL_COLOR;
+	    }
+
+	    return STAGE_FILL_COLOR;
+	}
+
+	private void drawCenteredRoomObjectName(Graphics2D g2, RoomObject object) {
+
+	    if (object.getName() == null || object.getName().isBlank()) {
+	        return;
+	    }
+
+	    FontMetrics metrics = g2.getFontMetrics();
+
+	    int textWidth = metrics.stringWidth(object.getName());
+	    int textHeight = metrics.getAscent();
+
+	    int textX = object.getX() + (object.getWidth() - textWidth) / 2;
+	    int textY =
+	            object.getY()
+	            + (object.getHeight() + textHeight) / 2
+	            - 3;
+
+	    g2.setColor(Color.BLACK);
+	    g2.setStroke(new BasicStroke(1));
+	    g2.drawString(object.getName(), textX, textY);
 	}
 	
 	private void drawRoomObjectResizeHandle(Graphics2D g2, RoomObject object) {
@@ -2459,7 +2535,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private RoomObject findRoomObject(int x, int y) {
 
-	    for (RoomObject object : customRoomObjects) {
+	    for (int i = customRoomObjects.size() - 1; i >= 0; i--) {
+
+	        RoomObject object = customRoomObjects.get(i);
 
 	        Rectangle rect =
 	                new Rectangle(
@@ -2474,6 +2552,55 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 
 	    return null;
+	}
+
+	private RoomObject findEditableRoomObject(int x, int y) {
+
+	    for (int i = customRoomObjects.size() - 1; i >= 0; i--) {
+
+	        RoomObject object = customRoomObjects.get(i);
+
+	        if (isLockedRoomObject(object)) {
+	            continue;
+	        }
+
+	        Rectangle rect =
+	                new Rectangle(
+	                        object.getX(),
+	                        object.getY(),
+	                        object.getWidth(),
+	                        object.getHeight());
+
+	        if (rect.contains(x, y)) {
+	            return object;
+	        }
+	    }
+
+	    return null;
+	}
+
+	private boolean isLockedRoomObject(RoomObject object) {
+
+	    return stageLocked
+	            && object != null
+	            && RoomObject.TYPE_RECT.equals(object.getType());
+	}
+
+	public void setStageLocked(boolean stageLocked) {
+
+	    this.stageLocked = stageLocked;
+
+	    if (stageLocked) {
+	        selectedRoomObject = null;
+	        draggingRoomObject = false;
+	        resizingRoomObject = false;
+	    }
+
+	    repaint();
+	}
+
+	public boolean isStageLocked() {
+	    return stageLocked;
 	}
 	
 	public void setSelectMode() {
