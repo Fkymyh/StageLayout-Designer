@@ -15,8 +15,14 @@ import java.awt.Polygon;
 import java.awt.RenderingHints;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +35,9 @@ import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JToggleButton;
 import javax.swing.SwingUtilities;
@@ -54,6 +62,10 @@ public class EquipmentPanel extends JPanel {
 
     private static final String DEFAULT_TYPE_NAME = "すべて";
 
+    private static final String FAVORITE_GENRE_NAME = "お気に入り";
+
+    private static final String FAVORITE_TYPE_NAME = "登録済み";
+
     private JPanel genreButtonPanel;
 
     private JPanel typeListPanel;
@@ -75,12 +87,15 @@ public class EquipmentPanel extends JPanel {
 
     private Map<String, JToggleButton> genreButtons = new LinkedHashMap<>();
 
+    private Set<String> favoriteNames = new LinkedHashSet<>();
+
     public EquipmentPanel() {
 
         setLayout(new BorderLayout(6, 6));
         setPreferredSize(new Dimension(PANEL_WIDTH, 0));
         setBorder(BorderFactory.createTitledBorder("機材パレット"));
 
+        loadFavorites();
         buildCategoryMap();
 
         genreButtonPanel = new JPanel();
@@ -158,6 +173,10 @@ public class EquipmentPanel extends JPanel {
     }
 
     private void buildCategoryMap() {
+
+        categoryMap.clear();
+        categoryMap.put(FAVORITE_GENRE_NAME, new LinkedHashMap<>());
+        rebuildFavoriteCategory();
 
         Set<String> expandedParentCategories = new HashSet<>();
 
@@ -324,6 +343,7 @@ public class EquipmentPanel extends JPanel {
 
             typeListPanel.revalidate();
             typeListPanel.repaint();
+            renderEquipmentList();
 
             return;
         }
@@ -416,6 +436,14 @@ public class EquipmentPanel extends JPanel {
 
         if (equipmentNames == null || equipmentNames.isEmpty()) {
 
+            if (FAVORITE_GENRE_NAME.equals(selectedGenreName)) {
+                JLabel emptyLabel =
+                        new JLabel("<html>右クリックで<br>お気に入りに追加できます</html>");
+
+                emptyLabel.setBorder(BorderFactory.createEmptyBorder(10, 4, 4, 4));
+                equipmentListPanel.add(emptyLabel);
+            }
+
             equipmentListPanel.revalidate();
             equipmentListPanel.repaint();
 
@@ -497,7 +525,148 @@ public class EquipmentPanel extends JPanel {
             updateButtonSelection();
         });
 
+        button.setComponentPopupMenu(createEquipmentPopupMenu(name));
+
         return button;
+    }
+
+    private JPopupMenu createEquipmentPopupMenu(String name) {
+
+        JPopupMenu popupMenu = new JPopupMenu();
+        JMenuItem favoriteItem;
+
+        if (favoriteNames.contains(name)) {
+            favoriteItem = new JMenuItem("お気に入りから外す");
+            favoriteItem.addActionListener(e -> removeFavorite(name));
+        } else {
+            favoriteItem = new JMenuItem("お気に入りに追加");
+            favoriteItem.addActionListener(e -> addFavorite(name));
+        }
+
+        popupMenu.add(favoriteItem);
+
+        return popupMenu;
+    }
+
+    private void addFavorite(String name) {
+
+        if (name == null || !EquipmentFactory.getDefinitions().containsKey(name)) {
+            return;
+        }
+
+        favoriteNames.add(name);
+        saveFavorites();
+        refreshFavoriteView();
+    }
+
+    private void removeFavorite(String name) {
+
+        favoriteNames.remove(name);
+        saveFavorites();
+        refreshFavoriteView();
+    }
+
+    private void refreshFavoriteView() {
+
+        rebuildFavoriteCategory();
+
+        if (FAVORITE_GENRE_NAME.equals(selectedGenreName)) {
+
+            Map<String, List<String>> typeMap = categoryMap.get(selectedGenreName);
+
+            if (typeMap == null || !typeMap.containsKey(expandedTypeName)) {
+                expandedTypeName = firstTypeName(typeMap);
+            }
+
+            selectedEquipmentName = firstEquipmentName(
+                    typeMap == null ? null : typeMap.get(expandedTypeName));
+
+            renderTypeBars();
+
+        } else {
+
+            renderEquipmentList();
+        }
+    }
+
+    private void rebuildFavoriteCategory() {
+
+        Map<String, List<String>> typeMap = categoryMap.get(FAVORITE_GENRE_NAME);
+
+        if (typeMap == null) {
+            typeMap = new LinkedHashMap<>();
+            categoryMap.put(FAVORITE_GENRE_NAME, typeMap);
+        }
+
+        typeMap.clear();
+        typeMap.put(FAVORITE_TYPE_NAME, createFavoriteEquipmentList());
+    }
+
+    private List<String> createFavoriteEquipmentList() {
+
+        List<String> equipmentNames = new ArrayList<>();
+
+        for (String name : favoriteNames) {
+
+            if (EquipmentFactory.getDefinitions().containsKey(name)) {
+                equipmentNames.add(name);
+            }
+        }
+
+        return equipmentNames;
+    }
+
+    private void loadFavorites() {
+
+        Path path = getFavoriteFilePath();
+
+        if (!Files.exists(path)) {
+            return;
+        }
+
+        try {
+
+            for (String line : Files.readAllLines(path, StandardCharsets.UTF_8)) {
+
+                String name = line.trim();
+
+                if (!name.isEmpty()) {
+                    favoriteNames.add(name);
+                }
+            }
+
+        } catch (IOException ex) {
+
+            System.out.println(
+                    "お気に入り一覧の読み込みに失敗しました: "
+                    + ex.getMessage());
+        }
+    }
+
+    private void saveFavorites() {
+
+        Path path = getFavoriteFilePath();
+
+        try {
+
+            Files.write(
+                    path,
+                    favoriteNames,
+                    StandardCharsets.UTF_8);
+
+        } catch (IOException ex) {
+
+            System.out.println(
+                    "お気に入り一覧の保存に失敗しました: "
+                    + ex.getMessage());
+        }
+    }
+
+    private Path getFavoriteFilePath() {
+
+        return Paths.get(
+                System.getProperty("user.home"),
+                ".stage-layout-designer-favorites.txt");
     }
 
     private String createEquipmentButtonText(String name, boolean selected) {
