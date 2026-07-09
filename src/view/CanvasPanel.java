@@ -58,6 +58,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private Color currentLineColor = Color.RED;
 
 	private int currentLineStrokeWidth = 3;
+
+    private String currentLineLabel = "";
 	
 	private LayoutItem copiedItem;
 	
@@ -253,6 +255,12 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	}
 	
 	private List<DrawLine> drawLines = new ArrayList<>();
+
+    private DrawLine selectedLine;
+
+    private boolean draggingLineStart = false;
+
+    private boolean draggingLineEnd = false;
 	
 	private void showPopupMenu(MouseEvent e){
 
@@ -262,7 +270,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    deleteItem.addActionListener(event -> {
 
-	    	if (selectedItem != null || selectedRoomObject != null) {
+            if (selectedItem != null || selectedRoomObject != null || selectedLine != null) {
 	            deleteSelectedItem();
 	        }
 
@@ -377,7 +385,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    drawLineMode = !drawLineMode;
 	    
 	    if(drawLineMode) {
-	    		roomObjectAddMode = null;
+            roomObjectAddMode = null;
+            currentLineLabel = "";
 	    }
 
 	    lineStartX = null;
@@ -385,6 +394,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    selectedItem = null;
 	    selectedRoomObject = null;
+        selectedLine = null;
+        selectedLine = null;
 
 	    refreshPanels();
 
@@ -517,7 +528,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         			g.setColor(item.getEquipment().getColor());
         		}
         		
-        		//四角を描く
+                // 画像付き機材は画像だけを見せる。通常時の黒い四角枠は描かない。
         		Equipment equipment = item.getEquipment();
 
         		Graphics2D g2 = (Graphics2D) g.create();
@@ -560,16 +571,6 @@ public class CanvasPanel extends JPanel implements MouseListener,
         			
         			drawItemResizeHandle(g2, item);
         			
-        		}else {
-        			
-        			g2.setColor(Color.BLACK);
-        			g2.setStroke(new BasicStroke(1));
-        			
-        			g2.drawRect(
-        					item.getX(),
-        					item.getY(),
-        					item.getWidth(),
-        					item.getHeight());
         		}
         		
         		
@@ -885,6 +886,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	                line.getStartY(),
 	                line.getEndX(),
 	                line.getEndY());
+
+            if (line == selectedLine) {
+                drawSelectedLineHandles(g2, line);
+            }
 	        
 	        int labelX =
 	                (line.getStartX() + line.getEndX()) / 2 + 6;
@@ -892,7 +897,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        int labelY =
 	                (line.getStartY() + line.getEndY()) / 2 - 6;
 	        
-	        if (showLineLength) {
+	        if (showLineLength && !isBamiriLine(line)) {
 
 	            double meters = calculateLineLengthMeters(line);
 
@@ -905,7 +910,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	                    labelY);
 	        }
 
-	        if (showNames
+	        if (!isBamiriLine(line)
+                    && showNames
 	                && line.getLabel() != null
 	                && !line.getLabel().isBlank()) {
 
@@ -921,6 +927,28 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    g2.dispose();
 	}
+
+    private boolean isBamiriLine(DrawLine line) {
+
+        return line != null
+                && line.getLabel() != null
+                && line.getLabel().contains("バミリ");
+    }
+
+    private boolean isCurrentBamiriLineMode() {
+
+        return currentLineLabel != null
+                && currentLineLabel.contains("バミリ");
+    }
+
+    private void drawSelectedLineHandles(Graphics2D g2, DrawLine line) {
+
+        g2.setColor(Color.RED);
+        g2.setStroke(new BasicStroke(1));
+
+        g2.fillOval(line.getStartX() - 5, line.getStartY() - 5, 10, 10);
+        g2.fillOval(line.getEndX() - 5, line.getEndY() - 5, 10, 10);
+    }
 	
 	private void drawBamiri(Graphics g, LayoutItem item) {
 
@@ -1026,7 +1054,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	            lineStartY,
 	            previewX,
 	            previewY);
-	    if (showLineLength) {
+	    if (showLineLength && !isCurrentBamiriLineMode()) {
 
 	        double meters = calculatePreviewLineLengthMeters(previewX, previewY);
 	        
@@ -1135,6 +1163,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    if (selectedItem != null) {
 	    	
 	    		selectedRoomObject = null;
+                selectedLine = null;
 	    		
 	    		refreshPanels();
 
@@ -1149,6 +1178,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	 	if (selectedRoomObject != null) {
 
 	 		 selectedItem = null;
+             selectedLine = null;
 
 	 		 refreshPanels();
 
@@ -1156,6 +1186,20 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	 		 return;
 	 		}
+
+        selectedLine = findLine(canvasX, canvasY);
+
+        if (selectedLine != null) {
+
+            selectedItem = null;
+            selectedRoomObject = null;
+
+            refreshPanels();
+
+            repaint();
+
+            return;
+        }
 	 	
 	 	
 
@@ -1164,6 +1208,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    	
 	    		selectedItem = null;
 	        selectedRoomObject = null;
+            selectedLine = null;
 
 	        refreshPanels();
 
@@ -1219,6 +1264,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    selectedItem = newItem;
 	    selectedRoomObject = null;
+        selectedLine = null;
 
 	    refreshPanels();
 
@@ -1261,8 +1307,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    line.setColor(currentLineColor);
 	    line.setStrokeWidth(currentLineStrokeWidth);
+        line.setLabel(currentLineLabel);
 
 	    drawLines.add(line);
+        selectedLine = line;
 	    
 	 // 重要：
 	    // 終点を次の始点にする
@@ -1289,8 +1337,19 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    if (e.isPopupTrigger() || e.getButton() == MouseEvent.BUTTON3) {
 
 	        if (drawLineMode) {
-	            finishCurrentLine();
-	            return;
+                DrawLine line = findLine(canvasX, canvasY);
+
+                if (line != null) {
+                    selectedLine = line;
+                    selectedItem = null;
+                    selectedRoomObject = null;
+                    showPopupMenu(e);
+                    repaint();
+                    return;
+                }
+
+                finishCurrentLine();
+                return;
 	        }
 
 	        showPopupMenu(e);
@@ -1319,6 +1378,20 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	        return;
 	    }
+
+        if (selectedLine != null && isNearLineStart(selectedLine, canvasX, canvasY)) {
+
+            draggingLineStart = true;
+            repaint();
+            return;
+        }
+
+        if (selectedLine != null && isNearLineEnd(selectedLine, canvasX, canvasY)) {
+
+            draggingLineEnd = true;
+            repaint();
+            return;
+        }
 	    
 	    if (selectedRoomObject != null
 	            && !isLockedRoomObject(selectedRoomObject)
@@ -1346,6 +1419,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    if (selectedItem != null) {
 
 	        selectedRoomObject = null;
+            selectedLine = null;
 
 	        dragOffsetX = canvasX - selectedItem.getX();
 	        dragOffsetY = canvasY - selectedItem.getY();
@@ -1365,6 +1439,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    if (selectedRoomObject != null) {
 
 	        selectedItem = null;
+            selectedLine = null;
 
 	        roomObjectDragOffsetX = canvasX - selectedRoomObject.getX();
 	        roomObjectDragOffsetY = canvasY - selectedRoomObject.getY();
@@ -1378,8 +1453,19 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 
+        selectedLine = findLine(canvasX, canvasY);
+
+        if (selectedLine != null) {
+            selectedItem = null;
+            selectedRoomObject = null;
+            refreshPanels();
+            repaint();
+            return;
+        }
+
 	    selectedItem = null;
 	    selectedRoomObject = null;
+        selectedLine = null;
 
 	    refreshPanels();
 
@@ -1419,6 +1505,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		    notifyChanged();
 		}
 
+        if (draggingLineStart || draggingLineEnd) {
+            notifyChanged();
+        }
+
 		draggingRoomObject = false;
 
 		resizingRoomObject = false;
@@ -1426,6 +1516,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		resizingItem = false;
 
 		dragging = false;
+
+        draggingLineStart = false;
+        draggingLineEnd = false;
 	}
 	@Override
 	public void mouseEntered(MouseEvent e) {}
@@ -1446,6 +1539,26 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		int canvasX = toCanvasX(e);
 		int canvasY = toCanvasY(e);
+
+        if ((draggingLineStart || draggingLineEnd) && selectedLine != null) {
+
+            int x = canvasX;
+            int y = canvasY;
+
+            if (snapToGrid) {
+                x = snapValue(x);
+                y = snapValue(y);
+            }
+
+            if (draggingLineStart) {
+                selectedLine.setStart(x, y);
+            } else {
+                selectedLine.setEnd(x, y);
+            }
+
+            repaint();
+            return;
+        }
 		
 		if (resizingItem && selectedItem != null) {
 
@@ -1601,6 +1714,14 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        setCursor(Cursor.getPredefinedCursor(Cursor.SE_RESIZE_CURSOR));
 	        return;
 	    }
+
+        if (selectedLine != null
+                && (isNearLineStart(selectedLine, mouseX, mouseY)
+                || isNearLineEnd(selectedLine, mouseX, mouseY))) {
+
+            setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+            return;
+        }
 		
 		LayoutItem item = findItem(mouseX, mouseY);
 		
@@ -1616,6 +1737,13 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 	        return;
 	    }
+
+        DrawLine line = findLine(mouseX, mouseY);
+
+        if (line != null) {
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            return;
+        }
 
 	    setCursor(Cursor.getDefaultCursor());
 	}
@@ -1649,6 +1777,13 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	        return;
 	    }
+
+        if (e.getKeyCode() == KeyEvent.VK_DELETE && selectedLine != null) {
+
+            deleteSelectedItem();
+
+            return;
+        }
 
 	    if (drawLineMode) {
 
@@ -1811,6 +1946,21 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	
 	public void deleteSelectedItem() {
+
+        if (selectedLine != null) {
+
+            drawLines.remove(selectedLine);
+
+            selectedLine = null;
+            draggingLineStart = false;
+            draggingLineEnd = false;
+
+            notifyChanged();
+
+            repaint();
+
+            return;
+        }
 		
 		if (selectedRoomObject != null) {
 
@@ -1901,6 +2051,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    this.items = items;
 
 	    selectedItem = null;
+        selectedLine = null;
 
 	    refreshPanels();
 
@@ -1929,6 +2080,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    selectedItem = null;
 	    selectedRoomObject = null;
+        selectedLine = null;
 	    copiedItem = null;
 
 	    drawLineMode = false;
@@ -1985,6 +2137,70 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    return null;
 	}
+
+    private DrawLine findLine(int x, int y) {
+
+        for (int i = drawLines.size() - 1; i >= 0; i--) {
+
+            DrawLine line = drawLines.get(i);
+
+            if (isNearLineStart(line, x, y)
+                    || isNearLineEnd(line, x, y)
+                    || distanceToLineSegment(line, x, y) <= 8.0) {
+                return line;
+            }
+        }
+
+        return null;
+    }
+
+    private boolean isNearLineStart(DrawLine line, int x, int y) {
+
+        return distance(line.getStartX(), line.getStartY(), x, y) <= 8.0;
+    }
+
+    private boolean isNearLineEnd(DrawLine line, int x, int y) {
+
+        return distance(line.getEndX(), line.getEndY(), x, y) <= 8.0;
+    }
+
+    private double distance(int x1, int y1, int x2, int y2) {
+
+        int dx = x1 - x2;
+        int dy = y1 - y2;
+
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    private double distanceToLineSegment(DrawLine line, int x, int y) {
+
+        double x1 = line.getStartX();
+        double y1 = line.getStartY();
+        double x2 = line.getEndX();
+        double y2 = line.getEndY();
+
+        double dx = x2 - x1;
+        double dy = y2 - y1;
+
+        double lengthSquared = dx * dx + dy * dy;
+
+        if (lengthSquared == 0) {
+            return distance((int) x1, (int) y1, x, y);
+        }
+
+        double t =
+                ((x - x1) * dx + (y - y1) * dy) / lengthSquared;
+
+        t = Math.max(0.0, Math.min(1.0, t));
+
+        double closestX = x1 + t * dx;
+        double closestY = y1 + t * dy;
+
+        double closestDx = x - closestX;
+        double closestDy = y - closestY;
+
+        return Math.sqrt(closestDx * closestDx + closestDy * closestDy);
+    }
 	
 	public void setChangeCallback(Runnable changeCallback) {
 
@@ -2066,10 +2282,13 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         selectedItem = null;
         selectedRoomObject = null;
+        selectedLine = null;
         dragging = false;
         draggingRoomObject = false;
         resizingItem = false;
         resizingRoomObject = false;
+        draggingLineStart = false;
+        draggingLineEnd = false;
 
         refreshPanels();
         repaint();
@@ -2465,6 +2684,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public void setDrawLineMode(boolean drawLineMode) {
 
 	    this.drawLineMode = drawLineMode;
+        currentLineLabel = "";
 	    
 	    if (drawLineMode) {
 	        roomObjectAddMode = null;
@@ -2475,6 +2695,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    selectedItem = null;
 	    selectedRoomObject = null;
+        selectedLine = null;
 
 	    refreshPanels();
 
@@ -2536,6 +2757,24 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    repaint();
 	}
+
+    public void setBamiriLineMode() {
+
+        drawLineMode = true;
+        roomObjectAddMode = null;
+        lineStartX = null;
+        lineStartY = null;
+        selectedItem = null;
+        selectedRoomObject = null;
+        selectedLine = null;
+        currentLineColor = Color.RED;
+        currentLineStrokeWidth = 5;
+        currentLineLabel = "バミリ";
+
+        refreshPanels();
+
+        repaint();
+    }
 	
 	public void setZoom(double zoom) {
 
@@ -2779,6 +3018,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    selectedItem = null;
 	    selectedRoomObject = null;
+        selectedLine = null;
 	    
 	    refreshPanels();
 
@@ -3151,6 +3391,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    lineStartX = null;
 	    lineStartY = null;
+        selectedLine = null;
+        draggingLineStart = false;
+        draggingLineEnd = false;
 
 	    repaint();
 	}

@@ -412,6 +412,7 @@ public class MainFrame extends JFrame {
 
         JToggleButton selectButton = new JToggleButton("機材を動かす");
         JToggleButton lineButton = new JToggleButton("線を引く");
+        JToggleButton bamiriLineButton = new JToggleButton("バミリ線");
         JButton deleteButton = new JButton("削除");
         JButton rotateButton = new JButton("回転");
         JButton enlargeButton = new JButton("拡大");
@@ -424,6 +425,7 @@ public class MainFrame extends JFrame {
         
         selectButton.setToolTipText("配置済みの機材を選択・移動します");
         lineButton.setToolTipText("線モードに切り替えます。別のモードへ切り替えると線は終了します");
+        bamiriLineButton.setToolTipText("赤いバミリ線を引きます。長さ表示は出ません");
         deleteButton.setToolTipText("選択中の機材を削除します");
         rotateButton.setToolTipText("選択中の機材を15度回転します");
         enlargeButton.setToolTipText("選択中の機材を大きくします");
@@ -438,6 +440,7 @@ public class MainFrame extends JFrame {
 
         modeButtonGroup.add(selectButton);
         modeButtonGroup.add(lineButton);
+        modeButtonGroup.add(bamiriLineButton);
 
         selectButton.setSelected(true);
         
@@ -489,6 +492,13 @@ public class MainFrame extends JFrame {
         lineButton.addActionListener(e -> {
             canvasPanel.setDrawLineMode(true);
             statusLabel.setText("モード: 線描画");
+        });
+
+        bamiriLineButton.addActionListener(e -> {
+            canvasPanel.setBamiriLineMode();
+            colorComboBox.setSelectedItem("赤");
+            strokeComboBox.setSelectedItem(5);
+            statusLabel.setText("モード: バミリ線");
         });
 
         deleteButton.addActionListener(e -> {
@@ -691,6 +701,7 @@ public class MainFrame extends JFrame {
         mainToolsPanel.add(redoButton);
         mainToolsPanel.add(selectButton);
         mainToolsPanel.add(lineButton);
+        mainToolsPanel.add(bamiriLineButton);
         mainToolsPanel.add(stageLockCheckBox);
         mainToolsPanel.add(new JLabel("  表示:"));
         mainToolsPanel.add(gridCheckBox);

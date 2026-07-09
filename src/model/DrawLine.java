@@ -40,6 +40,16 @@ public class DrawLine {
         return endY;
     }
 
+    public void setStart(int startX, int startY) {
+        this.startX = startX;
+        this.startY = startY;
+    }
+
+    public void setEnd(int endX, int endY) {
+        this.endX = endX;
+        this.endY = endY;
+    }
+
     public Color getColor() {
         return color;
     }
