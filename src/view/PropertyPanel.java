@@ -21,131 +21,89 @@ import model.LayoutItem;
 
 public class PropertyPanel extends JPanel {
 
-    private JTextArea equipmentArea;
-
-    private JTextArea quantityArea;
-
-    private JTextArea widthArea;
-
-    private JTextArea heightArea;
-
-    private JTextArea memoArea;
-
     private JTextArea summaryArea;
 
     private LayoutItem currentItem;
-    
-    private JTextArea labelArea;
 
     private Runnable updateCallback;
-    
-    private JTextField equipmentField;
-    
-    private JTextField labelField;
-    
-    private JTextField quantityField;
-    
-    private JTextField widthField;
-    
-    private JTextField heightField;
 
-    private JButton applyButton;
+    private JTextField equipmentField;
+
+    private JTextField labelField;
+
+    private JTextField widthField;
+
+    private JTextField heightField;
 
     private List<LayoutItem> allItems;
 
     public PropertyPanel() {
-    	
-    	setLayout(new BorderLayout());
-    	
-    	JPanel editPanel = createEditPanel();
-    	
-    	add(editPanel, BorderLayout.NORTH);
-    	
-    	JScrollPane summaryScrollPane = createSummaryPanel();
-    	
-    	add(summaryScrollPane, BorderLayout.CENTER);
+
+        setLayout(new BorderLayout());
+
+        add(createEditPanel(), BorderLayout.NORTH);
+        add(createSummaryPanel(), BorderLayout.CENTER);
     }
-    
+
     private JPanel createEditPanel() {
-    	
-    	JPanel editPanel = new JPanel();
-    	
-    	editPanel.setLayout(new BoxLayout(editPanel, BoxLayout.Y_AXIS));
-    	
-    	editPanel.setBorder(
-    			BorderFactory.createTitledBorder("選択中のアイテム"));
-    	
-    	equipmentField = new JTextField();
-    	labelField = new JTextField();
-    quantityField = new JTextField();
-    widthField = new JTextField();
-    heightField = new JTextField();
-    memoArea = new JTextArea(5, 20);
-    
 
-    equipmentField.setEditable(false);
+        JPanel editPanel = new JPanel();
 
-    setupTextField(equipmentField);
-    setupTextField(labelField);
+        editPanel.setLayout(new BoxLayout(editPanel, BoxLayout.Y_AXIS));
+        editPanel.setBorder(BorderFactory.createTitledBorder("選択中のアイテム"));
 
-    quantityField.setPreferredSize(new Dimension(55, 28));
-    widthField.setPreferredSize(new Dimension(55, 28));
-    heightField.setPreferredSize(new Dimension(55, 28));
+        equipmentField = new JTextField();
+        labelField = new JTextField();
+        widthField = new JTextField();
+        heightField = new JTextField();
 
-    memoArea.setLineWrap(true);
-    memoArea.setWrapStyleWord(true);
+        equipmentField.setEditable(false);
 
-    JScrollPane memoScrollPane = new JScrollPane(memoArea);
-    memoScrollPane.setPreferredSize(new Dimension(190, 110));
-    memoScrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
+        setupTextField(equipmentField);
+        setupTextField(labelField);
 
-    JButton saveButton = new JButton("反映");
-    saveButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        widthField.setPreferredSize(new Dimension(80, 28));
+        heightField.setPreferredSize(new Dimension(80, 28));
 
-    editPanel.add(new JLabel("機材名"));
-    editPanel.add(equipmentField);
-    editPanel.add(Box.createVerticalStrut(10));
+        JButton saveButton = new JButton("表示名・サイズを反映");
+        saveButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        saveButton.addActionListener(e -> applyChanges());
 
-    editPanel.add(new JLabel("表示名"));
-    editPanel.add(labelField);
-    editPanel.add(Box.createVerticalStrut(10));
+        editPanel.add(new JLabel("機材名"));
+        editPanel.add(equipmentField);
+        editPanel.add(Box.createVerticalStrut(10));
 
-    editPanel.add(createNumberPanel());
-    editPanel.add(Box.createVerticalStrut(10));
+        editPanel.add(new JLabel("表示名"));
+        editPanel.add(labelField);
+        editPanel.add(Box.createVerticalStrut(10));
 
-    editPanel.add(new JLabel("注意事項"));
-    editPanel.add(memoScrollPane);
-    editPanel.add(Box.createVerticalStrut(10));
+        editPanel.add(createSizePanel());
+        editPanel.add(Box.createVerticalStrut(10));
 
-    editPanel.add(saveButton);
+        editPanel.add(saveButton);
 
-    saveButton.addActionListener(e -> applyChanges());
-
-    return editPanel;
-
+        return editPanel;
     }
-    
+
     private void setupTextField(JTextField textField) {
 
         textField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
         textField.setPreferredSize(new Dimension(190, 28));
     }
 
-    private JPanel createNumberPanel() {
+    private JPanel createSizePanel() {
 
-        JPanel numberPanel = new JPanel(new GridLayout(2, 3, 6, 4));
+        JPanel sizePanel = new JPanel(new GridLayout(2, 2, 6, 4));
 
-        numberPanel.add(new JLabel("必要数"));
-        numberPanel.add(new JLabel("幅"));
-        numberPanel.add(new JLabel("高さ"));
+        sizePanel.add(new JLabel("幅"));
+        sizePanel.add(new JLabel("高さ"));
 
-        numberPanel.add(quantityField);
-        numberPanel.add(widthField);
-        numberPanel.add(heightField);
+        sizePanel.add(widthField);
+        sizePanel.add(heightField);
 
-        numberPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+        sizePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
 
-        return numberPanel;
+        return sizePanel;
     }
 
     private JScrollPane createSummaryPanel() {
@@ -153,14 +111,10 @@ public class PropertyPanel extends JPanel {
         summaryArea = new JTextArea(8, 25);
         summaryArea.setEditable(false);
 
-        JScrollPane summaryScrollPane =
-                new JScrollPane(summaryArea);
+        JScrollPane summaryScrollPane = new JScrollPane(summaryArea);
 
-        summaryScrollPane.setPreferredSize(
-                new Dimension(190, 160));
-
-        summaryScrollPane.setBorder(
-                BorderFactory.createTitledBorder("必要機材一覧"));
+        summaryScrollPane.setPreferredSize(new Dimension(190, 160));
+        summaryScrollPane.setBorder(BorderFactory.createTitledBorder("必要機材一覧"));
 
         return summaryScrollPane;
     }
@@ -173,18 +127,8 @@ public class PropertyPanel extends JPanel {
 
         try {
 
-            int quantity =
-                    Integer.parseInt(quantityField.getText().trim());
-
-            int width =
-                    Integer.parseInt(widthField.getText().trim());
-
-            int height =
-                    Integer.parseInt(heightField.getText().trim());
-
-            if (quantity < 1) {
-                quantity = 1;
-            }
+            int width = Integer.parseInt(widthField.getText().trim());
+            int height = Integer.parseInt(heightField.getText().trim());
 
             if (width < 10) {
                 width = 10;
@@ -194,16 +138,10 @@ public class PropertyPanel extends JPanel {
                 height = 10;
             }
 
-            currentItem.setQuantity(quantity);
-
             currentItem.setSize(width, height);
-
             currentItem.setLabel(labelField.getText());
 
-            currentItem.setMemo(memoArea.getText());
-
             displayItem(currentItem);
-
             displaySummary(allItems);
 
             if (updateCallback != null) {
@@ -212,14 +150,8 @@ public class PropertyPanel extends JPanel {
 
         } catch (NumberFormatException ex) {
 
-            quantityField.setText(
-                    String.valueOf(currentItem.getQuantity()));
-
-            widthField.setText(
-                    String.valueOf(currentItem.getWidth()));
-
-            heightField.setText(
-                    String.valueOf(currentItem.getHeight()));
+            widthField.setText(String.valueOf(currentItem.getWidth()));
+            heightField.setText(String.valueOf(currentItem.getHeight()));
         }
     }
 
@@ -231,31 +163,16 @@ public class PropertyPanel extends JPanel {
 
             equipmentField.setText("");
             labelField.setText("");
-            quantityField.setText("");
             widthField.setText("");
             heightField.setText("");
-            memoArea.setText("");
 
             return;
         }
 
-        equipmentField.setText(
-                item.getEquipment().getName());
-
-        labelField.setText(
-                item.getLabel());
-
-        quantityField.setText(
-                String.valueOf(item.getQuantity()));
-
-        widthField.setText(
-                String.valueOf(item.getWidth()));
-
-        heightField.setText(
-                String.valueOf(item.getHeight()));
-
-        memoArea.setText(
-                item.getMemo());
+        equipmentField.setText(item.getEquipment().getName());
+        labelField.setText(item.getLabel());
+        widthField.setText(String.valueOf(item.getWidth()));
+        heightField.setText(String.valueOf(item.getHeight()));
     }
 
     public void displaySummary(List<LayoutItem> items) {
@@ -274,12 +191,9 @@ public class PropertyPanel extends JPanel {
         for (LayoutItem item : items) {
 
             String name = item.getEquipment().getName();
-
             int quantity = item.getQuantity();
 
-            summary.put(
-                    name,
-                    summary.getOrDefault(name, 0) + quantity);
+            summary.put(name, summary.getOrDefault(name, 0) + quantity);
         }
 
         StringBuilder sb = new StringBuilder();
@@ -301,6 +215,4 @@ public class PropertyPanel extends JPanel {
 
         this.updateCallback = updateCallback;
     }
-
-    
 }

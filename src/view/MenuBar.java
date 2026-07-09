@@ -42,7 +42,7 @@ public class MenuBar extends JMenuBar{
 		saveAsItem = new JMenuItem("名前を付けて保存");
 		fileMenu.add(saveAsItem);
 		
-		previewItem = new JMenuItem("提出用プレビュー");
+		previewItem = new JMenuItem("プレビュー");
 		fileMenu.add(previewItem);
 		
 		fileMenu.addSeparator();
@@ -80,9 +80,9 @@ public class MenuBar extends JMenuBar{
 		add(editMenu);
 		
 		//プロジェクト
-		JMenu projectMenu = new JMenu("プロジェクト");
+		JMenu projectMenu = new JMenu("イベント");
 
-		projectInfoItem = new JMenuItem("案件情報");
+		projectInfoItem = new JMenuItem("イベント情報");
 
 		projectMenu.add(projectInfoItem);
 

@@ -34,7 +34,7 @@ public class PreviewDialog extends JDialog{
 			RoomTemplate roomTemplate,
 			String orientation) {
 		
-		super(owner, "提出用プレビュー", true);
+		super(owner, "プレビュー", true);
 		
 		if (ORIENTATION_LANDSCAPE.equals(orientation)) {
 			setSize(1100, 800);

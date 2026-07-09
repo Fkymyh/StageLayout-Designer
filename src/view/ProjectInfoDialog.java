@@ -30,7 +30,7 @@ public class ProjectInfoDialog extends JDialog {
             ProjectInfo projectInfo,
             Runnable updateCallback) {
 
-        super(owner, "案件情報", true);
+        super(owner, "イベント情報", true);
 
         setSize(500, 420);
 
@@ -47,13 +47,13 @@ public class ProjectInfoDialog extends JDialog {
         placeField = new JTextField(projectInfo.getPlace());
         plannerField = new JTextField(projectInfo.getPlanner());
 
-        inputPanel.add(new JLabel("タイトル"));
+        inputPanel.add(new JLabel("イベント名"));
         inputPanel.add(titleField);
         
         inputPanel.add(new JLabel("日付"));
         inputPanel.add(dateField);
         
-        inputPanel.add(new JLabel("場所"));
+        inputPanel.add(new JLabel("会場名"));
         inputPanel.add(placeField);
         
         inputPanel.add(new JLabel("担当者"));
@@ -94,4 +94,3 @@ public class ProjectInfoDialog extends JDialog {
         });
     }
 }
-

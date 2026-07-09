@@ -20,6 +20,8 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.SwingUtilities;
 import javax.swing.JToggleButton;
 
 import io.LayoutData;
@@ -38,6 +40,18 @@ public class MainFrame extends JFrame {
 
     private JLabel statusLabel;
 
+    private JScrollPane equipmentScrollPane;
+
+    private JScrollPane canvasScrollPane;
+
+    private JSplitPane leftSplitPane;
+
+    private JSplitPane rightSplitPane;
+
+    private int lastEquipmentPanelWidth = 320;
+
+    private int lastPropertyPanelWidth = 260;
+
     public MainFrame() {
 
         setTitle("Stage Layout Designer");
@@ -52,17 +66,17 @@ public class MainFrame extends JFrame {
         
         propertyPanel.setUpdateCallback(() -> {
             canvasPanel.repaint();
-            statusLabel.setText("変更を反映しました");
+            statusLabel.setText("表示名・サイズを反映しました");
         });
 
         setLayout(new BorderLayout());
 
         setJMenuBar(createMenuBar());
 
+        Component workArea = createWorkArea();
+
         add(createToolBar(), BorderLayout.NORTH);
-        add(createLeftPanel(), BorderLayout.WEST);
-        add(createCenterPanel(), BorderLayout.CENTER);
-        add(createRightPanel(), BorderLayout.EAST);
+        add(workArea, BorderLayout.CENTER);
         add(createStatusBar(), BorderLayout.SOUTH);
     }
 
@@ -74,8 +88,8 @@ public class MainFrame extends JFrame {
         JMenuItem newItem = new JMenuItem("新規");
         JMenuItem saveItem = new JMenuItem("保存");
         JMenuItem loadItem = new JMenuItem("読み込み");
-        JMenuItem projectInfoItem = new JMenuItem("案件情報");
-        JMenuItem previewItem = new JMenuItem("提出用プレビュー");
+        JMenuItem projectInfoItem = new JMenuItem("イベント情報");
+        JMenuItem previewItem = new JMenuItem("プレビュー");
         JMenuItem exitItem = new JMenuItem("終了");
 
         newItem.addActionListener(e -> {
@@ -190,7 +204,7 @@ public class MainFrame extends JFrame {
                     new ProjectInfoDialog(
                             this,
                             projectInfo,
-                            () -> statusLabel.setText("案件情報を更新しました"));
+                            () -> statusLabel.setText("イベント情報を更新しました"));
 
             dialog.setVisible(true);
         });
@@ -303,8 +317,8 @@ public class MainFrame extends JFrame {
         JButton rotateButton = new JButton("回転");
         JButton enlargeButton = new JButton("拡大");
         JButton shrinkButton = new JButton("縮小");
-        JButton projectInfoButton = new JButton("案件情報");
-        JButton previewButton = new JButton("提出確認");
+        JButton projectInfoButton = new JButton("イベント情報");
+        JButton previewButton = new JButton("プレビュー");
         
         selectButton.setToolTipText("配置済みの機材を選択・移動します");
         lineButton.setToolTipText("線モードに切り替えます。別のモードへ切り替えると線は終了します");
@@ -312,7 +326,7 @@ public class MainFrame extends JFrame {
         rotateButton.setToolTipText("選択中の機材を15度回転します");
         enlargeButton.setToolTipText("選択中の機材を大きくします");
         shrinkButton.setToolTipText("選択中の機材を小さくします");
-        projectInfoButton.setToolTipText("タイトル、日付、会場名、担当者、メモを入力します");
+        projectInfoButton.setToolTipText("イベント名、日付、会場名、担当者、メモを入力します");
         previewButton.setToolTipText("提出用の1枚レイアウトを確認し、PNG画像として保存できます");
 
         ButtonGroup modeButtonGroup = new ButtonGroup();
@@ -324,6 +338,8 @@ public class MainFrame extends JFrame {
         
         JCheckBox gridCheckBox = new JCheckBox("グリッド", true);
         JCheckBox nameCheckBox = new JCheckBox("名前", true);
+        JCheckBox equipmentPanelCheckBox = new JCheckBox("機材パレット", true);
+        JCheckBox propertyPanelCheckBox = new JCheckBox("詳細", true);
         
         JCheckBox lineLengthCheckBox =
                 new JCheckBox("線長さ", true);
@@ -332,6 +348,8 @@ public class MainFrame extends JFrame {
 
         gridCheckBox.setToolTipText("グリッドの表示を切り替えます");
         nameCheckBox.setToolTipText("機材名・表示名の表示を切り替えます");
+        equipmentPanelCheckBox.setToolTipText("左側の機材パレットの表示を切り替えます");
+        propertyPanelCheckBox.setToolTipText("右側の選択中アイテム欄の表示を切り替えます");
         lineLengthCheckBox.setToolTipText("線の長さをメートルで表示します");
 
         JCheckBox stageLockCheckBox = new JCheckBox("会場パーツ固定", false);
@@ -392,7 +410,7 @@ public class MainFrame extends JFrame {
                     new ProjectInfoDialog(
                             this,
                             projectInfo,
-                            () -> statusLabel.setText("案件情報を更新しました"));
+                            () -> statusLabel.setText("イベント情報を更新しました"));
 
             dialog.setVisible(true);
         });
@@ -447,6 +465,32 @@ public class MainFrame extends JFrame {
                 statusLabel.setText("名前表示: ON");
             } else {
                 statusLabel.setText("名前表示: OFF");
+            }
+        });
+
+        equipmentPanelCheckBox.addActionListener(e -> {
+
+            boolean selected = equipmentPanelCheckBox.isSelected();
+
+            setEquipmentPanelVisible(selected);
+
+            if (selected) {
+                statusLabel.setText("機材パレット: 表示");
+            } else {
+                statusLabel.setText("機材パレット: 非表示");
+            }
+        });
+
+        propertyPanelCheckBox.addActionListener(e -> {
+
+            boolean selected = propertyPanelCheckBox.isSelected();
+
+            setPropertyPanelVisible(selected);
+
+            if (selected) {
+                statusLabel.setText("詳細パネル: 表示");
+            } else {
+                statusLabel.setText("詳細パネル: 非表示");
             }
         });
         
@@ -520,7 +564,7 @@ public class MainFrame extends JFrame {
         JPanel toolbarPanel = new JPanel(new BorderLayout());
 
         JPanel mainToolsPanel = createToolRowPanel();
-        mainToolsPanel.setBorder(BorderFactory.createTitledBorder("よく使う操作"));
+        mainToolsPanel.setBorder(BorderFactory.createTitledBorder("作成・確認"));
         mainToolsPanel.add(projectInfoButton);
         mainToolsPanel.add(previewButton);
         mainToolsPanel.add(new JLabel("  配置:"));
@@ -545,6 +589,9 @@ public class MainFrame extends JFrame {
         subToolsPanel.add(nameCheckBox);
         subToolsPanel.add(new JLabel("倍率"));
         subToolsPanel.add(zoomComboBox);
+        subToolsPanel.add(new JLabel("  パネル:"));
+        subToolsPanel.add(equipmentPanelCheckBox);
+        subToolsPanel.add(propertyPanelCheckBox);
 
         toolbarPanel.add(mainToolsPanel, BorderLayout.NORTH);
         toolbarPanel.add(subToolsPanel, BorderLayout.SOUTH);
@@ -561,27 +608,125 @@ public class MainFrame extends JFrame {
         return panel;
     }
 
-    private Component createLeftPanel() {
+    private Component createWorkArea() {
 
-        JScrollPane scrollPane = new JScrollPane(equipmentPanel);
+        equipmentScrollPane = new JScrollPane(equipmentPanel);
+        canvasScrollPane = new JScrollPane(canvasPanel);
 
-        scrollPane.setPreferredSize(new Dimension(300, 0));
+        equipmentScrollPane.setPreferredSize(new Dimension(lastEquipmentPanelWidth, 0));
+        equipmentScrollPane.setMinimumSize(new Dimension(120, 0));
+        canvasScrollPane.setMinimumSize(new Dimension(480, 0));
 
-        return scrollPane;
+        propertyPanel.setPreferredSize(new Dimension(lastPropertyPanelWidth, 0));
+        propertyPanel.setMinimumSize(new Dimension(190, 0));
+
+        leftSplitPane =
+                new JSplitPane(
+                        JSplitPane.HORIZONTAL_SPLIT,
+                        equipmentScrollPane,
+                        canvasScrollPane);
+
+        leftSplitPane.setContinuousLayout(true);
+        leftSplitPane.setOneTouchExpandable(true);
+        leftSplitPane.setResizeWeight(0.0);
+        leftSplitPane.setDividerSize(8);
+        leftSplitPane.setDividerLocation(lastEquipmentPanelWidth);
+
+        rightSplitPane =
+                new JSplitPane(
+                        JSplitPane.HORIZONTAL_SPLIT,
+                        leftSplitPane,
+                        propertyPanel);
+
+        rightSplitPane.setContinuousLayout(true);
+        rightSplitPane.setOneTouchExpandable(true);
+        rightSplitPane.setResizeWeight(1.0);
+        rightSplitPane.setDividerSize(8);
+
+        SwingUtilities.invokeLater(
+                () -> setPropertyDividerLocation(lastPropertyPanelWidth));
+
+        return rightSplitPane;
     }
 
-    private Component createCenterPanel() {
+    private void setEquipmentPanelVisible(boolean visible) {
 
-        JScrollPane scrollPane = new JScrollPane(canvasPanel);
+        if (leftSplitPane == null || equipmentScrollPane == null) {
+            return;
+        }
 
-        return scrollPane;
+        if (visible) {
+
+            equipmentScrollPane.setVisible(true);
+            leftSplitPane.setDividerSize(8);
+            leftSplitPane.setDividerLocation(
+                    Math.max(120, lastEquipmentPanelWidth));
+
+        } else {
+
+            if (leftSplitPane.getDividerLocation() > 20) {
+                lastEquipmentPanelWidth = leftSplitPane.getDividerLocation();
+            }
+
+            equipmentScrollPane.setVisible(false);
+            leftSplitPane.setDividerSize(0);
+            leftSplitPane.setDividerLocation(0);
+        }
+
+        leftSplitPane.revalidate();
+        leftSplitPane.repaint();
     }
 
-    private Component createRightPanel() {
+    private void setPropertyPanelVisible(boolean visible) {
 
-        propertyPanel.setPreferredSize(new Dimension(220, 0));
+        if (rightSplitPane == null || propertyPanel == null) {
+            return;
+        }
 
-        return propertyPanel;
+        if (visible) {
+
+            propertyPanel.setVisible(true);
+            rightSplitPane.setDividerSize(8);
+            setPropertyDividerLocation(lastPropertyPanelWidth);
+
+        } else {
+
+            int width = rightSplitPane.getWidth()
+                    - rightSplitPane.getDividerLocation()
+                    - rightSplitPane.getDividerSize();
+
+            if (width > 80) {
+                lastPropertyPanelWidth = width;
+            }
+
+            propertyPanel.setVisible(false);
+            rightSplitPane.setDividerSize(0);
+            rightSplitPane.setDividerLocation(1.0);
+        }
+
+        rightSplitPane.revalidate();
+        rightSplitPane.repaint();
+    }
+
+    private void setPropertyDividerLocation(int propertyWidth) {
+
+        if (rightSplitPane == null) {
+            return;
+        }
+
+        SwingUtilities.invokeLater(() -> {
+
+            int totalWidth = rightSplitPane.getWidth();
+
+            if (totalWidth <= 0) {
+                return;
+            }
+
+            int dividerLocation =
+                    totalWidth - propertyWidth - rightSplitPane.getDividerSize();
+
+            rightSplitPane.setDividerLocation(Math.max(480, dividerLocation));
+        });
     }
 
     private Component createStatusBar() {
