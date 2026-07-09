@@ -25,7 +25,7 @@ public class EquipmentFactory {
 
         register(
                 "マイク",
-                "音響 > マイク",
+                "音響 > マイク・スタンド",
                 Color.BLUE,
                 30,
                 15,
@@ -41,7 +41,7 @@ public class EquipmentFactory {
 
         register(
                 "ミキサー",
-                "音響 > ミキサー・周辺",
+                "音響 > その他音響",
                 Color.BLUE,
                 45,
                 30,
@@ -49,7 +49,7 @@ public class EquipmentFactory {
         
         register(
                 "ブームスタンド",
-                "音響 > スタンド",
+                "音響 > マイク・スタンド",
                 Color.BLUE,
                 45,
                 20,
@@ -57,7 +57,7 @@ public class EquipmentFactory {
 
         register(
                 "CD_Player",
-                "音響 > 再生機",
+                "音響 > その他音響",
                 Color.BLUE,
                 45,
                 30,
@@ -537,36 +537,13 @@ public class EquipmentFactory {
             return "音響 > スピーカー";
         }
 
-        if (label.contains("マイク")) {
-            return "音響 > マイク";
-        }
-
-        if (label.contains("スタンド")
+        if (label.contains("マイク")
+                || label.contains("スタンド")
                 || label.contains("三脚")) {
-            return "音響 > スタンド";
+            return "音響 > マイク・スタンド";
         }
 
-        if (label.contains("CD")
-                || label.contains("プレイヤー")
-                || label.contains("レコーダー")
-                || label.contains("サンプリング")
-                || label.contains("MTR")) {
-            return "音響 > 再生機・録音機";
-        }
-
-        if (label.contains("ミキサー")
-                || label.contains("イコライザ")
-                || label.contains("コンプレッサー")
-                || label.contains("リバーブ")
-                || label.contains("ディレイ")
-                || label.contains("ゲート")
-                || label.contains("アンプ")
-                || label.contains("クロスオーバー")
-                || label.contains("DJ")) {
-            return "音響 > ミキサー・周辺";
-        }
-
-        return category;
+        return "音響 > その他音響";
     }
 
     private static Color getDefaultColor(String category) {

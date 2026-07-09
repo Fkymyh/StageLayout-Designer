@@ -5,7 +5,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.GridLayout;
+import java.util.ArrayList;
 
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
@@ -53,6 +53,8 @@ public class MainFrame extends JFrame {
 
     private int lastPropertyPanelWidth = 260;
 
+    private JCheckBox venueEditCheckBox;
+
     public MainFrame() {
 
         setTitle("Stage Layout Designer");
@@ -64,6 +66,7 @@ public class MainFrame extends JFrame {
         equipmentPanel = new EquipmentPanel();
         propertyPanel = new PropertyPanel();
         canvasPanel = new CanvasPanel(equipmentPanel, propertyPanel);
+        canvasPanel.setStageLocked(true);
         
         propertyPanel.setUpdateCallback(() -> {
             canvasPanel.repaint();
@@ -91,10 +94,13 @@ public class MainFrame extends JFrame {
         JMenuItem loadItem = new JMenuItem("読み込み");
         JMenuItem projectInfoItem = new JMenuItem("イベント情報");
         JMenuItem previewItem = new JMenuItem("プレビュー");
+        JMenuItem saveVenueTemplateItem = new JMenuItem("会場だけ保存");
         JMenuItem exitItem = new JMenuItem("終了");
 
         newItem.addActionListener(e -> {
             canvasPanel.clearAll();
+            canvasPanel.setStageLocked(true);
+            updateVenueEditCheckBox(false);
             projectInfo = new ProjectInfo();
             canvasPanel.requestFocusInWindow();
             statusLabel.setText("新規作成しました");
@@ -161,6 +167,8 @@ public class MainFrame extends JFrame {
                 canvasPanel.setItems(data.getItems());
                 canvasPanel.setCustomRoomObjects(data.getCustomRoomObjects());
                 canvasPanel.setDrawLines(data.getDrawLines());
+                canvasPanel.setStageLocked(true);
+                updateVenueEditCheckBox(false);
 
                 projectInfo = data.getProjectInfo();
 
@@ -224,10 +232,50 @@ public class MainFrame extends JFrame {
             dialog.setVisible(true);
         });
 
+        saveVenueTemplateItem.addActionListener(e -> {
+
+            JFileChooser fileChooser = new JFileChooser();
+
+            int result = fileChooser.showSaveDialog(this);
+
+            if (result != JFileChooser.APPROVE_OPTION) {
+                return;
+            }
+
+            String fileName =
+                    fileChooser.getSelectedFile().getAbsolutePath();
+
+            projectInfo.setTemplateName("");
+
+            try {
+
+                LayoutFileManager.save(
+                        new ArrayList<>(),
+                        canvasPanel.getCustomRoomObjects(),
+                        new ArrayList<>(),
+                        projectInfo,
+                        fileName);
+
+                canvasPanel.setStageLocked(true);
+                updateVenueEditCheckBox(false);
+
+                statusLabel.setText("会場だけ保存しました: " + fileName);
+
+            } catch (Exception ex) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "会場だけ保存に失敗しました。\n" + ex.getMessage());
+
+                ex.printStackTrace();
+            }
+        });
+
         fileMenu.add(newItem);
         fileMenu.addSeparator();
         fileMenu.add(projectInfoItem);
         fileMenu.add(previewItem);
+        fileMenu.add(saveVenueTemplateItem);
         fileMenu.addSeparator();
         fileMenu.add(saveItem);
         fileMenu.add(loadItem);
@@ -353,8 +401,8 @@ public class MainFrame extends JFrame {
         propertyPanelCheckBox.setToolTipText("右側の選択中アイテム欄の表示を切り替えます");
         lineLengthCheckBox.setToolTipText("線の長さをメートルで表示します");
 
-        JCheckBox stageLockCheckBox = new JCheckBox("会場パーツ固定", false);
-        stageLockCheckBox.setToolTipText("四角エリアなどの会場パーツを固定します");
+        venueEditCheckBox = new JCheckBox("会場編集", false);
+        venueEditCheckBox.setToolTipText("会場パーツを置く・動かす時だけONにします。OFFでは会場パーツを固定します");
 
         JComboBox<String> colorComboBox =
                 new JComboBox<>(new String[] {"赤", "黒", "青", "緑"});
@@ -430,16 +478,16 @@ public class MainFrame extends JFrame {
             dialog.setVisible(true);
         });
 
-        stageLockCheckBox.addActionListener(e -> {
+        venueEditCheckBox.addActionListener(e -> {
 
-            boolean selected = stageLockCheckBox.isSelected();
+            boolean selected = venueEditCheckBox.isSelected();
 
-            canvasPanel.setStageLocked(selected);
+            canvasPanel.setStageLocked(!selected);
 
             if (selected) {
-                statusLabel.setText("会場パーツ固定: ON");
+                statusLabel.setText("会場編集: ON");
             } else {
-                statusLabel.setText("会場パーツ固定: OFF");
+                statusLabel.setText("会場編集: OFF / 会場パーツ固定");
             }
         });
 
@@ -562,7 +610,7 @@ public class MainFrame extends JFrame {
         
           
 
-        JPanel toolbarPanel = new JPanel(new GridLayout(3, 1, 0, 0));
+        JPanel toolbarPanel = new JPanel(new BorderLayout());
 
         JPanel mainToolsPanel = createToolRowPanel();
         mainToolsPanel.setBorder(BorderFactory.createTitledBorder("作成・配置"));
@@ -570,10 +618,15 @@ public class MainFrame extends JFrame {
         mainToolsPanel.add(previewButton);
         mainToolsPanel.add(selectButton);
         mainToolsPanel.add(lineButton);
-        mainToolsPanel.add(stageLockCheckBox);
+        mainToolsPanel.add(venueEditCheckBox);
+        mainToolsPanel.add(new JLabel("  表示:"));
+        mainToolsPanel.add(gridCheckBox);
+        mainToolsPanel.add(nameCheckBox);
+        mainToolsPanel.add(new JLabel("倍率"));
+        mainToolsPanel.add(zoomComboBox);
 
         JPanel subToolsPanel = createToolRowPanel();
-        subToolsPanel.setBorder(BorderFactory.createTitledBorder("選択中の編集・線"));
+        subToolsPanel.setBorder(BorderFactory.createTitledBorder("編集・線・パネル"));
         subToolsPanel.add(deleteButton);
         subToolsPanel.add(rotateButton);
         subToolsPanel.add(enlargeButton);
@@ -584,22 +637,21 @@ public class MainFrame extends JFrame {
         subToolsPanel.add(new JLabel("太さ"));
         subToolsPanel.add(strokeComboBox);
         subToolsPanel.add(lineLengthCheckBox);
+        subToolsPanel.add(new JLabel("  パネル:"));
+        subToolsPanel.add(equipmentPanelCheckBox);
+        subToolsPanel.add(propertyPanelCheckBox);
 
-        JPanel viewToolsPanel = createToolRowPanel();
-        viewToolsPanel.setBorder(BorderFactory.createTitledBorder("表示"));
-        viewToolsPanel.add(gridCheckBox);
-        viewToolsPanel.add(nameCheckBox);
-        viewToolsPanel.add(new JLabel("倍率"));
-        viewToolsPanel.add(zoomComboBox);
-        viewToolsPanel.add(new JLabel("  パネル:"));
-        viewToolsPanel.add(equipmentPanelCheckBox);
-        viewToolsPanel.add(propertyPanelCheckBox);
-
-        toolbarPanel.add(mainToolsPanel);
-        toolbarPanel.add(subToolsPanel);
-        toolbarPanel.add(viewToolsPanel);
+        toolbarPanel.add(mainToolsPanel, BorderLayout.NORTH);
+        toolbarPanel.add(subToolsPanel, BorderLayout.SOUTH);
 
         return toolbarPanel;
+    }
+
+    private void updateVenueEditCheckBox(boolean selected) {
+
+        if (venueEditCheckBox != null) {
+            venueEditCheckBox.setSelected(selected);
+        }
     }
 
     private JPanel createToolRowPanel() {

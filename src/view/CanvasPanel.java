@@ -993,6 +993,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		// 四角エリア追加モード
 		if ("RECT".equals(roomObjectAddMode)) {
 
+            if (stageLocked) {
+                return;
+            }
+
 	        int x = canvasX;
 	        int y = canvasY;
 
@@ -1007,6 +1011,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 		//円柱追加モード
 		if ("CIRCLE".equals(roomObjectAddMode)) {
+
+            if (stageLocked) {
+                return;
+            }
 
 	 	    int x = canvasX;
 	 	    int y = canvasY;
@@ -1091,6 +1099,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	            EquipmentFactory.getDefinitions().get(name);
 
 	    if (isVenueImagePart(definition)) {
+
+            if (stageLocked) {
+                return;
+            }
 
 	        int x = canvasX;
 	        int y = canvasY;
@@ -2368,6 +2380,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	}
 	
 	public void setRoomObjectAddMode(String mode) {
+
+        if (stageLocked && mode != null) {
+            return;
+        }
 
 	    this.roomObjectAddMode = mode;
 	    
