@@ -39,6 +39,8 @@ public class MainFrame extends JFrame {
 
     private ProjectInfo projectInfo = new ProjectInfo();
 
+    private String currentFileName;
+
     private JLabel statusLabel;
 
     private JScrollPane equipmentScrollPane;
@@ -110,49 +112,15 @@ public class MainFrame extends JFrame {
             canvasPanel.setStageLocked(false);
             updateStageLockCheckBox(false);
             projectInfo = new ProjectInfo();
+            currentFileName = null;
+            canvasPanel.resetHistory();
             canvasPanel.fitToView(canvasScrollPane.getViewport().getExtentSize());
             canvasPanel.requestFocusInWindow();
             statusLabel.setText("新規作成しました");
         });
         
         saveItem.addActionListener(e -> {
-
-            JFileChooser fileChooser = new JFileChooser();
-
-            int result = fileChooser.showSaveDialog(this);
-
-            if (result != JFileChooser.APPROVE_OPTION) {
-                return;
-            }
-
-            String fileName =
-                    fileChooser.getSelectedFile().getAbsolutePath();
-
-            if (canvasPanel.getRoomTemplate() != null) {
-                projectInfo.setTemplateName(canvasPanel.getRoomTemplate().getName());
-            } else {
-                projectInfo.setTemplateName("");
-            }
-
-            try {
-
-                LayoutFileManager.save(
-                        canvasPanel.getItems(),
-                        canvasPanel.getCustomRoomObjects(),
-                        canvasPanel.getDrawLines(),
-                        projectInfo,
-                        fileName);
-
-                statusLabel.setText("保存しました: " + fileName);
-
-            } catch (Exception ex) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "保存に失敗しました。\n" + ex.getMessage());
-
-                ex.printStackTrace();
-            }
+            saveCurrentFile();
         });
         
         loadItem.addActionListener(e -> {
@@ -201,6 +169,8 @@ public class MainFrame extends JFrame {
                     canvasPanel.setRoomTemplate(null);
                 }
 
+                currentFileName = fileName;
+                canvasPanel.resetHistory();
                 statusLabel.setText("読み込みました: " + fileName);
 
             } catch (Exception ex) {
@@ -434,6 +404,9 @@ public class MainFrame extends JFrame {
         JButton shrinkButton = new JButton("縮小");
         JButton projectInfoButton = new JButton("イベント情報");
         JButton previewButton = new JButton("プレビュー");
+        JButton saveButton = new JButton("保存");
+        JButton undoButton = new JButton("戻る");
+        JButton redoButton = new JButton("やり直し");
         
         selectButton.setToolTipText("配置済みの機材を選択・移動します");
         lineButton.setToolTipText("線モードに切り替えます。別のモードへ切り替えると線は終了します");
@@ -443,6 +416,9 @@ public class MainFrame extends JFrame {
         shrinkButton.setToolTipText("選択中の機材を小さくします");
         projectInfoButton.setToolTipText("イベント名、日付、会場名、担当者、メモを入力します");
         previewButton.setToolTipText("提出用の1枚レイアウトを確認し、PNG画像として保存できます");
+        saveButton.setToolTipText("現在のファイルへ保存します。初回は保存先を選びます");
+        undoButton.setToolTipText("ひとつ前の状態に戻します");
+        redoButton.setToolTipText("戻した操作をやり直します");
 
         ButtonGroup modeButtonGroup = new ButtonGroup();
 
@@ -542,6 +518,18 @@ public class MainFrame extends JFrame {
                             PreviewDialog.ORIENTATION_LANDSCAPE);
 
             dialog.setVisible(true);
+        });
+
+        saveButton.addActionListener(e -> saveCurrentFile());
+
+        undoButton.addActionListener(e -> {
+            canvasPanel.undo();
+            statusLabel.setText("ひとつ前の状態に戻しました");
+        });
+
+        redoButton.addActionListener(e -> {
+            canvasPanel.redo();
+            statusLabel.setText("戻した操作をやり直しました");
         });
 
         stageLockCheckBox.addActionListener(e -> {
@@ -684,6 +672,9 @@ public class MainFrame extends JFrame {
         mainToolsPanel.setBorder(BorderFactory.createTitledBorder("作成・配置"));
         mainToolsPanel.add(projectInfoButton);
         mainToolsPanel.add(previewButton);
+        mainToolsPanel.add(saveButton);
+        mainToolsPanel.add(undoButton);
+        mainToolsPanel.add(redoButton);
         mainToolsPanel.add(selectButton);
         mainToolsPanel.add(lineButton);
         mainToolsPanel.add(stageLockCheckBox);
@@ -719,6 +710,61 @@ public class MainFrame extends JFrame {
 
         if (stageLockCheckBox != null) {
             stageLockCheckBox.setSelected(selected);
+        }
+    }
+
+    private void saveCurrentFile() {
+
+        if (currentFileName == null || currentFileName.isBlank()) {
+            saveCurrentFileAs();
+            return;
+        }
+
+        saveLayoutToFile(currentFileName);
+    }
+
+    private void saveCurrentFileAs() {
+
+        JFileChooser fileChooser = new JFileChooser();
+
+        int result = fileChooser.showSaveDialog(this);
+
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        currentFileName =
+                fileChooser.getSelectedFile().getAbsolutePath();
+
+        saveLayoutToFile(currentFileName);
+    }
+
+    private void saveLayoutToFile(String fileName) {
+
+        if (canvasPanel.getRoomTemplate() != null) {
+            projectInfo.setTemplateName(canvasPanel.getRoomTemplate().getName());
+        } else {
+            projectInfo.setTemplateName("");
+        }
+
+        try {
+
+            LayoutFileManager.save(
+                    canvasPanel.getItems(),
+                    canvasPanel.getCustomRoomObjects(),
+                    canvasPanel.getDrawLines(),
+                    projectInfo,
+                    fileName);
+
+            statusLabel.setText("保存しました: " + fileName);
+
+        } catch (Exception ex) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "保存に失敗しました。\n" + ex.getMessage());
+
+            ex.printStackTrace();
         }
     }
 

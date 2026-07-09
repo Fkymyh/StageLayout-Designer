@@ -14,7 +14,9 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -134,6 +136,14 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private boolean showLineLength = true;
 
 	private boolean stageLocked = false;
+
+    private static final int MAX_HISTORY_SIZE = 50;
+
+    private Deque<LayoutSnapshot> undoHistory = new ArrayDeque<>();
+
+    private Deque<LayoutSnapshot> redoHistory = new ArrayDeque<>();
+
+    private boolean restoringSnapshot = false;
 
 	private static final Color STAGE_FILL_COLOR = new Color(232, 235, 238);
 
@@ -290,6 +300,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		addKeyListener(this);
 		
 		refreshPanels();
+        resetHistory();
 		
 	}
 	
@@ -1572,6 +1583,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	@Override
 	public void keyPressed(KeyEvent e) {
 
+        if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_Z) {
+            undo();
+            return;
+        }
+
+        if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_Y) {
+            redo();
+            return;
+        }
+
 	    if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
 
 	        if (drawLineMode) {
@@ -1930,10 +1951,236 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	//変更通知用メソッド
 	private void notifyChanged() {
 
+        recordHistory();
+
 	    if (changeCallback != null) {
 	        changeCallback.run();
 	    }
 	}
+
+    public void undo() {
+
+        if (undoHistory.size() <= 1) {
+            return;
+        }
+
+        redoHistory.addLast(undoHistory.removeLast());
+        restoreSnapshot(undoHistory.peekLast());
+    }
+
+    public void redo() {
+
+        if (redoHistory.isEmpty()) {
+            return;
+        }
+
+        LayoutSnapshot snapshot = redoHistory.removeLast();
+
+        undoHistory.addLast(snapshot);
+        restoreSnapshot(snapshot);
+    }
+
+    public void resetHistory() {
+
+        undoHistory.clear();
+        redoHistory.clear();
+        recordHistory();
+    }
+
+    private void recordHistory() {
+
+        if (restoringSnapshot) {
+            return;
+        }
+
+        undoHistory.addLast(createSnapshot());
+
+        while (undoHistory.size() > MAX_HISTORY_SIZE) {
+            undoHistory.removeFirst();
+        }
+
+        redoHistory.clear();
+    }
+
+    private LayoutSnapshot createSnapshot() {
+
+        return new LayoutSnapshot(
+                copyItems(items),
+                copyRoomObjects(customRoomObjects),
+                copyDrawLines(drawLines));
+    }
+
+    private void restoreSnapshot(LayoutSnapshot snapshot) {
+
+        if (snapshot == null) {
+            return;
+        }
+
+        restoringSnapshot = true;
+
+        items = copyItems(snapshot.items);
+        customRoomObjects = copyRoomObjects(snapshot.roomObjects);
+        drawLines = copyDrawLines(snapshot.lines);
+
+        selectedItem = null;
+        selectedRoomObject = null;
+        dragging = false;
+        draggingRoomObject = false;
+        resizingItem = false;
+        resizingRoomObject = false;
+
+        refreshPanels();
+        repaint();
+
+        if (changeCallback != null) {
+            changeCallback.run();
+        }
+
+        restoringSnapshot = false;
+    }
+
+    private List<LayoutItem> copyItems(List<LayoutItem> sourceItems) {
+
+        List<LayoutItem> copiedItems = new ArrayList<>();
+
+        if (sourceItems == null) {
+            return copiedItems;
+        }
+
+        for (LayoutItem item : sourceItems) {
+
+            LayoutItem copiedItem =
+                    new LayoutItem(
+                            EquipmentFactory.create(item.getEquipment().getName()),
+                            item.getX(),
+                            item.getY());
+
+            copiedItem.setSize(item.getWidth(), item.getHeight());
+            copiedItem.setQuantity(item.getQuantity());
+            copiedItem.setRotation(item.getRotation());
+            copiedItem.setMemo(item.getMemo());
+            copiedItem.setLabel(item.getLabel());
+
+            copiedItems.add(copiedItem);
+        }
+
+        return copiedItems;
+    }
+
+    private List<RoomObject> copyRoomObjects(List<RoomObject> sourceObjects) {
+
+        List<RoomObject> copiedObjects = new ArrayList<>();
+
+        if (sourceObjects == null) {
+            return copiedObjects;
+        }
+
+        for (RoomObject object : sourceObjects) {
+            copiedObjects.add(copyRoomObject(object));
+        }
+
+        return copiedObjects;
+    }
+
+    private RoomObject copyRoomObject(RoomObject object) {
+
+        if (RoomObject.TYPE_IMAGE.equals(object.getType())) {
+            return RoomObject.createImage(
+                    object.getName(),
+                    object.getX(),
+                    object.getY(),
+                    object.getWidth(),
+                    object.getHeight(),
+                    object.getImagePath());
+        }
+
+        if (RoomObject.TYPE_CIRCLE.equals(object.getType())) {
+            return RoomObject.createCircle(
+                    object.getName(),
+                    object.getX(),
+                    object.getY(),
+                    object.getWidth(),
+                    object.getHeight());
+        }
+
+        if (RoomObject.TYPE_LINE.equals(object.getType())) {
+            return RoomObject.createLine(
+                    object.getName(),
+                    object.getX(),
+                    object.getY(),
+                    object.getEndX(),
+                    object.getEndY());
+        }
+
+        if (RoomObject.TYPE_ARC.equals(object.getType())) {
+            return RoomObject.createArc(
+                    object.getName(),
+                    object.getX(),
+                    object.getY(),
+                    object.getWidth(),
+                    object.getHeight());
+        }
+
+        if (RoomObject.TYPE_TEXT.equals(object.getType())) {
+            return RoomObject.createText(
+                    object.getName(),
+                    object.getX(),
+                    object.getY());
+        }
+
+        return new RoomObject(
+                object.getName(),
+                object.getX(),
+                object.getY(),
+                object.getWidth(),
+                object.getHeight());
+    }
+
+    private List<DrawLine> copyDrawLines(List<DrawLine> sourceLines) {
+
+        List<DrawLine> copiedLines = new ArrayList<>();
+
+        if (sourceLines == null) {
+            return copiedLines;
+        }
+
+        for (DrawLine line : sourceLines) {
+
+            DrawLine copiedLine =
+                    new DrawLine(
+                            line.getStartX(),
+                            line.getStartY(),
+                            line.getEndX(),
+                            line.getEndY());
+
+            copiedLine.setColor(line.getColor());
+            copiedLine.setStrokeWidth(line.getStrokeWidth());
+            copiedLine.setLabel(line.getLabel());
+
+            copiedLines.add(copiedLine);
+        }
+
+        return copiedLines;
+    }
+
+    private static class LayoutSnapshot {
+
+        private final List<LayoutItem> items;
+
+        private final List<RoomObject> roomObjects;
+
+        private final List<DrawLine> lines;
+
+        LayoutSnapshot(
+                List<LayoutItem> items,
+                List<RoomObject> roomObjects,
+                List<DrawLine> lines) {
+
+            this.items = items;
+            this.roomObjects = roomObjects;
+            this.lines = lines;
+        }
+    }
 	
 	public RoomTemplate getRoomTemplate() {
 	    return roomTemplate;
