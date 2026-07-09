@@ -2407,7 +2407,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    RoomObject object =
 	            new RoomObject(
-	                    "四角エリア",
+	                    "床・エリア",
 	                    x,
 	                    y,
 	                    width,
@@ -2428,7 +2428,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    RoomObject object =
 	            RoomObject.createCircle(
-	                    "円形エリア",
+	                    "柱・円",
 	                    x,
 	                    y,
 	                    size,

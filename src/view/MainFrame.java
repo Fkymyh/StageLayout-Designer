@@ -53,7 +53,7 @@ public class MainFrame extends JFrame {
 
     private int lastPropertyPanelWidth = 260;
 
-    private JCheckBox venueEditCheckBox;
+    private JCheckBox stageLockCheckBox;
 
     public MainFrame() {
 
@@ -66,7 +66,7 @@ public class MainFrame extends JFrame {
         equipmentPanel = new EquipmentPanel();
         propertyPanel = new PropertyPanel();
         canvasPanel = new CanvasPanel(equipmentPanel, propertyPanel);
-        canvasPanel.setStageLocked(true);
+        canvasPanel.setStageLocked(false);
         
         propertyPanel.setUpdateCallback(() -> {
             canvasPanel.repaint();
@@ -94,13 +94,14 @@ public class MainFrame extends JFrame {
         JMenuItem loadItem = new JMenuItem("読み込み");
         JMenuItem projectInfoItem = new JMenuItem("イベント情報");
         JMenuItem previewItem = new JMenuItem("プレビュー");
+        JMenuItem loadVenueTemplateItem = new JMenuItem("会場テンプレートを読み込み");
         JMenuItem saveVenueTemplateItem = new JMenuItem("会場だけ保存");
         JMenuItem exitItem = new JMenuItem("終了");
 
         newItem.addActionListener(e -> {
             canvasPanel.clearAll();
-            canvasPanel.setStageLocked(true);
-            updateVenueEditCheckBox(false);
+            canvasPanel.setStageLocked(false);
+            updateStageLockCheckBox(false);
             projectInfo = new ProjectInfo();
             canvasPanel.requestFocusInWindow();
             statusLabel.setText("新規作成しました");
@@ -167,8 +168,8 @@ public class MainFrame extends JFrame {
                 canvasPanel.setItems(data.getItems());
                 canvasPanel.setCustomRoomObjects(data.getCustomRoomObjects());
                 canvasPanel.setDrawLines(data.getDrawLines());
-                canvasPanel.setStageLocked(true);
-                updateVenueEditCheckBox(false);
+                canvasPanel.setStageLocked(false);
+                updateStageLockCheckBox(false);
 
                 projectInfo = data.getProjectInfo();
 
@@ -257,7 +258,7 @@ public class MainFrame extends JFrame {
                         fileName);
 
                 canvasPanel.setStageLocked(true);
-                updateVenueEditCheckBox(false);
+                updateStageLockCheckBox(true);
 
                 statusLabel.setText("会場だけ保存しました: " + fileName);
 
@@ -271,10 +272,67 @@ public class MainFrame extends JFrame {
             }
         });
 
+        loadVenueTemplateItem.addActionListener(e -> {
+
+            JFileChooser fileChooser = new JFileChooser();
+
+            int result = fileChooser.showOpenDialog(this);
+
+            if (result != JFileChooser.APPROVE_OPTION) {
+                return;
+            }
+
+            if (!canvasPanel.getCustomRoomObjects().isEmpty()) {
+
+                int answer =
+                        JOptionPane.showConfirmDialog(
+                                this,
+                                "現在の会場パーツを読み込んだ会場に置き換えます。\n"
+                                        + "機材配置と線はそのまま残ります。",
+                                "会場テンプレートを読み込み",
+                                JOptionPane.OK_CANCEL_OPTION);
+
+                if (answer != JOptionPane.OK_OPTION) {
+                    return;
+                }
+            }
+
+            String fileName =
+                    fileChooser.getSelectedFile().getAbsolutePath();
+
+            try {
+
+                LayoutData data =
+                        LayoutFileManager.load(fileName);
+
+                canvasPanel.setCustomRoomObjects(data.getCustomRoomObjects());
+                canvasPanel.setRoomTemplate(null);
+                canvasPanel.setStageLocked(false);
+                updateStageLockCheckBox(false);
+
+                ProjectInfo loadedInfo = data.getProjectInfo();
+
+                if (loadedInfo != null && !loadedInfo.getPlace().isBlank()) {
+                    projectInfo.setPlace(loadedInfo.getPlace());
+                }
+
+                statusLabel.setText("会場テンプレートを読み込みました: " + fileName);
+
+            } catch (Exception ex) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "会場テンプレートの読み込みに失敗しました。\n" + ex.getMessage());
+
+                ex.printStackTrace();
+            }
+        });
+
         fileMenu.add(newItem);
         fileMenu.addSeparator();
         fileMenu.add(projectInfoItem);
         fileMenu.add(previewItem);
+        fileMenu.add(loadVenueTemplateItem);
         fileMenu.add(saveVenueTemplateItem);
         fileMenu.addSeparator();
         fileMenu.add(saveItem);
@@ -401,8 +459,8 @@ public class MainFrame extends JFrame {
         propertyPanelCheckBox.setToolTipText("右側の選択中アイテム欄の表示を切り替えます");
         lineLengthCheckBox.setToolTipText("線の長さをメートルで表示します");
 
-        venueEditCheckBox = new JCheckBox("会場編集", false);
-        venueEditCheckBox.setToolTipText("会場パーツを置く・動かす時だけONにします。OFFでは会場パーツを固定します");
+        stageLockCheckBox = new JCheckBox("会場固定", false);
+        stageLockCheckBox.setToolTipText("ONにすると、会場パーツや常設物を動かせないようにします");
 
         JComboBox<String> colorComboBox =
                 new JComboBox<>(new String[] {"赤", "黒", "青", "緑"});
@@ -478,16 +536,16 @@ public class MainFrame extends JFrame {
             dialog.setVisible(true);
         });
 
-        venueEditCheckBox.addActionListener(e -> {
+        stageLockCheckBox.addActionListener(e -> {
 
-            boolean selected = venueEditCheckBox.isSelected();
+            boolean selected = stageLockCheckBox.isSelected();
 
-            canvasPanel.setStageLocked(!selected);
+            canvasPanel.setStageLocked(selected);
 
             if (selected) {
-                statusLabel.setText("会場編集: ON");
+                statusLabel.setText("会場固定: ON");
             } else {
-                statusLabel.setText("会場編集: OFF / 会場パーツ固定");
+                statusLabel.setText("会場固定: OFF / 会場パーツも編集できます");
             }
         });
 
@@ -618,7 +676,7 @@ public class MainFrame extends JFrame {
         mainToolsPanel.add(previewButton);
         mainToolsPanel.add(selectButton);
         mainToolsPanel.add(lineButton);
-        mainToolsPanel.add(venueEditCheckBox);
+        mainToolsPanel.add(stageLockCheckBox);
         mainToolsPanel.add(new JLabel("  表示:"));
         mainToolsPanel.add(gridCheckBox);
         mainToolsPanel.add(nameCheckBox);
@@ -647,10 +705,10 @@ public class MainFrame extends JFrame {
         return toolbarPanel;
     }
 
-    private void updateVenueEditCheckBox(boolean selected) {
+    private void updateStageLockCheckBox(boolean selected) {
 
-        if (venueEditCheckBox != null) {
-            venueEditCheckBox.setSelected(selected);
+        if (stageLockCheckBox != null) {
+            stageLockCheckBox.setSelected(selected);
         }
     }
 
