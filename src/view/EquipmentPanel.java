@@ -7,9 +7,11 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.Image;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -23,17 +25,17 @@ import model.EquipmentFactory;
 
 public class EquipmentPanel extends JPanel {
 	
-	private static final int PANEL_WIDTH = 320;
+	private static final int PANEL_WIDTH = 300;
 
-    private static final int BUTTON_WIDTH = 92;
+    private static final int BUTTON_WIDTH = 82;
 
-    private static final int BUTTON_HEIGHT = 92;
+    private static final int BUTTON_HEIGHT = 86;
 
-    private static final int ICON_SIZE = 48;
+    private static final int ICON_SIZE = 42;
 
     private JTabbedPane tabbedPane;
 
-    private String selectedEquipmentName = "マイク";
+    private String selectedEquipmentName;
 
     private Map<String, JButton> buttons = new LinkedHashMap<>();
 
@@ -57,25 +59,9 @@ public class EquipmentPanel extends JPanel {
 
     private void addEquipmentTab(String categoryName, String[] equipmentNames) {
 
-        JPanel panel = new JPanel();
-
-        panel.setLayout(new GridLayout(0, 3, 6, 6));
-
-        for (String name : equipmentNames) {
-
-            JButton button = createEquipmentButton(name);
-
-            buttons.put(name, button);
-
-            panel.add(button);
-        }
-
-        JScrollPane scrollPane = new JScrollPane(panel);
-        
-        scrollPane.setHorizontalScrollBarPolicy(
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-        tabbedPane.addTab(categoryName, scrollPane);
+        tabbedPane.addTab(
+                categoryName,
+                createEquipmentScrollPane(equipmentNames));
     }
 
     private JButton createEquipmentButton(String name) {
@@ -165,28 +151,123 @@ public class EquipmentPanel extends JPanel {
     
     private void createTabsFromDefinitions() {
 
-        Map<String, List<String>> categoryMap = new LinkedHashMap<>();
+        Map<String, Map<String, List<String>>> categoryMap =
+                new LinkedHashMap<>();
+
+        Set<String> expandedParentCategories = new HashSet<>();
 
         for (EquipmentDefinition definition :
                 EquipmentFactory.getDefinitions().values()) {
 
             String category = definition.getCategory();
 
-            categoryMap.putIfAbsent(category, new ArrayList<>());
+            if (category != null && category.contains(">")) {
 
-            categoryMap.get(category).add(definition.getName());
+                String[] parts = category.split(">", 2);
+
+                expandedParentCategories.add(parts[0].trim());
+            }
         }
 
-        for (Map.Entry<String, List<String>> entry : categoryMap.entrySet()) {
+        for (EquipmentDefinition definition :
+                EquipmentFactory.getDefinitions().values()) {
+
+            String category = definition.getCategory();
+
+            String parentCategory = category;
+            String childCategory = null;
+
+            if (category != null && category.contains(">")) {
+
+                String[] parts = category.split(">", 2);
+
+                parentCategory = parts[0].trim();
+                childCategory = parts[1].trim();
+
+            } else if (expandedParentCategories.contains(parentCategory)) {
+
+                continue;
+            }
+
+            categoryMap.putIfAbsent(
+                    parentCategory,
+                    new LinkedHashMap<>());
+
+            String mapKey =
+                    childCategory == null
+                    ? parentCategory
+                    : childCategory;
+
+            categoryMap.get(parentCategory).putIfAbsent(
+                    mapKey,
+                    new ArrayList<>());
+
+            categoryMap.get(parentCategory)
+                    .get(mapKey)
+                    .add(definition.getName());
+        }
+
+        for (Map.Entry<String, Map<String, List<String>>> entry :
+                categoryMap.entrySet()) {
 
             String categoryName = entry.getKey();
 
-            List<String> equipmentNames = entry.getValue();
+            Map<String, List<String>> childCategories = entry.getValue();
 
-            addEquipmentTab(
-                    categoryName,
-                    equipmentNames.toArray(new String[0]));
+            if (childCategories.size() == 1
+                    && childCategories.containsKey(categoryName)) {
+
+                List<String> equipmentNames =
+                        childCategories.get(categoryName);
+
+                addEquipmentTab(
+                        categoryName,
+                        equipmentNames.toArray(new String[0]));
+
+            } else {
+
+                JTabbedPane childTabbedPane = new JTabbedPane();
+
+                for (Map.Entry<String, List<String>> childEntry :
+                        childCategories.entrySet()) {
+
+                    childTabbedPane.addTab(
+                            childEntry.getKey(),
+                            createEquipmentScrollPane(
+                                    childEntry.getValue()
+                                            .toArray(new String[0])));
+                }
+
+                tabbedPane.addTab(categoryName, childTabbedPane);
+            }
         }
+    }
+
+    private JScrollPane createEquipmentScrollPane(String[] equipmentNames) {
+
+        JPanel panel = new JPanel();
+
+        panel.setLayout(new GridLayout(0, 3, 6, 6));
+
+        for (String name : equipmentNames) {
+
+            JButton button = createEquipmentButton(name);
+
+            buttons.put(name, button);
+
+            if (selectedEquipmentName == null) {
+                selectedEquipmentName = name;
+            }
+
+            panel.add(button);
+        }
+
+        JScrollPane scrollPane = new JScrollPane(panel);
+
+        scrollPane.setHorizontalScrollBarPolicy(
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+        return scrollPane;
     }
     
     

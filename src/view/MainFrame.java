@@ -4,7 +4,10 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -17,7 +20,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JToolBar;
+import javax.swing.JToggleButton;
 
 import io.LayoutData;
 import io.LayoutFileManager;
@@ -39,8 +42,9 @@ public class MainFrame extends JFrame {
 
         setTitle("Stage Layout Designer");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1400, 900);
+        setSize(1600, 950);
         setLocationRelativeTo(null);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         equipmentPanel = new EquipmentPanel();
         propertyPanel = new PropertyPanel();
@@ -291,35 +295,32 @@ public class MainFrame extends JFrame {
         return menuBar;
     }
 
-    private JToolBar createToolBar() {
+    private Component createToolBar() {
 
-        JToolBar toolBar = new JToolBar();
-        
-        toolBar.setFloatable(false);
-
-        JButton selectButton = new JButton("選択");
-        JButton lineButton = new JButton("線を引く");
-        JButton finishLineButton = new JButton("線終了");
+        JToggleButton selectButton = new JToggleButton("機材を動かす");
+        JToggleButton lineButton = new JToggleButton("線を引く");
         JButton deleteButton = new JButton("削除");
         JButton rotateButton = new JButton("回転");
         JButton enlargeButton = new JButton("拡大");
         JButton shrinkButton = new JButton("縮小");
-        JButton roomRectButton = new JButton("四角エリア");
-        JButton roomCircleButton = new JButton("円柱");
         JButton projectInfoButton = new JButton("案件情報");
         JButton previewButton = new JButton("提出確認");
         
         selectButton.setToolTipText("配置済みの機材を選択・移動します");
-        lineButton.setToolTipText("クリックして線を連続で描画します");
-        finishLineButton.setToolTipText("現在の線の始点を解除します");
+        lineButton.setToolTipText("線モードに切り替えます。別のモードへ切り替えると線は終了します");
         deleteButton.setToolTipText("選択中の機材を削除します");
         rotateButton.setToolTipText("選択中の機材を15度回転します");
         enlargeButton.setToolTipText("選択中の機材を大きくします");
         shrinkButton.setToolTipText("選択中の機材を小さくします");
-        roomRectButton.setToolTipText("ステージ床や客席などの四角形エリアを追加します");
-        roomCircleButton.setToolTipText("柱やポールなどの円形エリアを追加します");
         projectInfoButton.setToolTipText("タイトル、日付、会場名、担当者、メモを入力します");
         previewButton.setToolTipText("提出用の1枚レイアウトを確認し、PNG画像として保存できます");
+
+        ButtonGroup modeButtonGroup = new ButtonGroup();
+
+        modeButtonGroup.add(selectButton);
+        modeButtonGroup.add(lineButton);
+
+        selectButton.setSelected(true);
         
         JCheckBox gridCheckBox = new JCheckBox("グリッド", true);
         JCheckBox nameCheckBox = new JCheckBox("名前", true);
@@ -333,8 +334,8 @@ public class MainFrame extends JFrame {
         nameCheckBox.setToolTipText("機材名・表示名の表示を切り替えます");
         lineLengthCheckBox.setToolTipText("線の長さをメートルで表示します");
 
-        JCheckBox stageLockCheckBox = new JCheckBox("ステージ固定", false);
-        stageLockCheckBox.setToolTipText("ステージ床や柱などの会場パーツを固定します");
+        JCheckBox stageLockCheckBox = new JCheckBox("会場パーツ固定", false);
+        stageLockCheckBox.setToolTipText("四角エリアなどの会場パーツを固定します");
 
         JComboBox<String> colorComboBox =
                 new JComboBox<>(new String[] {"赤", "黒", "青", "緑"});
@@ -359,23 +360,12 @@ public class MainFrame extends JFrame {
 
         selectButton.addActionListener(e -> {
         		canvasPanel.setSelectMode();;
-            statusLabel.setText("モード: 選択");
+            statusLabel.setText("モード: 機材を動かす");
         });
 
         lineButton.addActionListener(e -> {
             canvasPanel.setDrawLineMode(true);
             statusLabel.setText("モード: 線描画");
-        });
-        
-        roomRectButton.addActionListener(e -> {
-            canvasPanel.setRoomObjectAddMode("RECT");
-            statusLabel.setText("モード: 四角エリア追加");
-        });
-             
-
-        finishLineButton.addActionListener(e -> {
-            canvasPanel.finishCurrentLine();
-            statusLabel.setText("線の始点を解除しました");
         });
 
         deleteButton.addActionListener(e -> {
@@ -397,12 +387,6 @@ public class MainFrame extends JFrame {
             canvasPanel.resizeSelectedItem(-10);
             statusLabel.setText("選択中のアイテムを縮小しました");
         });
-        
-        roomCircleButton.addActionListener(e -> {
-            canvasPanel.setRoomObjectAddMode("CIRCLE");
-            statusLabel.setText("モード: 円柱追加");
-        });
-
         projectInfoButton.addActionListener(e -> {
             ProjectInfoDialog dialog =
                     new ProjectInfoDialog(
@@ -434,9 +418,9 @@ public class MainFrame extends JFrame {
             canvasPanel.setStageLocked(selected);
 
             if (selected) {
-                statusLabel.setText("ステージ固定: ON");
+                statusLabel.setText("会場パーツ固定: ON");
             } else {
-                statusLabel.setText("ステージ固定: OFF");
+                statusLabel.setText("会場パーツ固定: OFF");
             }
         });
 
@@ -533,57 +517,55 @@ public class MainFrame extends JFrame {
         
           
 
-        toolBar.add(new JLabel(" 提出: "));
-        toolBar.add(projectInfoButton);
-        toolBar.add(previewButton);
+        JPanel toolbarPanel = new JPanel(new BorderLayout());
 
-        toolBar.addSeparator();
+        JPanel mainToolsPanel = createToolRowPanel();
+        mainToolsPanel.setBorder(BorderFactory.createTitledBorder("よく使う操作"));
+        mainToolsPanel.add(projectInfoButton);
+        mainToolsPanel.add(previewButton);
+        mainToolsPanel.add(new JLabel("  配置:"));
+        mainToolsPanel.add(selectButton);
+        mainToolsPanel.add(lineButton);
+        mainToolsPanel.add(stageLockCheckBox);
 
-        toolBar.add(new JLabel(" モード: "));
-        toolBar.add(selectButton);
-        toolBar.add(lineButton);
-        toolBar.add(roomRectButton);
-        toolBar.add(roomCircleButton);
-        toolBar.add(finishLineButton);
-        toolBar.add(stageLockCheckBox);
+        JPanel subToolsPanel = createToolRowPanel();
+        subToolsPanel.setBorder(BorderFactory.createTitledBorder("選択中の編集・表示"));
+        subToolsPanel.add(deleteButton);
+        subToolsPanel.add(rotateButton);
+        subToolsPanel.add(enlargeButton);
+        subToolsPanel.add(shrinkButton);
+        subToolsPanel.add(new JLabel("  線:"));
+        subToolsPanel.add(new JLabel("色"));
+        subToolsPanel.add(colorComboBox);
+        subToolsPanel.add(new JLabel("太さ"));
+        subToolsPanel.add(strokeComboBox);
+        subToolsPanel.add(lineLengthCheckBox);
+        subToolsPanel.add(new JLabel("  表示:"));
+        subToolsPanel.add(gridCheckBox);
+        subToolsPanel.add(nameCheckBox);
+        subToolsPanel.add(new JLabel("倍率"));
+        subToolsPanel.add(zoomComboBox);
 
-        toolBar.addSeparator();
+        toolbarPanel.add(mainToolsPanel, BorderLayout.NORTH);
+        toolbarPanel.add(subToolsPanel, BorderLayout.SOUTH);
 
-        toolBar.add(new JLabel(" 編集: "));
-        toolBar.add(deleteButton);
-        toolBar.add(rotateButton);
-        toolBar.add(enlargeButton);
-        toolBar.add(shrinkButton);
+        return toolbarPanel;
+    }
 
-        toolBar.addSeparator();
+    private JPanel createToolRowPanel() {
 
-        toolBar.add(new JLabel(" 線設定: "));
-        toolBar.add(new JLabel(" 色: "));
-        toolBar.add(colorComboBox);
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
 
-        toolBar.add(new JLabel(" 太さ: "));
-        toolBar.add(strokeComboBox);
+        panel.setPreferredSize(new Dimension(1000, 56));
 
-        toolBar.addSeparator();
-
-        toolBar.add(new JLabel(" 表示: "));
-        toolBar.add(gridCheckBox);
-        toolBar.add(nameCheckBox);
-        toolBar.add(lineLengthCheckBox);
-
-        toolBar.addSeparator();
-
-        toolBar.add(new JLabel(" 倍率: "));
-        toolBar.add(zoomComboBox);
-
-        return toolBar;
+        return panel;
     }
 
     private Component createLeftPanel() {
 
         JScrollPane scrollPane = new JScrollPane(equipmentPanel);
 
-        scrollPane.setPreferredSize(new Dimension(320, 0));
+        scrollPane.setPreferredSize(new Dimension(300, 0));
 
         return scrollPane;
     }
@@ -597,7 +579,7 @@ public class MainFrame extends JFrame {
 
     private Component createRightPanel() {
 
-        propertyPanel.setPreferredSize(new Dimension(240, 0));
+        propertyPanel.setPreferredSize(new Dimension(220, 0));
 
         return propertyPanel;
     }

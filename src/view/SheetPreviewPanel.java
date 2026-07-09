@@ -19,6 +19,7 @@ import model.LayoutItem;
 import model.ProjectInfo;
 import model.RoomObject;
 import model.RoomTemplate;
+import util.ImageLoader;
 
 public class SheetPreviewPanel extends JPanel{
 	
@@ -574,7 +575,15 @@ public class SheetPreviewPanel extends JPanel{
             int w = Math.max(4, (int) (object.getWidth() * scale));
             int h = Math.max(4, (int) (object.getHeight() * scale));
 
-            if (RoomObject.TYPE_CIRCLE.equals(object.getType())) {
+            if (RoomObject.TYPE_IMAGE.equals(object.getType())) {
+
+                Image image = ImageLoader.load(object.getImagePath());
+
+                if (image != null) {
+                    g2.drawImage(image, x, y, w, h, this);
+                }
+
+            } else if (RoomObject.TYPE_CIRCLE.equals(object.getType())) {
 
                 g2.setColor(new Color(130, 136, 142));
                 g2.fillOval(x, y, w, h);
@@ -591,7 +600,9 @@ public class SheetPreviewPanel extends JPanel{
                 g2.drawRect(x, y, w, h);
             }
 
-            if (object.getName() != null && !object.getName().isBlank()) {
+            if (!RoomObject.TYPE_IMAGE.equals(object.getType())
+                    && object.getName() != null
+                    && !object.getName().isBlank()) {
                 g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
                 g2.setColor(Color.BLACK);
                 g2.drawString(object.getName(), x + 4, y + 14);

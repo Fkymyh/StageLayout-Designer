@@ -15,7 +15,9 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
@@ -23,10 +25,12 @@ import javax.swing.JPopupMenu;
 
 import model.DrawLine;
 import model.Equipment;
+import model.EquipmentDefinition;
 import model.EquipmentFactory;
 import model.LayoutItem;
 import model.RoomObject;
 import model.RoomTemplate;
+import util.ImageLoader;
 
 
 
@@ -88,6 +92,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private RoomTemplate roomTemplate;
 	
 	private List<RoomObject> customRoomObjects = new ArrayList<>(); 
+
+	private Map<String, Image> roomObjectImageCache = new HashMap<>();
 
 	private String roomObjectAddMode = null;
 
@@ -1078,6 +1084,24 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    String name = equipmentPanel.getSelectedEquipment();
 
 	    if (name == null) {
+	        return;
+	    }
+
+	    EquipmentDefinition definition =
+	            EquipmentFactory.getDefinitions().get(name);
+
+	    if (isVenueImagePart(definition)) {
+
+	        int x = canvasX;
+	        int y = canvasY;
+
+	        if (snapToGrid) {
+	            x = snapValue(x);
+	            y = snapValue(y);
+	        }
+
+	        addRoomImageObject(definition, x, y);
+
 	        return;
 	    }
 
@@ -2367,7 +2391,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    RoomObject object =
 	            new RoomObject(
-	                    "ステージ床",
+	                    "四角エリア",
 	                    x,
 	                    y,
 	                    width,
@@ -2388,7 +2412,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    RoomObject object =
 	            RoomObject.createCircle(
-	                    "柱",
+	                    "円形エリア",
 	                    x,
 	                    y,
 	                    size,
@@ -2401,6 +2425,37 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    notifyChanged();
 
 	    repaint();
+	}
+
+	private void addRoomImageObject(
+	        EquipmentDefinition definition,
+	        int x,
+	        int y) {
+
+	    RoomObject object =
+	            RoomObject.createImage(
+	                    definition.getName(),
+	                    x,
+	                    y,
+	                    definition.getWidth(),
+	                    definition.getHeight(),
+	                    definition.getImagePath());
+
+	    customRoomObjects.add(object);
+
+	    selectedRoomObject = object;
+
+	    notifyChanged();
+
+	    repaint();
+	}
+
+	private boolean isVenueImagePart(EquipmentDefinition definition) {
+
+	    return definition != null
+	            && "舞台 > 会場パーツ".equals(definition.getCategory())
+	            && definition.getImagePath() != null
+	            && !definition.getImagePath().isBlank();
 	}
 
 	private int gridSizeForRoomObject(int gridCount) {
@@ -2416,6 +2471,17 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        boolean selected =
 	                object == selectedRoomObject
 	                && !isLockedRoomObject(object);
+
+	        if (RoomObject.TYPE_IMAGE.equals(object.getType())) {
+
+	            drawRoomImageObject(g2, object, selected);
+
+	            if (selected) {
+	                drawRoomObjectResizeHandle(g2, object);
+	            }
+
+	            continue;
+	        }
 
 	        Color fillColor = getRoomObjectFillColor(object);
 
@@ -2467,6 +2533,50 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        }
 	    }
 	    g2.dispose();
+	}
+
+	private void drawRoomImageObject(
+	        Graphics2D g2,
+	        RoomObject object,
+	        boolean selected) {
+
+	    Image image = getRoomObjectImage(object.getImagePath());
+
+	    if (image != null) {
+	        g2.drawImage(
+	                image,
+	                object.getX(),
+	                object.getY(),
+	                object.getWidth(),
+	                object.getHeight(),
+	                this);
+	    }
+
+	    if (selected) {
+	        g2.setColor(new Color(80, 130, 255));
+	        g2.setStroke(new BasicStroke(3));
+	        g2.drawRect(
+	                object.getX(),
+	                object.getY(),
+	                object.getWidth(),
+	                object.getHeight());
+	    }
+	}
+
+	private Image getRoomObjectImage(String imagePath) {
+
+	    if (imagePath == null || imagePath.isBlank()) {
+	        return null;
+	    }
+
+	    Image image = roomObjectImageCache.get(imagePath);
+
+	    if (image == null) {
+	        image = ImageLoader.load(imagePath);
+	        roomObjectImageCache.put(imagePath, image);
+	    }
+
+	    return image;
 	}
 
 	private Color getRoomObjectFillColor(RoomObject object) {
@@ -2582,8 +2692,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private boolean isLockedRoomObject(RoomObject object) {
 
 	    return stageLocked
-	            && object != null
-	            && RoomObject.TYPE_RECT.equals(object.getType());
+	            && object != null;
 	}
 
 	public void setStageLocked(boolean stageLocked) {

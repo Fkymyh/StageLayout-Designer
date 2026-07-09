@@ -96,7 +96,7 @@ public class PropertyPanel extends JPanel {
     memoArea.setWrapStyleWord(true);
 
     JScrollPane memoScrollPane = new JScrollPane(memoArea);
-    memoScrollPane.setPreferredSize(new Dimension(220, 110));
+    memoScrollPane.setPreferredSize(new Dimension(190, 110));
     memoScrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
 
     JButton saveButton = new JButton("反映");
@@ -128,7 +128,7 @@ public class PropertyPanel extends JPanel {
     private void setupTextField(JTextField textField) {
 
         textField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
-        textField.setPreferredSize(new Dimension(220, 28));
+        textField.setPreferredSize(new Dimension(190, 28));
     }
 
     private JPanel createNumberPanel() {
@@ -157,7 +157,7 @@ public class PropertyPanel extends JPanel {
                 new JScrollPane(summaryArea);
 
         summaryScrollPane.setPreferredSize(
-                new Dimension(220, 160));
+                new Dimension(190, 160));
 
         summaryScrollPane.setBorder(
                 BorderFactory.createTitledBorder("必要機材一覧"));

@@ -7,6 +7,7 @@ public class RoomObject {
 	public static final String TYPE_CIRCLE = "CIRCLE";
 	public static final String TYPE_ARC = "ARC";
 	public static final String TYPE_TEXT = "TEXT";
+	public static final String TYPE_IMAGE = "IMAGE";
 	
 	private String type;
 	
@@ -23,6 +24,8 @@ public class RoomObject {
 	private int endX;
 	
 	private int endY;
+
+	private String imagePath = "";
 	
 	public RoomObject(
 			String name,
@@ -98,6 +101,23 @@ public class RoomObject {
 
 	    return object;
 	}
+
+	public static RoomObject createImage(
+	        String name,
+	        int x,
+	        int y,
+	        int width,
+	        int height,
+	        String imagePath) {
+
+	    RoomObject object =
+	            new RoomObject(name, x, y, width, height);
+
+	    object.type = TYPE_IMAGE;
+	    object.imagePath = imagePath;
+
+	    return object;
+	}
 	
 	
 	public String getType() {
@@ -131,6 +151,10 @@ public class RoomObject {
 	public int getEndY() {
 		return endY;
 	}
+
+	public String getImagePath() {
+	    return imagePath;
+	}
 	
 	public void setX(int x) {
 	    this.x = x;
@@ -146,6 +170,10 @@ public class RoomObject {
 
 	public void setHeight(int height) {
 	    this.height = height;
+	}
+
+	public void setImagePath(String imagePath) {
+	    this.imagePath = imagePath;
 	}
 
 }

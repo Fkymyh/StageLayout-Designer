@@ -64,7 +64,8 @@ public class LayoutFileManager {
                     object.getWidth() + "," +
                     object.getHeight() + "," +
                     object.getEndX() + "," +
-                    object.getEndY());
+                    object.getEndY() + "," +
+                    escape(object.getImagePath()));
 
             writer.write("\n");
         }
@@ -301,7 +302,24 @@ public class LayoutFileManager {
 
                 RoomObject object;
 
-                if (RoomObject.TYPE_CIRCLE.equals(type)) {
+                if (RoomObject.TYPE_IMAGE.equals(type)) {
+
+                    String imagePath = "";
+
+                    if (data.length >= 9) {
+                        imagePath = unescape(data[8]);
+                    }
+
+                    object =
+                            RoomObject.createImage(
+                                    name,
+                                    x,
+                                    y,
+                                    width,
+                                    height,
+                                    imagePath);
+
+                } else if (RoomObject.TYPE_CIRCLE.equals(type)) {
 
                     object =
                             RoomObject.createCircle(
