@@ -99,10 +99,18 @@ public class MainFrame extends JFrame {
         JMenuItem exitItem = new JMenuItem("終了");
 
         newItem.addActionListener(e -> {
+            double[] sheetSize = askSheetSizeMeters();
+
+            if (sheetSize == null) {
+                return;
+            }
+
             canvasPanel.clearAll();
+            canvasPanel.setSheetSizeMeters(sheetSize[0], sheetSize[1]);
             canvasPanel.setStageLocked(false);
             updateStageLockCheckBox(false);
             projectInfo = new ProjectInfo();
+            canvasPanel.fitToView(canvasScrollPane.getViewport().getExtentSize());
             canvasPanel.requestFocusInWindow();
             statusLabel.setText("新規作成しました");
         });
@@ -477,9 +485,9 @@ public class MainFrame extends JFrame {
         strokeComboBox.setPreferredSize(new Dimension(60, 28));
         
         JComboBox<String> zoomComboBox =
-                new JComboBox<>(new String[] {"50%", "75%", "100%", "125%", "150%", "200%"});
+                new JComboBox<>(new String[] {"全体", "50%", "75%", "100%", "125%", "150%", "200%"});
 
-        zoomComboBox.setSelectedItem("100%");
+        zoomComboBox.setSelectedItem("全体");
         zoomComboBox.setMaximumSize(new Dimension(80, 28));
         zoomComboBox.setPreferredSize(new Dimension(80, 28));
 
@@ -649,7 +657,9 @@ public class MainFrame extends JFrame {
 
             String selected = (String) zoomComboBox.getSelectedItem();
 
-            if ("50%".equals(selected)) {
+            if ("全体".equals(selected)) {
+                canvasPanel.fitToView(canvasScrollPane.getViewport().getExtentSize());
+            } else if ("50%".equals(selected)) {
                 canvasPanel.setZoom(0.5);
             } else if ("75%".equals(selected)) {
                 canvasPanel.setZoom(0.75);
@@ -712,6 +722,79 @@ public class MainFrame extends JFrame {
         }
     }
 
+    private double[] askSheetSizeMeters() {
+
+        JPanel panel = new JPanel(new java.awt.GridLayout(2, 2, 8, 8));
+        JComboBox<String> presetComboBox =
+                new JComboBox<>(
+                        new String[] {
+                                "20m x 15m（迷ったらこれ）",
+                                "13m x 4m（練習ステージ）",
+                                "17m x 13m（教室・小ホール）",
+                                "30m x 20m（大きめ）",
+                                "自由入力"
+                        });
+        javax.swing.JTextField widthField = new javax.swing.JTextField("20");
+        javax.swing.JTextField heightField = new javax.swing.JTextField("15");
+
+        presetComboBox.addActionListener(e -> {
+
+            String selected = (String) presetComboBox.getSelectedItem();
+
+            if (selected == null) {
+                return;
+            }
+
+            if (selected.startsWith("20m")) {
+                widthField.setText("20");
+                heightField.setText("15");
+            } else if (selected.startsWith("13m")) {
+                widthField.setText("13");
+                heightField.setText("4");
+            } else if (selected.startsWith("17m")) {
+                widthField.setText("17");
+                heightField.setText("13");
+            } else if (selected.startsWith("30m")) {
+                widthField.setText("30");
+                heightField.setText("20");
+            }
+        });
+
+        panel.add(new JLabel("プリセット"));
+        panel.add(presetComboBox);
+        panel.add(new JLabel("横m / 縦m"));
+
+        JPanel sizePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        widthField.setPreferredSize(new Dimension(54, 26));
+        heightField.setPreferredSize(new Dimension(54, 26));
+        sizePanel.add(widthField);
+        sizePanel.add(new JLabel(" x "));
+        sizePanel.add(heightField);
+
+        panel.add(sizePanel);
+
+        int result =
+                JOptionPane.showConfirmDialog(
+                        this,
+                        panel,
+                        "作業シートの大きさ",
+                        JOptionPane.OK_CANCEL_OPTION,
+                        JOptionPane.PLAIN_MESSAGE);
+
+        if (result != JOptionPane.OK_OPTION) {
+            return null;
+        }
+
+        try {
+            double width = Double.parseDouble(widthField.getText().trim());
+            double height = Double.parseDouble(heightField.getText().trim());
+            return new double[] {width, height};
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "横と縦は数字で入力してください。");
+            return askSheetSizeMeters();
+        }
+    }
+
     private JPanel createToolRowPanel() {
 
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
@@ -757,7 +840,10 @@ public class MainFrame extends JFrame {
         rightSplitPane.setDividerSize(8);
 
         SwingUtilities.invokeLater(
-                () -> setPropertyDividerLocation(lastPropertyPanelWidth));
+                () -> {
+                    setPropertyDividerLocation(lastPropertyPanelWidth);
+                    canvasPanel.fitToView(canvasScrollPane.getViewport().getExtentSize());
+                });
 
         return rightSplitPane;
     }

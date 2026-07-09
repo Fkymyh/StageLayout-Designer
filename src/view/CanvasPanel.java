@@ -126,6 +126,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private int itemResizeStartHeight;
 
 	private static final int RESIZE_HANDLE_SIZE = 8;
+
+    private static final int SHEET_MARGIN = 40;
 	
 	private boolean showNames = true;
 	
@@ -143,16 +145,22 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private double zoom = 1.0;
 	
-	private final int BASE_WIDTH = 1800;
+	private int sheetWidth = metersToPixels(20.0);
 	
-	private final int BASE_HEIGHT = 1200;
+	private int sheetHeight = metersToPixels(15.0);
+
+    private int metersToPixels(double meters) {
+        return (int) Math.round((meters / DEFAULT_METERS_PER_GRID) * GRID_SIZE);
+    }
 	
 	private int toCanvasX(MouseEvent e) {
-	    return (int) Math.round((e.getX() - LEFT_RULER_WIDTH) / zoom);
+	    return (int) Math.round((e.getX() - LEFT_RULER_WIDTH) / zoom)
+	            - SHEET_MARGIN;
 	}
 
 	private int toCanvasY(MouseEvent e) {
-	    return (int) Math.round((e.getY() - TOP_RULER_HEIGHT) / zoom);
+	    return (int) Math.round((e.getY() - TOP_RULER_HEIGHT) / zoom)
+	            - SHEET_MARGIN;
 	}
 	
 	private double calculateLineLengthMeters(DrawLine line) {
@@ -270,7 +278,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		setBackground(Color.WHITE);
 		
 		
-		setPreferredSize(new Dimension(BASE_WIDTH, BASE_HEIGHT));
+		setPreferredSize(
+		        new Dimension(
+		                LEFT_RULER_WIDTH + sheetWidth,
+		                TOP_RULER_HEIGHT + sheetHeight));
 		
 		
 		
@@ -424,6 +435,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		            zoom,
 		            zoom);
 
+            drawSheetBackground(g2);
+
+            g2.translate(SHEET_MARGIN, SHEET_MARGIN);
+
 		
 		//グリッド線の色
 		 if (showGrid && roomTemplate == null) {
@@ -444,6 +459,21 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    g2.dispose();
 	}
+
+    private void drawSheetBackground(Graphics2D g2) {
+
+        int width = getSheetContentWidth();
+        int height = getSheetContentHeight();
+
+        g2.setColor(new Color(238, 240, 242));
+        g2.fillRect(0, 0, width + SHEET_MARGIN * 2, height + SHEET_MARGIN * 2);
+
+        g2.setColor(Color.WHITE);
+        g2.fillRect(SHEET_MARGIN, SHEET_MARGIN, width, height);
+
+        g2.setColor(new Color(170, 175, 180));
+        g2.drawRect(SHEET_MARGIN, SHEET_MARGIN, width, height);
+    }
 	
 		
      // 機材描画
@@ -1911,8 +1941,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private void drawGrid(Graphics g) {
 		
-		int canvasWidth = (int) Math.round((getWidth() - LEFT_RULER_WIDTH) / zoom);
-	    int canvasHeight = (int) Math.round((getHeight() - TOP_RULER_HEIGHT) / zoom);
+		int canvasWidth = getSheetContentWidth();
+	    int canvasHeight = getSheetContentHeight();
 
 	    for (int x = 0; x < canvasWidth; x += GRID_SIZE) {
 
@@ -1991,12 +2021,15 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    double pixelsPerHalfMeter =
 	            pixelsPerMeter / 2.0;
 
+        double scaledMargin = SHEET_MARGIN * zoom;
+
 	    for (double x = 0;
-	            LEFT_RULER_WIDTH + x < panelWidth;
+	            LEFT_RULER_WIDTH + scaledMargin + x < panelWidth;
 	            x += pixelsPerHalfMeter) {
 
 	        int drawX =
-	                LEFT_RULER_WIDTH + (int) Math.round(x);
+	                LEFT_RULER_WIDTH
+	                + (int) Math.round(scaledMargin + x);
 
 	        boolean major =
 	                Math.abs(
@@ -2029,11 +2062,12 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 
 	    for (double y = 0;
-	            TOP_RULER_HEIGHT + y < panelHeight;
+	            TOP_RULER_HEIGHT + scaledMargin + y < panelHeight;
 	            y += pixelsPerHalfMeter) {
 
 	        int drawY =
-	                TOP_RULER_HEIGHT + (int) Math.round(y);
+	                TOP_RULER_HEIGHT
+	                + (int) Math.round(scaledMargin + y);
 
 	        boolean major =
 	                Math.abs(
@@ -2216,8 +2250,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	public void setZoom(double zoom) {
 
-	    if (zoom < 0.5) {
-	        zoom = 0.5;
+	    if (zoom < 0.2) {
+	        zoom = 0.2;
 	    }
 
 	    if (zoom > 2.0) {
@@ -2226,18 +2260,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    this.zoom = zoom;
 	    
-	    int width = LEFT_RULER_WIDTH + (int) Math.round(BASE_WIDTH * zoom);
-	    int height = TOP_RULER_HEIGHT + (int) Math.round(BASE_HEIGHT * zoom);
-	    
-	    if (roomTemplate != null) {
-	    	int margin = 200;
-
-	        width = LEFT_RULER_WIDTH + (int) Math.round(
-	                (roomTemplate.getWidth() + margin) * zoom);
-
-	        height = TOP_RULER_HEIGHT + (int) Math.round(
-	                (roomTemplate.getHeight() + margin) * zoom);
-	    }
+	    int width = LEFT_RULER_WIDTH + (int) Math.round(getZoomBaseWidth() * zoom);
+	    int height = TOP_RULER_HEIGHT + (int) Math.round(getZoomBaseHeight() * zoom);
 	    
 	    setPreferredSize(new Dimension(width, height));
 
@@ -2248,6 +2272,78 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public double getZoom() {
 	    return zoom;
 	}
+
+    public void fitToView(Dimension viewportSize) {
+
+        if (viewportSize == null
+                || viewportSize.width <= LEFT_RULER_WIDTH
+                || viewportSize.height <= TOP_RULER_HEIGHT) {
+            return;
+        }
+
+        double widthZoom =
+                (double) (viewportSize.width - LEFT_RULER_WIDTH - 40)
+                / getZoomBaseWidth();
+
+        double heightZoom =
+                (double) (viewportSize.height - TOP_RULER_HEIGHT - 40)
+                / getZoomBaseHeight();
+
+        setZoom(Math.min(widthZoom, heightZoom));
+    }
+
+    private int getZoomBaseWidth() {
+
+        if (roomTemplate != null) {
+            return roomTemplate.getWidth() + SHEET_MARGIN * 2;
+        }
+
+        return sheetWidth + SHEET_MARGIN * 2;
+    }
+
+    private int getZoomBaseHeight() {
+
+        if (roomTemplate != null) {
+            return roomTemplate.getHeight() + SHEET_MARGIN * 2;
+        }
+
+        return sheetHeight + SHEET_MARGIN * 2;
+    }
+
+    private int getSheetContentWidth() {
+
+        if (roomTemplate != null) {
+            return roomTemplate.getWidth();
+        }
+
+        return sheetWidth;
+    }
+
+    private int getSheetContentHeight() {
+
+        if (roomTemplate != null) {
+            return roomTemplate.getHeight();
+        }
+
+        return sheetHeight;
+    }
+
+    public void setSheetSizeMeters(double widthMeters, double heightMeters) {
+
+        if (widthMeters < 2.0) {
+            widthMeters = 2.0;
+        }
+
+        if (heightMeters < 2.0) {
+            heightMeters = 2.0;
+        }
+
+        sheetWidth = metersToPixels(widthMeters);
+        sheetHeight = metersToPixels(heightMeters);
+
+        setRoomTemplate(null);
+        setZoom(zoom);
+    }
 	
 	public void setRoomTemplate(RoomTemplate roomTemplate) {
 
