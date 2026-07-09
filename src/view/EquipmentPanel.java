@@ -58,6 +58,8 @@ public class EquipmentPanel extends JPanel {
 
     private JPanel typeListPanel;
 
+    private JPanel equipmentListPanel;
+
     private String selectedGenreName;
 
     private String expandedTypeName;
@@ -86,6 +88,9 @@ public class EquipmentPanel extends JPanel {
 
         typeListPanel = new JPanel();
         typeListPanel.setLayout(new BoxLayout(typeListPanel, BoxLayout.Y_AXIS));
+
+        equipmentListPanel = new JPanel();
+        equipmentListPanel.setLayout(new BoxLayout(equipmentListPanel, BoxLayout.Y_AXIS));
 
         add(createGenreRailPanel(), BorderLayout.WEST);
         add(createTypePanel(), BorderLayout.CENTER);
@@ -126,19 +131,23 @@ public class EquipmentPanel extends JPanel {
     private JPanel createTypePanel() {
 
         JPanel typePanel = new JPanel(new BorderLayout(0, 4));
+        JPanel typeHeaderPanel = new JPanel(new BorderLayout(0, 4));
 
         typePanel.setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 4));
-        typePanel.add(new JLabel("種類"), BorderLayout.NORTH);
-        typePanel.add(createTypeScrollPane(), BorderLayout.CENTER);
+        typeHeaderPanel.add(new JLabel("種類"), BorderLayout.NORTH);
+        typeHeaderPanel.add(typeListPanel, BorderLayout.CENTER);
+
+        typePanel.add(typeHeaderPanel, BorderLayout.NORTH);
+        typePanel.add(createEquipmentScrollPane(), BorderLayout.CENTER);
 
         return typePanel;
     }
 
-    private JScrollPane createTypeScrollPane() {
+    private JScrollPane createEquipmentScrollPane() {
 
         JPanel scrollContentPanel = new JPanel(new BorderLayout());
 
-        scrollContentPanel.add(typeListPanel, BorderLayout.NORTH);
+        scrollContentPanel.add(equipmentListPanel, BorderLayout.NORTH);
 
         JScrollPane scrollPane = new JScrollPane(scrollContentPanel);
 
@@ -308,24 +317,13 @@ public class EquipmentPanel extends JPanel {
         for (Map.Entry<String, List<String>> entry : typeMap.entrySet()) {
 
             String typeName = entry.getKey();
-            List<String> equipmentNames = entry.getValue();
             boolean expanded = typeName.equals(expandedTypeName);
 
             typeListPanel.add(createTypeBarButton(typeName, expanded));
-
-            if (expanded) {
-
-                if (!equipmentNames.contains(selectedEquipmentName)) {
-                    selectedEquipmentName = firstEquipmentName(equipmentNames);
-                }
-
-                typeListPanel.add(createEquipmentGridPanel(equipmentNames));
-            }
-
             typeListPanel.add(Box.createVerticalStrut(4));
         }
 
-        updateButtonSelection();
+        renderEquipmentList();
 
         typeListPanel.revalidate();
         typeListPanel.repaint();
@@ -385,6 +383,43 @@ public class EquipmentPanel extends JPanel {
         return panel;
     }
 
+    private void renderEquipmentList() {
+
+        buttons.clear();
+        equipmentListPanel.removeAll();
+
+        Map<String, List<String>> typeMap = categoryMap.get(selectedGenreName);
+
+        if (typeMap == null || expandedTypeName == null) {
+
+            equipmentListPanel.revalidate();
+            equipmentListPanel.repaint();
+
+            return;
+        }
+
+        List<String> equipmentNames = typeMap.get(expandedTypeName);
+
+        if (equipmentNames == null || equipmentNames.isEmpty()) {
+
+            equipmentListPanel.revalidate();
+            equipmentListPanel.repaint();
+
+            return;
+        }
+
+        if (!equipmentNames.contains(selectedEquipmentName)) {
+            selectedEquipmentName = firstEquipmentName(equipmentNames);
+        }
+
+        equipmentListPanel.add(createEquipmentGridPanel(equipmentNames));
+
+        updateButtonSelection();
+
+        equipmentListPanel.revalidate();
+        equipmentListPanel.repaint();
+    }
+
     private void updateEquipmentColumnCount() {
 
         int columnCount = calculateEquipmentColumnCount();
@@ -396,19 +431,19 @@ public class EquipmentPanel extends JPanel {
         equipmentColumnCount = columnCount;
 
         if (expandedTypeName != null) {
-            SwingUtilities.invokeLater(() -> renderTypeBars());
+            SwingUtilities.invokeLater(() -> renderEquipmentList());
         }
     }
 
     private int calculateEquipmentColumnCount() {
 
-        int width = typeListPanel == null ? 0 : typeListPanel.getWidth();
+        int width = equipmentListPanel == null ? 0 : equipmentListPanel.getWidth();
 
         if (width <= 0) {
             width = Math.max(PANEL_WIDTH - GENRE_RAIL_WIDTH - 24, 180);
         }
 
-        return Math.max(2, width / (EQUIPMENT_BUTTON_WIDTH + 8));
+        return Math.max(1, width / (EQUIPMENT_BUTTON_WIDTH + 8));
     }
 
     private JButton createEquipmentButton(String name) {
