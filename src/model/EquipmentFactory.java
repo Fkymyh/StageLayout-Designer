@@ -25,7 +25,7 @@ public class EquipmentFactory {
 
         register(
                 "マイク",
-                "音響",
+                "音響 > マイク",
                 Color.BLUE,
                 30,
                 15,
@@ -33,7 +33,7 @@ public class EquipmentFactory {
 
         register(
                 "スピーカー",
-                "音響",
+                "音響 > スピーカー",
                 Color.BLUE,
                 35,
                 35,
@@ -41,7 +41,7 @@ public class EquipmentFactory {
 
         register(
                 "ミキサー",
-                "音響",
+                "音響 > ミキサー・周辺",
                 Color.BLUE,
                 45,
                 30,
@@ -49,7 +49,7 @@ public class EquipmentFactory {
         
         register(
                 "ブームスタンド",
-                "音響",
+                "音響 > スタンド",
                 Color.BLUE,
                 45,
                 20,
@@ -57,7 +57,7 @@ public class EquipmentFactory {
 
         register(
                 "CD_Player",
-                "音響",
+                "音響 > 再生機",
                 Color.BLUE,
                 45,
                 30,
@@ -343,7 +343,9 @@ public class EquipmentFactory {
                             file);
 
                     String category =
-                            toDisplayCategory(rawCategory);
+                            refineDisplayCategory(
+                                    toDisplayCategory(rawCategory),
+                                    rawLabel);
 
                     int[] size =
                             getDefaultSize(category, name, imagePath);
@@ -512,6 +514,59 @@ public class EquipmentFactory {
         }
 
         return rawCategory;
+    }
+
+    private static String refineDisplayCategory(
+            String category,
+            String label) {
+
+        if (category == null || label == null) {
+            return category;
+        }
+
+        if (!category.startsWith("音響")) {
+            return category;
+        }
+
+        if (label.contains("スピーカー")
+                || label.contains("ウーハー")
+                || label.contains("サブロー")
+                || label.contains("ロー")
+                || label.contains("ミッド")
+                || label.contains("ハイ")) {
+            return "音響 > スピーカー";
+        }
+
+        if (label.contains("マイク")) {
+            return "音響 > マイク";
+        }
+
+        if (label.contains("スタンド")
+                || label.contains("三脚")) {
+            return "音響 > スタンド";
+        }
+
+        if (label.contains("CD")
+                || label.contains("プレイヤー")
+                || label.contains("レコーダー")
+                || label.contains("サンプリング")
+                || label.contains("MTR")) {
+            return "音響 > 再生機・録音機";
+        }
+
+        if (label.contains("ミキサー")
+                || label.contains("イコライザ")
+                || label.contains("コンプレッサー")
+                || label.contains("リバーブ")
+                || label.contains("ディレイ")
+                || label.contains("ゲート")
+                || label.contains("アンプ")
+                || label.contains("クロスオーバー")
+                || label.contains("DJ")) {
+            return "音響 > ミキサー・周辺";
+        }
+
+        return category;
     }
 
     private static Color getDefaultColor(String category) {

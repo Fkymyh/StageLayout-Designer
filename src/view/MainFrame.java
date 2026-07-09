@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridLayout;
 
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
@@ -561,19 +562,18 @@ public class MainFrame extends JFrame {
         
           
 
-        JPanel toolbarPanel = new JPanel(new BorderLayout());
+        JPanel toolbarPanel = new JPanel(new GridLayout(3, 1, 0, 0));
 
         JPanel mainToolsPanel = createToolRowPanel();
-        mainToolsPanel.setBorder(BorderFactory.createTitledBorder("作成・確認"));
+        mainToolsPanel.setBorder(BorderFactory.createTitledBorder("作成・配置"));
         mainToolsPanel.add(projectInfoButton);
         mainToolsPanel.add(previewButton);
-        mainToolsPanel.add(new JLabel("  配置:"));
         mainToolsPanel.add(selectButton);
         mainToolsPanel.add(lineButton);
         mainToolsPanel.add(stageLockCheckBox);
 
         JPanel subToolsPanel = createToolRowPanel();
-        subToolsPanel.setBorder(BorderFactory.createTitledBorder("選択中の編集・表示"));
+        subToolsPanel.setBorder(BorderFactory.createTitledBorder("選択中の編集・線"));
         subToolsPanel.add(deleteButton);
         subToolsPanel.add(rotateButton);
         subToolsPanel.add(enlargeButton);
@@ -584,17 +584,20 @@ public class MainFrame extends JFrame {
         subToolsPanel.add(new JLabel("太さ"));
         subToolsPanel.add(strokeComboBox);
         subToolsPanel.add(lineLengthCheckBox);
-        subToolsPanel.add(new JLabel("  表示:"));
-        subToolsPanel.add(gridCheckBox);
-        subToolsPanel.add(nameCheckBox);
-        subToolsPanel.add(new JLabel("倍率"));
-        subToolsPanel.add(zoomComboBox);
-        subToolsPanel.add(new JLabel("  パネル:"));
-        subToolsPanel.add(equipmentPanelCheckBox);
-        subToolsPanel.add(propertyPanelCheckBox);
 
-        toolbarPanel.add(mainToolsPanel, BorderLayout.NORTH);
-        toolbarPanel.add(subToolsPanel, BorderLayout.SOUTH);
+        JPanel viewToolsPanel = createToolRowPanel();
+        viewToolsPanel.setBorder(BorderFactory.createTitledBorder("表示"));
+        viewToolsPanel.add(gridCheckBox);
+        viewToolsPanel.add(nameCheckBox);
+        viewToolsPanel.add(new JLabel("倍率"));
+        viewToolsPanel.add(zoomComboBox);
+        viewToolsPanel.add(new JLabel("  パネル:"));
+        viewToolsPanel.add(equipmentPanelCheckBox);
+        viewToolsPanel.add(propertyPanelCheckBox);
+
+        toolbarPanel.add(mainToolsPanel);
+        toolbarPanel.add(subToolsPanel);
+        toolbarPanel.add(viewToolsPanel);
 
         return toolbarPanel;
     }

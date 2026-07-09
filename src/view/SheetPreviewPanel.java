@@ -8,8 +8,10 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +75,8 @@ public class SheetPreviewPanel extends JPanel{
 		super.paintComponent(g);
 		
 		Graphics2D g2 = (Graphics2D) g.create();
+
+        applyQualityHints(g2);
 		
 		g2.scale(previewScale, previewScale);
 		
@@ -118,6 +122,8 @@ public class SheetPreviewPanel extends JPanel{
                         BufferedImage.TYPE_INT_RGB);
 
         Graphics2D g2 = image.createGraphics();
+
+        applyQualityHints(g2);
 
         g2.setColor(Color.WHITE);
         g2.fillRect(0, 0, width, height);
@@ -226,8 +232,32 @@ public class SheetPreviewPanel extends JPanel{
         Map<String, Integer> summary = createEquipmentSummary();
 
         int textY = y + 50;
+        int lineHeight = 22;
+        int maxLines = Math.max(1, (y + h - 15 - textY) / lineHeight + 1);
+        int drawnCount = 0;
+        int totalCount = summary.size();
 
         for (Map.Entry<String, Integer> entry : summary.entrySet()) {
+
+            if (drawnCount >= maxLines) {
+                break;
+            }
+
+            boolean shouldReserveOverflowLine =
+                    totalCount > maxLines && drawnCount == maxLines - 1;
+
+            if (shouldReserveOverflowLine) {
+                int remainingCount = totalCount - drawnCount;
+
+                drawFittedString(
+                        g,
+                        "ほか " + remainingCount + " 件",
+                        x + 20,
+                        textY,
+                        w - 40);
+
+                break;
+            }
 
             drawFittedString(
                     g,
@@ -236,11 +266,8 @@ public class SheetPreviewPanel extends JPanel{
                     textY,
                     w - 40);
 
-            textY += 22;
-
-            if (textY > y + h - 15) {
-                break;
-            }
+            textY += lineHeight;
+            drawnCount++;
         }
     }
 
@@ -270,20 +297,14 @@ public class SheetPreviewPanel extends JPanel{
             note = "";
         }
 
-        String[] lines = note.split("\n");
-
-        int textY = y + 50;
-
-        for (String line : lines) {
-
-            drawFittedString(g, line, x + 20, textY, w - 40);
-
-            textY += 22;
-
-            if (textY > y + h - 15) {
-                break;
-            }
-        }
+        drawWrappedLimitedText(
+                g,
+                note,
+                x + 20,
+                y + 50,
+                w - 40,
+                h - 60,
+                20);
     }
 
     private void drawFooter(
@@ -339,6 +360,19 @@ public class SheetPreviewPanel extends JPanel{
         }
 
         return summary;
+    }
+
+    private void applyQualityHints(Graphics2D g2) {
+
+        g2.setRenderingHint(
+                RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(
+                RenderingHints.KEY_TEXT_ANTIALIASING,
+                RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2.setRenderingHint(
+                RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
     }
     
     private void drawGrid(
@@ -613,6 +647,78 @@ public class SheetPreviewPanel extends JPanel{
         }
 
         g.drawString(text + suffix, x, y);
+    }
+
+    private void drawWrappedLimitedText(
+            Graphics g,
+            String text,
+            int x,
+            int y,
+            int maxWidth,
+            int maxHeight,
+            int lineHeight) {
+
+        List<String> wrappedLines = wrapText(g, text, maxWidth);
+        int maxLines = Math.max(1, maxHeight / lineHeight);
+        int linesToDraw = Math.min(wrappedLines.size(), maxLines);
+
+        for (int i = 0; i < linesToDraw; i++) {
+
+            String line = wrappedLines.get(i);
+            boolean overflow = wrappedLines.size() > maxLines
+                    && i == linesToDraw - 1;
+
+            if (overflow) {
+                drawFittedString(g, line + " ...", x, y + lineHeight * i, maxWidth);
+            } else {
+                g.drawString(line, x, y + lineHeight * i);
+            }
+        }
+    }
+
+    private List<String> wrapText(
+            Graphics g,
+            String text,
+            int maxWidth) {
+
+        List<String> lines = new ArrayList<>();
+
+        if (text == null || text.isBlank()) {
+            return lines;
+        }
+
+        FontMetrics metrics = g.getFontMetrics();
+        String[] paragraphs = text.replace("\r\n", "\n").split("\n");
+
+        for (String paragraph : paragraphs) {
+
+            if (paragraph.isBlank()) {
+                lines.add("");
+                continue;
+            }
+
+            StringBuilder currentLine = new StringBuilder();
+
+            for (int i = 0; i < paragraph.length(); i++) {
+
+                String nextChar = paragraph.substring(i, i + 1);
+                String candidate = currentLine.toString() + nextChar;
+
+                if (metrics.stringWidth(candidate) > maxWidth
+                        && currentLine.length() > 0) {
+                    lines.add(currentLine.toString());
+                    currentLine.setLength(0);
+                }
+
+                currentLine.append(nextChar);
+            }
+
+            if (currentLine.length() > 0) {
+                lines.add(currentLine.toString());
+            }
+        }
+
+        return lines;
     }
 
     private void drawCustomRoomObjects(

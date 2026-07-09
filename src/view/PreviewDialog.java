@@ -65,7 +65,7 @@ public class PreviewDialog extends JDialog{
 		JButton exportButton = new JButton("PNG画像として保存");
 		JButton closeButton = new JButton("閉じる");
 
-		exportButton.addActionListener(e -> exportPreviewImage(previewPanel));
+		exportButton.addActionListener(e -> exportPreviewImage(previewPanel, projectInfo));
 		closeButton.addActionListener(e -> dispose());
 
 		buttonPanel.add(exportButton);
@@ -76,11 +76,14 @@ public class PreviewDialog extends JDialog{
 		
 	}
 
-	private void exportPreviewImage(SheetPreviewPanel previewPanel) {
+	private void exportPreviewImage(
+	        SheetPreviewPanel previewPanel,
+	        ProjectInfo projectInfo) {
 
 	    JFileChooser fileChooser = new JFileChooser();
 
-	    fileChooser.setSelectedFile(new File("stage-layout.png"));
+	    fileChooser.setSelectedFile(
+	            new File(createDefaultExportFileName(projectInfo)));
 
 	    int result = fileChooser.showSaveDialog(this);
 
@@ -112,6 +115,36 @@ public class PreviewDialog extends JDialog{
 
 	        ex.printStackTrace();
 	    }
+	}
+
+	private String createDefaultExportFileName(ProjectInfo projectInfo) {
+
+	    String title = projectInfo == null ? "" : projectInfo.getTitle();
+	    String date = projectInfo == null ? "" : projectInfo.getDate();
+
+	    title = sanitizeFileName(title);
+	    date = sanitizeFileName(date);
+
+	    if (title.isBlank()) {
+	        title = "stage-layout";
+	    }
+
+	    if (!date.isBlank()) {
+	        return date + "_" + title + "_配置図.png";
+	    }
+
+	    return title + "_配置図.png";
+	}
+
+	private String sanitizeFileName(String value) {
+
+	    if (value == null) {
+	        return "";
+	    }
+
+	    return value.trim()
+	            .replaceAll("[\\\\/:*?\"<>|]", "_")
+	            .replaceAll("\\s+", "_");
 	}
 	
 

@@ -264,12 +264,26 @@ public class EquipmentPanel extends JPanel {
         Map<String, List<String>> typeMap = categoryMap.get(selectedGenreName);
 
         if (changed || typeMap == null || !typeMap.containsKey(expandedTypeName)) {
-            expandedTypeName = null;
+            expandedTypeName = firstTypeName(typeMap);
             selectedEquipmentName = null;
+
+            if (expandedTypeName != null && typeMap != null) {
+                selectedEquipmentName =
+                        firstEquipmentName(typeMap.get(expandedTypeName));
+            }
         }
 
         updateGenreButtonSelection();
         renderTypeBars();
+    }
+
+    private String firstTypeName(Map<String, List<String>> typeMap) {
+
+        if (typeMap == null || typeMap.isEmpty()) {
+            return null;
+        }
+
+        return typeMap.keySet().iterator().next();
     }
 
     private String firstEquipmentName(List<String> equipmentNames) {
@@ -452,7 +466,7 @@ public class EquipmentPanel extends JPanel {
 
         JButton button = new JButton();
 
-        button.setText(shortenName(name));
+        button.setText(createEquipmentButtonText(name, false));
         button.setToolTipText(name);
         button.setVerticalTextPosition(JButton.BOTTOM);
         button.setHorizontalTextPosition(JButton.CENTER);
@@ -486,17 +500,43 @@ public class EquipmentPanel extends JPanel {
         return button;
     }
 
+    private String createEquipmentButtonText(String name, boolean selected) {
+
+        String displayName = shortenName(name);
+        String prefix = selected ? "▶ " : "";
+
+        if (displayName.length() <= 5) {
+            return prefix + displayName;
+        }
+
+        int splitIndex = Math.min(5, displayName.length());
+
+        return "<html><center>"
+                + prefix
+                + escapeHtml(displayName.substring(0, splitIndex))
+                + "<br>"
+                + escapeHtml(displayName.substring(splitIndex))
+                + "</center></html>";
+    }
+
     private String shortenName(String name) {
 
         if (name == null) {
             return "";
         }
 
-        if (name.length() <= 7) {
+        if (name.length() <= 10) {
             return name;
         }
 
-        return name.substring(0, 7);
+        return name.substring(0, 9) + "...";
+    }
+
+    private String escapeHtml(String text) {
+
+        return text.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
     }
 
     private void updateButtonSelection() {
@@ -508,12 +548,12 @@ public class EquipmentPanel extends JPanel {
 
             if (name.equals(selectedEquipmentName)) {
 
-                button.setText("▶ " + shortenName(name));
+                button.setText(createEquipmentButtonText(name, true));
                 button.setBackground(new Color(180, 210, 255));
 
             } else {
 
-                button.setText(shortenName(name));
+                button.setText(createEquipmentButtonText(name, false));
                 button.setBackground(Color.WHITE);
             }
         }
