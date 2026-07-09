@@ -601,9 +601,9 @@ public class MainFrame extends JFrame {
 
     private JPanel createToolRowPanel() {
 
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
 
-        panel.setPreferredSize(new Dimension(1000, 56));
+        panel.setPreferredSize(new Dimension(1000, 46));
 
         return panel;
     }

@@ -4,6 +4,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -148,7 +149,10 @@ public class SheetPreviewPanel extends JPanel{
             title = "Stage Layout";
         }
 
-        g.drawString(title, pageX + 420, pageY + 40);
+        FontMetrics titleMetrics = g.getFontMetrics();
+        int titleX = pageX + (pageW - titleMetrics.stringWidth(title)) / 2;
+
+        g.drawString(title, titleX, pageY + 40);
 
         g.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
@@ -311,6 +315,10 @@ public class SheetPreviewPanel extends JPanel{
 
         Map<String, Integer> summary = new LinkedHashMap<>();
 
+        if (items == null) {
+            return summary;
+        }
+
         for (LayoutItem item : items) {
 
             String name = item.getEquipment().getName();
@@ -465,11 +473,14 @@ public class SheetPreviewPanel extends JPanel{
 
         Graphics2D g2 = (Graphics2D) g.create();
 
+        int contentDrawW = (int) (contentW * scale);
+        int contentDrawH = (int) (contentH * scale);
+
         int offsetX =
-                areaX + margin - (int) (minX * scale);
+                areaX + (areaW - contentDrawW) / 2 - (int) (minX * scale);
 
         int offsetY =
-                areaY + margin - (int) (minY * scale);
+                areaY + (areaH - contentDrawH) / 2 - (int) (minY * scale);
 
         drawRoomTemplate(
                 g2,
