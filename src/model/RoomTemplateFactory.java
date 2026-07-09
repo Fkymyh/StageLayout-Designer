@@ -233,7 +233,7 @@ public class RoomTemplateFactory {
         // 左側
         room.addObject(
                 new RoomObject(
-                        "壁出っ張り",
+                        "",
                         grid(x),
                         grid(y),
                         grid(w),
@@ -242,11 +242,10 @@ public class RoomTemplateFactory {
         // 右側
         room.addObject(
                 new RoomObject(
-                        "壁出っ張り",
+                        "",
                         grid(roomGridW - w),
                         grid(y),
                         grid(w),
                         grid(h)));
     }
 }
-

@@ -1,6 +1,12 @@
 package view;
 
 import java.awt.BorderLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.print.PageFormat;
+import java.awt.print.Printable;
+import java.awt.print.PrinterException;
+import java.awt.print.PrinterJob;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.List;
@@ -63,18 +69,78 @@ public class PreviewDialog extends JDialog{
 		JPanel buttonPanel = new JPanel();
 
 		JButton exportButton = new JButton("PNG画像として保存");
+        JButton printButton = new JButton("印刷");
 		JButton closeButton = new JButton("閉じる");
 
 		exportButton.addActionListener(e -> exportPreviewImage(previewPanel, projectInfo));
+        printButton.addActionListener(e -> printPreview(previewPanel));
 		closeButton.addActionListener(e -> dispose());
 
 		buttonPanel.add(exportButton);
+        buttonPanel.add(printButton);
 		buttonPanel.add(closeButton);
 
 		add(buttonPanel, BorderLayout.SOUTH);
 		
 		
 	}
+
+    private void printPreview(SheetPreviewPanel previewPanel) {
+
+        PrinterJob job = PrinterJob.getPrinterJob();
+
+        job.setJobName("StageLayout Designer プレビュー");
+
+        job.setPrintable((Graphics graphics, PageFormat pageFormat, int pageIndex) -> {
+
+            if (pageIndex > 0) {
+                return Printable.NO_SUCH_PAGE;
+            }
+
+            BufferedImage image = previewPanel.createExportImage();
+
+            Graphics2D g2 = (Graphics2D) graphics.create();
+
+            // PNG保存と同じ画像を、用紙の印刷可能範囲に収まるよう縮小して印刷する。
+            double scaleX = pageFormat.getImageableWidth() / image.getWidth();
+            double scaleY = pageFormat.getImageableHeight() / image.getHeight();
+            double scale = Math.min(scaleX, scaleY);
+
+            double x =
+                    pageFormat.getImageableX()
+                            + (pageFormat.getImageableWidth()
+                            - image.getWidth() * scale) / 2.0;
+
+            double y =
+                    pageFormat.getImageableY()
+                            + (pageFormat.getImageableHeight()
+                            - image.getHeight() * scale) / 2.0;
+
+            g2.translate(x, y);
+            g2.scale(scale, scale);
+            g2.drawImage(image, 0, 0, null);
+            g2.dispose();
+
+            return Printable.PAGE_EXISTS;
+        });
+
+        if (!job.printDialog()) {
+            return;
+        }
+
+        try {
+
+            job.print();
+
+        } catch (PrinterException ex) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "印刷に失敗しました。\n" + ex.getMessage());
+
+            ex.printStackTrace();
+        }
+    }
 
 	private void exportPreviewImage(
 	        SheetPreviewPanel previewPanel,

@@ -635,6 +635,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 
+        // コードで用意した古いテンプレートは、グリッドを重ねると見づらいので面で見せる。
 	    // テンプレート背景
 	    g.setColor(new Color(250, 250, 250));
 
@@ -644,11 +645,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	            roomTemplate.getWidth(),
 	            roomTemplate.getHeight());
 
-	    // テンプレート内だけのマス
-	    drawRoomTemplateGrid(g);
-
 	    // テンプレート外枠
-	    g.setColor(Color.GRAY);
+	    g.setColor(new Color(90, 96, 102));
 
 	    g.drawRect(
 	            0,
@@ -747,13 +745,24 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private void drawRoomRect(Graphics g, RoomObject object) {
 
-	    g.setColor(Color.DARK_GRAY);
+	    Graphics2D g2 = (Graphics2D) g.create();
 
-	    g.drawRect(
+        g2.setColor(getTemplateObjectFillColor(object));
+        g2.fillRect(
+                object.getX(),
+                object.getY(),
+                object.getWidth(),
+                object.getHeight());
+
+	    g2.setColor(new Color(90, 96, 102));
+        g2.setStroke(new BasicStroke(2));
+	    g2.drawRect(
 	            object.getX(),
 	            object.getY(),
 	            object.getWidth(),
 	            object.getHeight());
+
+        g2.dispose();
 
 	    drawRoomObjectName(g, object);
 	}
@@ -762,7 +771,14 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    Graphics2D g2 = (Graphics2D) g.create();
 
-	    g2.setColor(Color.DARK_GRAY);
+        g2.setColor(new Color(110, 118, 126));
+        g2.fillOval(
+                object.getX(),
+                object.getY(),
+                object.getWidth(),
+                object.getHeight());
+
+	    g2.setColor(new Color(60, 66, 72));
 	    g2.setStroke(new BasicStroke(2));
 
 	    g2.drawOval(
@@ -775,6 +791,31 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    drawRoomObjectName(g, object);
 	}
+
+    private Color getTemplateObjectFillColor(RoomObject object) {
+
+        String name = object.getName();
+
+        if (name == null) {
+            return new Color(226, 231, 235);
+        }
+
+        // 名前で最低限の色分けをして、214教室テンプレートを図として読みやすくする。
+        if (name.contains("黒板")) {
+            return new Color(70, 80, 76);
+        }
+
+        if (name.contains("ステージ")
+                || name.contains("教壇")) {
+            return new Color(210, 218, 224);
+        }
+
+        if (name.contains("教卓")) {
+            return new Color(196, 204, 210);
+        }
+
+        return new Color(226, 231, 235);
+    }
 	
 	private void drawRoomArc(Graphics g, RoomObject object) {
 
@@ -813,6 +854,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 
+        // 小さい常設物は名前を空にして、ステージ上の表示を邪魔しないようにできる。
 	    if (object.getName() == null || object.getName().isBlank()) {
 	        return;
 	    }

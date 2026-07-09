@@ -23,6 +23,7 @@ public class EquipmentFactory {
 
     static {
 
+        // ここに登録したものが、左側の機材パレットと保存ファイル復元の元データになる。
         register(
                 "マイク",
                 "音響 > マイク・スタンド",

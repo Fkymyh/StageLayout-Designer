@@ -90,6 +90,7 @@ public class MainFrame extends JFrame {
 
         JMenuBar menuBar = new JMenuBar();
 
+        // メニューはここに集約する。新しい機能の入口を足す時はまずこのメソッドを見る。
         JMenu fileMenu = new JMenu("ファイル");
         JMenuItem newItem = new JMenuItem("新規");
         JMenuItem saveItem = new JMenuItem("保存");
@@ -99,6 +100,8 @@ public class MainFrame extends JFrame {
         JMenuItem loadVenueTemplateItem = new JMenuItem("会場テンプレートを読み込み");
         JMenuItem saveVenueTemplateItem = new JMenuItem("会場だけ保存");
         JMenuItem exitItem = new JMenuItem("終了");
+        JMenu helpMenu = new JMenu("ヘルプ");
+        JMenuItem helpItem = new JMenuItem("使い方");
 
         newItem.addActionListener(e -> {
             double[] sheetSize = askSheetSizeMeters();
@@ -107,6 +110,7 @@ public class MainFrame extends JFrame {
                 return;
             }
 
+            // 新規作成は、機材・会場・線・イベント情報を全部初期化する。
             canvasPanel.clearAll();
             canvasPanel.setSheetSizeMeters(sheetSize[0], sheetSize[1]);
             canvasPanel.setStageLocked(false);
@@ -198,6 +202,7 @@ public class MainFrame extends JFrame {
         });
 
         previewItem.addActionListener(e -> {
+            // プレビューは作業中のデータを渡して、その時点の提出用レイアウトを作る。
             PreviewDialog dialog =
                     new PreviewDialog(
                             this,
@@ -208,6 +213,11 @@ public class MainFrame extends JFrame {
                             canvasPanel.getRoomTemplate(),
                             PreviewDialog.ORIENTATION_LANDSCAPE);
 
+            dialog.setVisible(true);
+        });
+
+        helpItem.addActionListener(e -> {
+            HelpDialog dialog = new HelpDialog(this);
             dialog.setVisible(true);
         });
 
@@ -228,6 +238,7 @@ public class MainFrame extends JFrame {
 
             try {
 
+                // 会場テンプレート保存では、当日の機材や線は保存せず会場パーツだけ残す。
                 LayoutFileManager.save(
                         new ArrayList<>(),
                         canvasPanel.getCustomRoomObjects(),
@@ -283,6 +294,7 @@ public class MainFrame extends JFrame {
                 LayoutData data =
                         LayoutFileManager.load(fileName);
 
+                // 会場テンプレート読み込みは、機材配置を残して会場だけ差し替える。
                 canvasPanel.setCustomRoomObjects(data.getCustomRoomObjects());
                 canvasPanel.setRoomTemplate(null);
                 canvasPanel.setStageLocked(false);
@@ -390,6 +402,8 @@ public class MainFrame extends JFrame {
         menuBar.add(fileMenu);
         menuBar.add(templateMenu);
         menuBar.add(viewMenu);
+        helpMenu.add(helpItem);
+        menuBar.add(helpMenu);
 
         return menuBar;
     }
@@ -741,6 +755,7 @@ public class MainFrame extends JFrame {
 
     private void saveLayoutToFile(String fileName) {
 
+        // 既存のコード製テンプレートを使っている時だけ、名前を保存して読み込み時に復元する。
         if (canvasPanel.getRoomTemplate() != null) {
             projectInfo.setTemplateName(canvasPanel.getRoomTemplate().getName());
         } else {

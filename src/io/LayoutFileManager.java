@@ -16,6 +16,7 @@ import model.RoomObject;
 
 public class LayoutFileManager {
 
+    // .stage はテキスト形式。人間も読めるように、PROJECT / ITEMS などの区切りで保存する。
     public static void save(
     				List<LayoutItem> items,
     				List<RoomObject> customRoomObjects,
@@ -96,6 +97,7 @@ public class LayoutFileManager {
             return "";
         }
 
+        // メモ欄の改行やカンマで保存形式が崩れないように最低限エスケープする。
         return text
                 .replace("\\", "\\\\")
                 .replace("\n", "\\n")
@@ -235,6 +237,7 @@ public class LayoutFileManager {
 
                 LayoutItem item = new LayoutItem(equipment, x, y);
 
+                // 古い保存ファイルも読めるように、列数の違いを見て復元する。
                 if (data.length >= 8) {
 
                     int width = Integer.parseInt(data[3]);
