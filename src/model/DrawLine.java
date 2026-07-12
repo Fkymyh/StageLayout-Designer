@@ -4,6 +4,9 @@ import java.awt.Color;
 
 public class DrawLine {
 
+    public static final String TYPE_NORMAL = "NORMAL";
+    public static final String TYPE_BAMIRI = "BAMIRI";
+
     private int startX;
     private int startY;
 
@@ -15,6 +18,10 @@ public class DrawLine {
     private Color color = Color.BLACK;
 
     private String label = "";
+
+    private boolean showLength = true;
+
+    private String lineType = TYPE_NORMAL;
 
     public DrawLine(int startX, int startY, int endX, int endY) {
 
@@ -64,6 +71,27 @@ public class DrawLine {
 
     public void setLabel(String label) {
         this.label = label;
+    }
+
+    public boolean isShowLength() {
+        return showLength;
+    }
+
+    public void setShowLength(boolean showLength) {
+        this.showLength = showLength;
+    }
+
+    public String getLineType() {
+        return lineType;
+    }
+
+    public void setLineType(String lineType) {
+        if (lineType == null || lineType.isBlank()) {
+            this.lineType = TYPE_NORMAL;
+            return;
+        }
+
+        this.lineType = lineType;
     }
     
     public int getStrokeWidth() {

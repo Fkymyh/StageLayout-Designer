@@ -1,6 +1,7 @@
 package view;
 
 import java.awt.BasicStroke;
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -11,6 +12,7 @@ import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,11 +20,14 @@ import java.util.Map;
 
 import javax.swing.JPanel;
 
+import model.BackgroundMap;
 import model.DrawLine;
 import model.LayoutItem;
 import model.ProjectInfo;
 import model.RoomObject;
 import model.RoomTemplate;
+import model.TextBoxItem;
+import util.BackgroundImageLoader;
 import util.ImageLoader;
 
 public class SheetPreviewPanel extends JPanel{
@@ -34,26 +39,42 @@ public class SheetPreviewPanel extends JPanel{
 	private List<RoomObject> customRoomObjects;
 
 	private List<DrawLine> drawLines;
+
+    private BackgroundMap backgroundMap;
+
+    private List<TextBoxItem> textBoxes;
 	
 	private RoomTemplate roomTemplate;
+
+    private boolean showNames;
 	
 	private String orientation;
 	
 	private double previewScale = 0.85;
+
+    private static final double DEFAULT_METERS_PER_GRID = 0.5;
+
+    private static final int GRID_SIZE = 20;
 	
 	public SheetPreviewPanel(
 			ProjectInfo projectInfo,
 			List<LayoutItem> items,
 			List<RoomObject> customRoomObjects,
 			List<DrawLine> drawLines,
+            BackgroundMap backgroundMap,
+            List<TextBoxItem> textBoxes,
 			RoomTemplate roomTemplate,
+            boolean showNames,
 			String orientation) {
 		
 		this.projectInfo = projectInfo;
 		this.items = items;
 		this.customRoomObjects = customRoomObjects;
 		this.drawLines = drawLines;
+        this.backgroundMap = backgroundMap;
+        this.textBoxes = textBoxes;
 		this.roomTemplate = roomTemplate;
+        this.showNames = showNames;
 		this.orientation = orientation;
 		
 		if (PreviewDialog.ORIENTATION_LANDSCAPE.equals(orientation)) {
@@ -203,8 +224,6 @@ public class SheetPreviewPanel extends JPanel{
         int layoutY = y + 30;
         int layoutW = w - 2;
         int layoutH = h - 31;
-
-        drawGrid(g, layoutX, layoutY, layoutW, layoutH);
 
         drawPreviewItems(g, layoutX, layoutY, layoutW, layoutH);
     }
@@ -409,6 +428,8 @@ public class SheetPreviewPanel extends JPanel{
         if ((items == null || items.isEmpty())
                 && (customRoomObjects == null || customRoomObjects.isEmpty())
                 && (drawLines == null || drawLines.isEmpty())
+                && (textBoxes == null || textBoxes.isEmpty())
+                && backgroundMap == null
                 && roomTemplate == null) {
             return;
         }
@@ -485,6 +506,22 @@ public class SheetPreviewPanel extends JPanel{
                             Math.max(line.getStartY(), line.getEndY()));
                 }
             }
+
+            if (backgroundMap != null && backgroundMap.isVisible()) {
+                minX = Math.min(minX, backgroundMap.getX());
+                minY = Math.min(minY, backgroundMap.getY());
+                maxX = Math.max(maxX, backgroundMap.getX() + backgroundMap.getWidth());
+                maxY = Math.max(maxY, backgroundMap.getY() + backgroundMap.getHeight());
+            }
+
+            if (textBoxes != null) {
+                for (TextBoxItem textBox : textBoxes) {
+                    minX = Math.min(minX, textBox.getX());
+                    minY = Math.min(minY, textBox.getY());
+                    maxX = Math.max(maxX, textBox.getX() + textBox.getWidth());
+                    maxY = Math.max(maxY, textBox.getY() + textBox.getHeight());
+                }
+            }
         }
 
         if (minX == Integer.MAX_VALUE || minY == Integer.MAX_VALUE) {
@@ -526,6 +563,14 @@ public class SheetPreviewPanel extends JPanel{
 
         int offsetY =
                 areaY + (areaH - contentDrawH) / 2 - (int) (minY * scale);
+
+        drawBackgroundMap(
+                g2,
+                scale,
+                offsetX,
+                offsetY);
+
+        drawGrid(g2, areaX, areaY, areaW, areaH);
 
         drawRoomTemplate(
                 g2,
@@ -591,25 +636,35 @@ public class SheetPreviewPanel extends JPanel{
                             drawH);
                 }
 
-                itemG.setColor(Color.BLACK);
+                if (image == null) {
+                    itemG.setColor(Color.BLACK);
 
-                itemG.drawRect(
-                        drawX,
-                        drawY,
-                        drawW,
-                        drawH);
+                    itemG.drawRect(
+                            drawX,
+                            drawY,
+                            drawW,
+                            drawH);
+                }
 
                 itemG.dispose();
 
-                g2.setColor(Color.BLACK);
-                g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
+                if (showNames) {
+                    g2.setColor(Color.BLACK);
+                    g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
 
-                g2.drawString(
-                        item.getEquipment().getName(),
-                        drawX,
-                        drawY + drawH + 12);
+                    g2.drawString(
+                            item.getEquipment().getName(),
+                            drawX,
+                            drawY + drawH + 12);
+                }
             }
         }
+
+        drawTextBoxes(
+                g2,
+                scale,
+                offsetX,
+                offsetY);
 
         g2.setClip(oldClip);
         g2.dispose();
@@ -721,6 +776,93 @@ public class SheetPreviewPanel extends JPanel{
         return lines;
     }
 
+    private void drawBackgroundMap(
+            Graphics2D g2,
+            double scale,
+            int offsetX,
+            int offsetY) {
+
+        if (backgroundMap == null
+                || !backgroundMap.isVisible()
+                || backgroundMap.getImagePath() == null
+                || backgroundMap.getImagePath().isBlank()) {
+            return;
+        }
+
+        try {
+            BufferedImage image =
+                    BackgroundImageLoader.load(new File(backgroundMap.getImagePath()));
+
+            if (image == null) {
+                return;
+            }
+
+            Graphics2D imageG = (Graphics2D) g2.create();
+            imageG.setComposite(
+                    AlphaComposite.getInstance(
+                            AlphaComposite.SRC_OVER,
+                            backgroundMap.getOpacity()));
+
+            int x = offsetX + (int) (backgroundMap.getX() * scale);
+            int y = offsetY + (int) (backgroundMap.getY() * scale);
+            int w = Math.max(1, (int) (backgroundMap.getWidth() * scale));
+            int h = Math.max(1, (int) (backgroundMap.getHeight() * scale));
+
+            imageG.drawImage(image, x, y, w, h, this);
+            imageG.dispose();
+
+        } catch (Exception ex) {
+            // Preview stays usable even if the referenced background image moved.
+        }
+    }
+
+    private void drawTextBoxes(
+            Graphics2D g2,
+            double scale,
+            int offsetX,
+            int offsetY) {
+
+        if (textBoxes == null) {
+            return;
+        }
+
+        for (TextBoxItem textBox : textBoxes) {
+            int x = offsetX + (int) (textBox.getX() * scale);
+            int y = offsetY + (int) (textBox.getY() * scale);
+            int w = Math.max(8, (int) (textBox.getWidth() * scale));
+            int h = Math.max(8, (int) (textBox.getHeight() * scale));
+
+            if (textBox.isShowBackground()) {
+                g2.setColor(textBox.getBackgroundColor());
+                g2.fillRect(x, y, w, h);
+            }
+
+            if (textBox.isShowBorder()) {
+                g2.setColor(Color.BLACK);
+                g2.drawRect(x, y, w, h);
+            }
+
+            g2.setColor(textBox.getTextColor());
+            g2.setFont(
+                    new Font(
+                            "SansSerif",
+                            Font.PLAIN,
+                            Math.max(8, (int) (textBox.getFontSize() * scale))));
+
+            FontMetrics metrics = g2.getFontMetrics();
+            int textY = y + metrics.getAscent() + 4;
+
+            for (String line : wrapText(g2, textBox.getText(), w - 8)) {
+                if (textY > y + h - 4) {
+                    break;
+                }
+
+                drawFittedString(g2, line, x + 4, textY, w - 8);
+                textY += metrics.getHeight();
+            }
+        }
+    }
+
     private void drawCustomRoomObjects(
             Graphics2D g2,
             double scale,
@@ -797,17 +939,56 @@ public class SheetPreviewPanel extends JPanel{
 
             g2.drawLine(x1, y1, x2, y2);
 
-            if (line.getLabel() != null && !line.getLabel().isBlank()) {
+            if (line.isShowLength() && !isBamiriLine(line)) {
+                g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
+                g2.setColor(Color.BLACK);
+                g2.drawString(
+                        formatLineLength(line),
+                        (x1 + x2) / 2 + 4,
+                        (y1 + y2) / 2 - 4);
+            }
+
+            if (showNames
+                    && !isBamiriLine(line)
+                    && line.getLabel() != null
+                    && !line.getLabel().isBlank()) {
                 g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
                 g2.setColor(Color.BLACK);
                 g2.drawString(
                         line.getLabel(),
                         (x1 + x2) / 2 + 4,
-                        (y1 + y2) / 2 - 4);
+                        (y1 + y2) / 2 - 18);
             }
         }
 
         g2.setStroke(new BasicStroke(1));
+    }
+
+    private boolean isBamiriLine(DrawLine line) {
+
+        if (line == null) {
+            return false;
+        }
+
+        if (DrawLine.TYPE_BAMIRI.equals(line.getLineType())) {
+            return true;
+        }
+
+        return line.getLabel() != null && line.getLabel().contains("繝舌Α繝ｪ");
+    }
+
+    private String formatLineLength(DrawLine line) {
+
+        double dx = line.getEndX() - line.getStartX();
+        double dy = line.getEndY() - line.getStartY();
+        double gridCount = Math.sqrt(dx * dx + dy * dy) / GRID_SIZE;
+        double meters = gridCount * DEFAULT_METERS_PER_GRID;
+
+        if (meters >= 10) {
+            return String.format("%.1fm", meters);
+        }
+
+        return String.format("%.2fm", meters);
     }
 
     private void drawRoomTemplate(
@@ -853,14 +1034,35 @@ public class SheetPreviewPanel extends JPanel{
                     w,
                     h);
 
-            g.setColor(Color.DARK_GRAY);
+            if (shouldDrawTemplateObjectName(g, object, w, h)) {
+                g.setColor(Color.DARK_GRAY);
 
-            g.drawString(
-                    object.getName(),
-                    x + 3,
-                    y + 12);
+                drawFittedString(
+                        g,
+                        object.getName(),
+                        x + 3,
+                        y + Math.min(14, h - 3),
+                        w - 6);
+            }
         }
 
         g.setColor(Color.BLACK);
+    }
+
+    private boolean shouldDrawTemplateObjectName(
+            Graphics g,
+            RoomObject object,
+            int width,
+            int height) {
+
+        if (object.getName() == null || object.getName().isBlank()) {
+            return false;
+        }
+
+        if (width < 45 || height < 18) {
+            return false;
+        }
+
+        return g.getFontMetrics().stringWidth(object.getName()) <= width - 6;
     }
 }

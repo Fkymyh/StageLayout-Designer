@@ -743,6 +743,17 @@ public class EquipmentPanel extends JPanel {
         return selectedEquipmentName;
     }
 
+    public void selectEquipmentByName(String equipmentName) {
+
+        if (equipmentName == null
+                || !EquipmentFactory.getDefinitions().containsKey(equipmentName)) {
+            return;
+        }
+
+        selectedEquipmentName = equipmentName;
+        updateButtonSelection();
+    }
+
     private static class GenreIcon implements Icon {
 
         private final String genreName;

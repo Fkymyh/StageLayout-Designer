@@ -217,7 +217,10 @@ public class MainFrame extends JFrame {
                             canvasPanel.getItems(),
                             canvasPanel.getCustomRoomObjects(),
                             canvasPanel.getDrawLines(),
+                            canvasPanel.getBackgroundMap(),
+                            canvasPanel.getTextBoxes(),
                             canvasPanel.getRoomTemplate(),
+                            canvasPanel.isShowNames(),
                             PreviewDialog.ORIENTATION_LANDSCAPE);
 
             dialog.setVisible(true);
@@ -484,9 +487,9 @@ public class MainFrame extends JFrame {
         
         selectButton.setToolTipText("配置済みの機材を選択・移動します");
         lineButton.setToolTipText("線モードに切り替えます。別のモードへ切り替えると線は終了します");
-        bamiriLineButton.setToolTipText("赤いバミリ線を引きます。長さ表示は出ません");
-        textButton.setToolTipText("キャンバスをクリックして文字を追加します");
-        backgroundButton.setToolTipText("PNG/JPGのフロアマップを背景図面として読み込みます");
+        bamiriLineButton.setToolTipText("バミリ横を選択します。キャンバスをダブルクリックして配置します");
+        textButton.setToolTipText("キャンバスをダブルクリックして文字を追加します");
+        backgroundButton.setToolTipText("PNG/JPG/PDFのフロアマップを背景図面として読み込みます");
         deleteButton.setToolTipText("選択中の機材を削除します");
         rotateButton.setToolTipText("選択中の機材を15度回転します");
         enlargeButton.setToolTipText("選択中の機材を大きくします");
@@ -607,7 +610,10 @@ public class MainFrame extends JFrame {
                             canvasPanel.getItems(),
                             canvasPanel.getCustomRoomObjects(),
                             canvasPanel.getDrawLines(),
+                            canvasPanel.getBackgroundMap(),
+                            canvasPanel.getTextBoxes(),
                             canvasPanel.getRoomTemplate(),
+                            canvasPanel.isShowNames(),
                             PreviewDialog.ORIENTATION_LANDSCAPE);
 
             dialog.setVisible(true);

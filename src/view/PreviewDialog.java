@@ -20,10 +20,12 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
 import model.DrawLine;
+import model.BackgroundMap;
 import model.LayoutItem;
 import model.ProjectInfo;
 import model.RoomObject;
 import model.RoomTemplate;
+import model.TextBoxItem;
 
 public class PreviewDialog extends JDialog{
 	
@@ -37,7 +39,10 @@ public class PreviewDialog extends JDialog{
 			List<LayoutItem> items,
 			List<RoomObject> customRoomObjects,
 			List<DrawLine> drawLines,
+            BackgroundMap backgroundMap,
+            List<TextBoxItem> textBoxes,
 			RoomTemplate roomTemplate,
+            boolean showNames,
 			String orientation) {
 		
 		super(owner, "プレビュー", true);
@@ -58,7 +63,10 @@ public class PreviewDialog extends JDialog{
 						items,
 						customRoomObjects,
 						drawLines,
+                        backgroundMap,
+                        textBoxes,
 						roomTemplate,
+                        showNames,
 						orientation);
 		
 		JScrollPane scrollPane =

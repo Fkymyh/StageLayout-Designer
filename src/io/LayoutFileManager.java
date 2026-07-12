@@ -88,7 +88,9 @@ public class LayoutFileManager {
                     line.getColor().getGreen() + "," +
                     line.getColor().getBlue() + "," +
                     line.getStrokeWidth() + "," +
-                    escape(line.getLabel()));
+                    escape(line.getLabel()) + "," +
+                    line.isShowLength() + "," +
+                    escape(line.getLineType()));
 
             writer.write("\n");
         }
@@ -420,6 +422,17 @@ public class LayoutFileManager {
                     label = unescape(data[8]);
                 }
 
+                boolean showLength = true;
+                String lineType = DrawLine.TYPE_NORMAL;
+
+                if (data.length >= 10) {
+                    showLength = Boolean.parseBoolean(data[9]);
+                }
+
+                if (data.length >= 11) {
+                    lineType = unescape(data[10]);
+                }
+
                 DrawLine drawLine =
                         new DrawLine(
                                 startX,
@@ -430,6 +443,8 @@ public class LayoutFileManager {
                 drawLine.setColor(new java.awt.Color(red, green, blue));
                 drawLine.setStrokeWidth(strokeWidth);
                 drawLine.setLabel(label);
+                drawLine.setShowLength(showLength);
+                drawLine.setLineType(lineType);
 
                 drawLines.add(drawLine);
 

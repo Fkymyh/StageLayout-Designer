@@ -30,7 +30,12 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
-import javax.imageio.ImageIO;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
 
 import model.BackgroundMap;
 import model.DrawLine;
@@ -41,6 +46,7 @@ import model.LayoutItem;
 import model.RoomObject;
 import model.RoomTemplate;
 import model.TextBoxItem;
+import util.BackgroundImageLoader;
 import util.ImageLoader;
 
 
@@ -143,6 +149,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private int itemResizeStartWidth;
 
 	private int itemResizeStartHeight;
+
+    private boolean resizingTextBox = false;
+
+    private int textBoxResizeStartMouseX;
+
+    private int textBoxResizeStartMouseY;
+
+    private int textBoxResizeStartWidth;
+
+    private int textBoxResizeStartHeight;
 
 	private static final int RESIZE_HANDLE_SIZE = 8;
 
@@ -496,11 +512,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 		
 		//グリッド線の色
-		 if (showGrid && roomTemplate == null) {
-		     drawGrid(g2);
-		    }
-
         drawBackgroundMap(g2);
+
+        if (showGrid) {
+            drawGrid(g2);
+        }
 		
 		drawRoomTemplate(g2);
 		
@@ -748,10 +764,21 @@ public class CanvasPanel extends JPanel implements MouseListener,
                         textBox.getY() - 3,
                         textBox.getWidth() + 6,
                         textBox.getHeight() + 6);
+                drawTextBoxResizeHandle(g2, textBox);
             }
         }
 
         g2.dispose();
+    }
+
+    private void drawTextBoxResizeHandle(Graphics2D g2, TextBoxItem textBox) {
+
+        Rectangle handle = getTextBoxResizeHandle(textBox);
+
+        g2.setColor(Color.WHITE);
+        g2.fillRect(handle.x, handle.y, handle.width, handle.height);
+        g2.setColor(Color.RED);
+        g2.drawRect(handle.x, handle.y, handle.width, handle.height);
     }
 
     private void drawTextBoxLines(Graphics2D g2, TextBoxItem textBox) {
@@ -1036,7 +1063,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        int labelY =
 	                (line.getStartY() + line.getEndY()) / 2 - 6;
 	        
-	        if (showLineLength && !isBamiriLine(line)) {
+	        if (showLineLength && line.isShowLength() && !isBamiriLine(line)) {
 
 	            double meters = calculateLineLengthMeters(line);
 
@@ -1068,6 +1095,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	}
 
     private boolean isBamiriLine(DrawLine line) {
+
+        if (line != null && DrawLine.TYPE_BAMIRI.equals(line.getLineType())) {
+            return true;
+        }
 
         return line != null
                 && line.getLabel() != null
@@ -1240,7 +1271,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		int canvasX = toCanvasX(e);
 		int canvasY = toCanvasY(e);
 
-        if (textMode) {
+        if (textMode
+                && e.getClickCount() >= 2
+                && findTextBox(canvasX, canvasY) == null) {
             addTextBoxAt(canvasX, canvasY);
             return;
         }
@@ -1480,6 +1513,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    line.setColor(currentLineColor);
 	    line.setStrokeWidth(currentLineStrokeWidth);
         line.setLabel(currentLineLabel);
+        if (isCurrentBamiriLineMode()) {
+            line.setLineType(DrawLine.TYPE_BAMIRI);
+            line.setShowLength(false);
+        }
 
 	    drawLines.add(line);
         selectedLine = line;
@@ -1563,6 +1600,21 @@ public class CanvasPanel extends JPanel implements MouseListener,
         if (selectedLine != null && isNearLineEnd(selectedLine, canvasX, canvasY)) {
 
             draggingLineEnd = true;
+            repaint();
+            return;
+        }
+
+        if (selectedTextBox != null
+                && isOnTextBoxResizeHandle(
+                        selectedTextBox,
+                        canvasX,
+                        canvasY)) {
+
+            resizingTextBox = true;
+            textBoxResizeStartMouseX = canvasX;
+            textBoxResizeStartMouseY = canvasY;
+            textBoxResizeStartWidth = selectedTextBox.getWidth();
+            textBoxResizeStartHeight = selectedTextBox.getHeight();
             repaint();
             return;
         }
@@ -1720,7 +1772,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
             notifyChanged();
         }
 
-        if (draggingTextBox || draggingBackground) {
+        if (draggingTextBox || resizingTextBox || draggingBackground) {
             notifyChanged();
         }
 
@@ -1735,6 +1787,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         draggingLineStart = false;
         draggingLineEnd = false;
         draggingTextBox = false;
+        resizingTextBox = false;
         draggingBackground = false;
 	}
 	@Override
@@ -1754,8 +1807,28 @@ public class CanvasPanel extends JPanel implements MouseListener,
 			return;
 		}
 		
-		int canvasX = toCanvasX(e);
-		int canvasY = toCanvasY(e);
+        int canvasX = toCanvasX(e);
+        int canvasY = toCanvasY(e);
+
+        if (resizingTextBox && selectedTextBox != null) {
+
+            int dx = canvasX - textBoxResizeStartMouseX;
+            int dy = canvasY - textBoxResizeStartMouseY;
+
+            int newWidth = textBoxResizeStartWidth + dx;
+            int newHeight = textBoxResizeStartHeight + dy;
+
+            if (snapToGrid) {
+                newWidth = snapValue(newWidth);
+                newHeight = snapValue(newHeight);
+            }
+
+            selectedTextBox.setWidth(Math.max(40, newWidth));
+            selectedTextBox.setHeight(Math.max(20, newHeight));
+
+            repaint();
+            return;
+        }
 
         if (draggingTextBox && selectedTextBox != null) {
             int x = canvasX - textBoxDragOffsetX;
@@ -1963,6 +2036,13 @@ public class CanvasPanel extends JPanel implements MouseListener,
                 || isNearLineEnd(selectedLine, mouseX, mouseY))) {
 
             setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+            return;
+        }
+
+        if (selectedTextBox != null
+                && isOnTextBoxResizeHandle(selectedTextBox, mouseX, mouseY)) {
+
+            setCursor(Cursor.getPredefinedCursor(Cursor.SE_RESIZE_CURSOR));
             return;
         }
 		
@@ -2506,6 +2586,23 @@ public class CanvasPanel extends JPanel implements MouseListener,
         return null;
     }
 
+    private Rectangle getTextBoxResizeHandle(TextBoxItem textBox) {
+
+        return new Rectangle(
+                textBox.getX() + textBox.getWidth() - RESIZE_HANDLE_SIZE,
+                textBox.getY() + textBox.getHeight() - RESIZE_HANDLE_SIZE,
+                RESIZE_HANDLE_SIZE,
+                RESIZE_HANDLE_SIZE);
+    }
+
+    private boolean isOnTextBoxResizeHandle(
+            TextBoxItem textBox,
+            int x,
+            int y) {
+
+        return textBox != null && getTextBoxResizeHandle(textBox).contains(x, y);
+    }
+
     private boolean isEditableBackgroundAt(int x, int y) {
 
         if (backgroundMap == null
@@ -2610,7 +2707,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         if (backgroundMap != null && !backgroundMap.getImagePath().isBlank()) {
             try {
                 backgroundImage =
-                        ImageIO.read(new File(backgroundMap.getImagePath()));
+                        BackgroundImageLoader.load(new File(backgroundMap.getImagePath()));
             } catch (IOException ex) {
                 backgroundImage = null;
             }
@@ -2630,6 +2727,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         draggingLineStart = false;
         draggingLineEnd = false;
         draggingTextBox = false;
+        resizingTextBox = false;
         draggingBackground = false;
 
         refreshPanels();
@@ -2759,6 +2857,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
             copiedLine.setColor(line.getColor());
             copiedLine.setStrokeWidth(line.getStrokeWidth());
             copiedLine.setLabel(line.getLabel());
+            copiedLine.setShowLength(line.isShowLength());
+            copiedLine.setLineType(line.getLineType());
 
             copiedLines.add(copiedLine);
         }
@@ -3156,6 +3256,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
             return;
         }
 
+        if (showTextBoxEditor()) {
+            return;
+        }
+
         String text =
                 JOptionPane.showInputDialog(
                         this,
@@ -3171,29 +3275,109 @@ public class CanvasPanel extends JPanel implements MouseListener,
         repaint();
     }
 
+    private boolean showTextBoxEditor() {
+
+        JTextArea textArea = new JTextArea(selectedTextBox.getText(), 4, 24);
+        JTextField widthField =
+                new JTextField(String.valueOf(selectedTextBox.getWidth()), 6);
+        JTextField heightField =
+                new JTextField(String.valueOf(selectedTextBox.getHeight()), 6);
+        JTextField fontSizeField =
+                new JTextField(String.valueOf(selectedTextBox.getFontSize()), 6);
+        JComboBox<String> backgroundColorBox =
+                new JComboBox<>(new String[] {"white", "lightGray", "yellow", "none"});
+        backgroundColorBox.setSelectedItem(
+                selectedTextBox.isShowBackground()
+                        ? colorName(selectedTextBox.getBackgroundColor())
+                        : "none");
+        JCheckBox borderCheckBox =
+                new JCheckBox("border", selectedTextBox.isShowBorder());
+
+        JPanel panel = new JPanel(new java.awt.GridLayout(0, 2, 6, 6));
+        panel.add(new JLabel("text"));
+        panel.add(new JScrollPane(textArea));
+        panel.add(new JLabel("width"));
+        panel.add(widthField);
+        panel.add(new JLabel("height"));
+        panel.add(heightField);
+        panel.add(new JLabel("font size"));
+        panel.add(fontSizeField);
+        panel.add(new JLabel("background"));
+        panel.add(backgroundColorBox);
+        panel.add(new JLabel("border"));
+        panel.add(borderCheckBox);
+
+        int result =
+                JOptionPane.showConfirmDialog(
+                        this,
+                        panel,
+                        "Text Box",
+                        JOptionPane.OK_CANCEL_OPTION,
+                        JOptionPane.PLAIN_MESSAGE);
+
+        if (result != JOptionPane.OK_OPTION) {
+            return true;
+        }
+
+        selectedTextBox.setText(textArea.getText());
+        selectedTextBox.setWidth(parsePositiveInt(widthField.getText(), selectedTextBox.getWidth()));
+        selectedTextBox.setHeight(parsePositiveInt(heightField.getText(), selectedTextBox.getHeight()));
+        selectedTextBox.setFontSize(parsePositiveInt(fontSizeField.getText(), selectedTextBox.getFontSize()));
+        selectedTextBox.setShowBorder(borderCheckBox.isSelected());
+
+        String backgroundName = String.valueOf(backgroundColorBox.getSelectedItem());
+        selectedTextBox.setShowBackground(!"none".equals(backgroundName));
+        selectedTextBox.setBackgroundColor(colorFromName(backgroundName));
+
+        notifyChanged();
+        repaint();
+        return true;
+    }
+
+    private int parsePositiveInt(String text, int defaultValue) {
+
+        try {
+            return Math.max(1, Integer.parseInt(text.trim()));
+        } catch (Exception ex) {
+            return defaultValue;
+        }
+    }
+
+    private String colorName(Color color) {
+
+        if (Color.LIGHT_GRAY.equals(color)) {
+            return "lightGray";
+        }
+
+        if (Color.YELLOW.equals(color)) {
+            return "yellow";
+        }
+
+        return "white";
+    }
+
+    private Color colorFromName(String name) {
+
+        if ("lightGray".equals(name)) {
+            return Color.LIGHT_GRAY;
+        }
+
+        if ("yellow".equals(name)) {
+            return Color.YELLOW;
+        }
+
+        return Color.WHITE;
+    }
+
     public void loadBackgroundMap(File file) {
 
         if (file == null) {
             return;
         }
 
-        String lowerName = file.getName().toLowerCase();
-
-        if (lowerName.endsWith(".pdf")) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "PDF背景読み込みにはPDFBoxの追加が必要です。\n"
-                            + "現在はPNG/JPG/JPEGを読み込めます。");
-            return;
-        }
-
         try {
-            // 背景図面はImageIOで読み込み、キャンバスの下絵として描画する。
-            BufferedImage image = ImageIO.read(file);
-
-            if (image == null) {
-                throw new IOException("画像として読み込めませんでした。");
-            }
+            // BackgroundImageLoader also handles the first page of a PDF when PDFBox is available.
+            BufferedImage image = BackgroundImageLoader.load(file);
 
             backgroundImage = image;
             backgroundMap = new BackgroundMap();
@@ -3213,7 +3397,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(
                     this,
-                    "背景図面の読み込みに失敗しました。\n" + ex.getMessage());
+                    "背景図面の読み込みに失敗しました。\n"
+                            + ex.getMessage()
+                            + "\n\nPDFを読む場合は、libフォルダにpdfbox-app-3.x.x.jarを置いてください。");
         }
     }
 
@@ -3225,7 +3411,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         if (backgroundMap != null && !backgroundMap.getImagePath().isBlank()) {
             try {
-                backgroundImage = ImageIO.read(new File(backgroundMap.getImagePath()));
+                backgroundImage =
+                        BackgroundImageLoader.load(new File(backgroundMap.getImagePath()));
             } catch (IOException ex) {
                 backgroundImage = null;
             }
@@ -3373,13 +3560,18 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
     public void setBamiriLineMode() {
 
-        drawLineMode = true;
+        drawLineMode = false;
+        if (equipmentPanel != null) {
+            equipmentPanel.selectEquipmentByName("バミリ 横");
+        }
         roomObjectAddMode = null;
         lineStartX = null;
         lineStartY = null;
         selectedItem = null;
         selectedRoomObject = null;
         selectedLine = null;
+        selectedTextBox = null;
+        backgroundSelected = false;
         currentLineColor = Color.RED;
         currentLineStrokeWidth = 5;
         currentLineLabel = "バミリ";
