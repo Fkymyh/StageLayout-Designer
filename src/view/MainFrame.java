@@ -24,6 +24,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.SwingUtilities;
 import javax.swing.JToggleButton;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import io.LayoutData;
 import io.LayoutFileManager;
@@ -68,6 +69,10 @@ public class MainFrame extends JFrame {
         equipmentPanel = new EquipmentPanel();
         propertyPanel = new PropertyPanel();
         canvasPanel = new CanvasPanel(equipmentPanel, propertyPanel);
+        equipmentPanel.setEquipmentSelectionCallback(() -> {
+            canvasPanel.switchToItemPlacementMode();
+            statusLabel.setText("モード: 機材配置");
+        });
         canvasPanel.setStageLocked(false);
         
         propertyPanel.setUpdateCallback(() -> {
@@ -148,6 +153,8 @@ public class MainFrame extends JFrame {
                 canvasPanel.setItems(data.getItems());
                 canvasPanel.setCustomRoomObjects(data.getCustomRoomObjects());
                 canvasPanel.setDrawLines(data.getDrawLines());
+                canvasPanel.setBackgroundMap(data.getBackgroundMap());
+                canvasPanel.setTextBoxes(data.getTextBoxes());
                 canvasPanel.setStageLocked(false);
                 updateStageLockCheckBox(false);
 
@@ -242,6 +249,8 @@ public class MainFrame extends JFrame {
                 LayoutFileManager.save(
                         new ArrayList<>(),
                         canvasPanel.getCustomRoomObjects(),
+                        new ArrayList<>(),
+                        null,
                         new ArrayList<>(),
                         projectInfo,
                         fileName);
@@ -368,6 +377,7 @@ public class MainFrame extends JFrame {
         templateMenu.add(clearTemplateItem);
 
         JMenu viewMenu = new JMenu("表示");
+        JMenu backgroundMenu = new JMenu("背景図面");
 
         JMenuItem showGridItem = new JMenuItem("グリッド表示");
         showGridItem.addActionListener(e -> {
@@ -399,9 +409,56 @@ public class MainFrame extends JFrame {
         viewMenu.add(showNamesItem);
         viewMenu.add(hideNamesItem);
 
+        JMenuItem loadBackgroundItem = new JMenuItem("背景図面を読み込み");
+        loadBackgroundItem.addActionListener(e -> loadBackgroundMap());
+
+        JMenuItem toggleBackgroundVisibleItem =
+                new JMenuItem("背景図面 表示/非表示");
+        toggleBackgroundVisibleItem.addActionListener(e -> {
+            canvasPanel.toggleBackgroundVisible();
+            statusLabel.setText("背景図面の表示を切り替えました");
+        });
+
+        JMenuItem toggleBackgroundLockedItem =
+                new JMenuItem("背景図面 固定/解除");
+        toggleBackgroundLockedItem.addActionListener(e -> {
+            canvasPanel.toggleBackgroundLocked();
+            statusLabel.setText("背景図面の固定を切り替えました");
+        });
+
+        JMenuItem clearBackgroundItem = new JMenuItem("背景図面を削除");
+        clearBackgroundItem.addActionListener(e -> {
+            canvasPanel.clearBackgroundMap();
+            statusLabel.setText("背景図面を削除しました");
+        });
+
+        JMenuItem opacity50Item = new JMenuItem("透明度 50%");
+        opacity50Item.addActionListener(e -> canvasPanel.setBackgroundOpacity(0.5f));
+
+        JMenuItem opacity75Item = new JMenuItem("透明度 75%");
+        opacity75Item.addActionListener(e -> canvasPanel.setBackgroundOpacity(0.75f));
+
+        JMenuItem fitBackgroundItem = new JMenuItem("シート幅に合わせる");
+        fitBackgroundItem.addActionListener(e -> canvasPanel.fitBackgroundToSheetWidth());
+
+        JMenuItem centerBackgroundItem = new JMenuItem("中央に配置");
+        centerBackgroundItem.addActionListener(e -> canvasPanel.centerBackgroundMap());
+
+        backgroundMenu.add(loadBackgroundItem);
+        backgroundMenu.add(toggleBackgroundVisibleItem);
+        backgroundMenu.add(toggleBackgroundLockedItem);
+        backgroundMenu.add(clearBackgroundItem);
+        backgroundMenu.addSeparator();
+        backgroundMenu.add(opacity50Item);
+        backgroundMenu.add(opacity75Item);
+        backgroundMenu.addSeparator();
+        backgroundMenu.add(fitBackgroundItem);
+        backgroundMenu.add(centerBackgroundItem);
+
         menuBar.add(fileMenu);
         menuBar.add(templateMenu);
         menuBar.add(viewMenu);
+        menuBar.add(backgroundMenu);
         helpMenu.add(helpItem);
         menuBar.add(helpMenu);
 
@@ -413,6 +470,8 @@ public class MainFrame extends JFrame {
         JToggleButton selectButton = new JToggleButton("機材を動かす");
         JToggleButton lineButton = new JToggleButton("線を引く");
         JToggleButton bamiriLineButton = new JToggleButton("バミリ線");
+        JToggleButton textButton = new JToggleButton("文字");
+        JButton backgroundButton = new JButton("背景読込");
         JButton deleteButton = new JButton("削除");
         JButton rotateButton = new JButton("回転");
         JButton enlargeButton = new JButton("拡大");
@@ -426,6 +485,8 @@ public class MainFrame extends JFrame {
         selectButton.setToolTipText("配置済みの機材を選択・移動します");
         lineButton.setToolTipText("線モードに切り替えます。別のモードへ切り替えると線は終了します");
         bamiriLineButton.setToolTipText("赤いバミリ線を引きます。長さ表示は出ません");
+        textButton.setToolTipText("キャンバスをクリックして文字を追加します");
+        backgroundButton.setToolTipText("PNG/JPGのフロアマップを背景図面として読み込みます");
         deleteButton.setToolTipText("選択中の機材を削除します");
         rotateButton.setToolTipText("選択中の機材を15度回転します");
         enlargeButton.setToolTipText("選択中の機材を大きくします");
@@ -441,6 +502,7 @@ public class MainFrame extends JFrame {
         modeButtonGroup.add(selectButton);
         modeButtonGroup.add(lineButton);
         modeButtonGroup.add(bamiriLineButton);
+        modeButtonGroup.add(textButton);
 
         selectButton.setSelected(true);
         
@@ -500,6 +562,13 @@ public class MainFrame extends JFrame {
             strokeComboBox.setSelectedItem(5);
             statusLabel.setText("モード: バミリ線");
         });
+
+        textButton.addActionListener(e -> {
+            canvasPanel.setTextMode(true);
+            statusLabel.setText("モード: 文字");
+        });
+
+        backgroundButton.addActionListener(e -> loadBackgroundMap());
 
         deleteButton.addActionListener(e -> {
             canvasPanel.deleteSelectedItem();
@@ -702,6 +771,8 @@ public class MainFrame extends JFrame {
         mainToolsPanel.add(selectButton);
         mainToolsPanel.add(lineButton);
         mainToolsPanel.add(bamiriLineButton);
+        mainToolsPanel.add(textButton);
+        mainToolsPanel.add(backgroundButton);
         mainToolsPanel.add(stageLockCheckBox);
         mainToolsPanel.add(new JLabel("  表示:"));
         mainToolsPanel.add(gridCheckBox);
@@ -779,6 +850,8 @@ public class MainFrame extends JFrame {
                     canvasPanel.getItems(),
                     canvasPanel.getCustomRoomObjects(),
                     canvasPanel.getDrawLines(),
+                    canvasPanel.getBackgroundMap(),
+                    canvasPanel.getTextBoxes(),
                     projectInfo,
                     fileName);
 
@@ -792,6 +865,27 @@ public class MainFrame extends JFrame {
 
             ex.printStackTrace();
         }
+    }
+
+    private void loadBackgroundMap() {
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(
+                new FileNameExtensionFilter(
+                        "背景図面（PNG/JPG/JPEG/PDF）",
+                        "png",
+                        "jpg",
+                        "jpeg",
+                        "pdf"));
+
+        int result = fileChooser.showOpenDialog(this);
+
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        canvasPanel.loadBackgroundMap(fileChooser.getSelectedFile());
+        statusLabel.setText("背景図面を読み込みました");
     }
 
     private double[] askSheetSizeMeters() {

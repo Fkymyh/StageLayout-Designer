@@ -1,9 +1,11 @@
 package view;
 
 import java.awt.BasicStroke;
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -14,6 +16,9 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -22,9 +27,12 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.imageio.ImageIO;
 
+import model.BackgroundMap;
 import model.DrawLine;
 import model.Equipment;
 import model.EquipmentDefinition;
@@ -32,6 +40,7 @@ import model.EquipmentFactory;
 import model.LayoutItem;
 import model.RoomObject;
 import model.RoomTemplate;
+import model.TextBoxItem;
 import util.ImageLoader;
 
 
@@ -43,8 +52,14 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private EquipmentPanel equipmentPanel;
 	
 	private List<LayoutItem> items = new ArrayList<>();
+
+    private List<TextBoxItem> textBoxes = new ArrayList<>();
 	
 	private LayoutItem selectedItem;
+
+    private TextBoxItem selectedTextBox;
+
+    private boolean textMode = false;
 	
 	private boolean drawLineMode = false;
 
@@ -261,6 +276,24 @@ public class CanvasPanel extends JPanel implements MouseListener,
     private boolean draggingLineStart = false;
 
     private boolean draggingLineEnd = false;
+
+    private BackgroundMap backgroundMap;
+
+    private BufferedImage backgroundImage;
+
+    private boolean backgroundSelected = false;
+
+    private boolean draggingBackground = false;
+
+    private boolean draggingTextBox = false;
+
+    private int backgroundDragOffsetX;
+
+    private int backgroundDragOffsetY;
+
+    private int textBoxDragOffsetX;
+
+    private int textBoxDragOffsetY;
 	
 	private void showPopupMenu(MouseEvent e){
 
@@ -466,6 +499,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		 if (showGrid && roomTemplate == null) {
 		     drawGrid(g2);
 		    }
+
+        drawBackgroundMap(g2);
 		
 		drawRoomTemplate(g2);
 		
@@ -479,8 +514,55 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		drawItems(g2);
 
+        drawTextBoxes(g2);
+
 	    g2.dispose();
 	}
+
+    private void drawBackgroundMap(Graphics2D g2) {
+
+        if (backgroundMap == null
+                || backgroundImage == null
+                || !backgroundMap.isVisible()) {
+            return;
+        }
+
+        Graphics2D imageG = (Graphics2D) g2.create();
+
+        // 背景図面は下絵なので、透明度を付けて機材や線を読みやすくする。
+        imageG.setComposite(
+                AlphaComposite.getInstance(
+                        AlphaComposite.SRC_OVER,
+                        backgroundMap.getOpacity()));
+
+        double centerX = backgroundMap.getX() + backgroundMap.getWidth() / 2.0;
+        double centerY = backgroundMap.getY() + backgroundMap.getHeight() / 2.0;
+
+        imageG.rotate(
+                Math.toRadians(backgroundMap.getRotation()),
+                centerX,
+                centerY);
+
+        imageG.drawImage(
+                backgroundImage,
+                backgroundMap.getX(),
+                backgroundMap.getY(),
+                backgroundMap.getWidth(),
+                backgroundMap.getHeight(),
+                this);
+
+        imageG.dispose();
+
+        if (backgroundSelected) {
+            g2.setColor(Color.RED);
+            g2.setStroke(new BasicStroke(2));
+            g2.drawRect(
+                    backgroundMap.getX(),
+                    backgroundMap.getY(),
+                    backgroundMap.getWidth(),
+                    backgroundMap.getHeight());
+        }
+    }
 
     private void drawSheetBackground(Graphics2D g2) {
 
@@ -629,6 +711,63 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	            lineStartX + 6,
 	            lineStartY - 6);
 	}
+
+    private void drawTextBoxes(Graphics g) {
+
+        Graphics2D g2 = (Graphics2D) g.create();
+
+        for (TextBoxItem textBox : textBoxes) {
+
+            if (textBox.isShowBackground()) {
+                g2.setColor(textBox.getBackgroundColor());
+                g2.fillRect(
+                        textBox.getX(),
+                        textBox.getY(),
+                        textBox.getWidth(),
+                        textBox.getHeight());
+            }
+
+            if (textBox.isShowBorder()) {
+                g2.setColor(new Color(80, 80, 80));
+                g2.drawRect(
+                        textBox.getX(),
+                        textBox.getY(),
+                        textBox.getWidth(),
+                        textBox.getHeight());
+            }
+
+            g2.setFont(new Font("SansSerif", Font.PLAIN, textBox.getFontSize()));
+            g2.setColor(textBox.getTextColor());
+            drawTextBoxLines(g2, textBox);
+
+            if (textBox == selectedTextBox) {
+                g2.setColor(Color.RED);
+                g2.setStroke(new BasicStroke(2));
+                g2.drawRect(
+                        textBox.getX() - 3,
+                        textBox.getY() - 3,
+                        textBox.getWidth() + 6,
+                        textBox.getHeight() + 6);
+            }
+        }
+
+        g2.dispose();
+    }
+
+    private void drawTextBoxLines(Graphics2D g2, TextBoxItem textBox) {
+
+        FontMetrics metrics = g2.getFontMetrics();
+        int lineHeight = metrics.getHeight();
+        int textX = textBox.getX() + 8;
+        int textY = textBox.getY() + metrics.getAscent() + 6;
+
+        String[] lines = textBox.getText().split("\\R", -1);
+
+        for (String line : lines) {
+            g2.drawString(line, textX, textY);
+            textY += lineHeight;
+        }
+    }
 	
 	private void drawRoomTemplate(Graphics g) {
 
@@ -1100,6 +1239,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		int canvasX = toCanvasX(e);
 		int canvasY = toCanvasY(e);
+
+        if (textMode) {
+            addTextBoxAt(canvasX, canvasY);
+            return;
+        }
 		
 		// 四角エリア追加モード
 		if ("RECT".equals(roomObjectAddMode)) {
@@ -1156,6 +1300,24 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 	 
+        selectedTextBox = findTextBox(canvasX, canvasY);
+
+        if (selectedTextBox != null) {
+
+            selectedItem = null;
+            selectedRoomObject = null;
+            selectedLine = null;
+            backgroundSelected = false;
+
+            if (e.getClickCount() >= 2) {
+                editSelectedTextBox();
+            }
+
+            refreshPanels();
+            repaint();
+            return;
+        }
+
 		// 機材選択を先にする
 	    selectedItem = findItem(canvasX, canvasY);
 
@@ -1164,6 +1326,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    	
 	    		selectedRoomObject = null;
                 selectedLine = null;
+                selectedTextBox = null;
+                backgroundSelected = false;
 	    		
 	    		refreshPanels();
 
@@ -1179,6 +1343,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	 		 selectedItem = null;
              selectedLine = null;
+             selectedTextBox = null;
+             backgroundSelected = false;
 
 	 		 refreshPanels();
 
@@ -1193,6 +1359,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
             selectedItem = null;
             selectedRoomObject = null;
+            selectedTextBox = null;
+            backgroundSelected = false;
 
             refreshPanels();
 
@@ -1209,6 +1377,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    		selectedItem = null;
 	        selectedRoomObject = null;
             selectedLine = null;
+            selectedTextBox = null;
+            backgroundSelected = false;
 
 	        refreshPanels();
 
@@ -1265,6 +1435,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    selectedItem = newItem;
 	    selectedRoomObject = null;
         selectedLine = null;
+        selectedTextBox = null;
+        backgroundSelected = false;
 
 	    refreshPanels();
 
@@ -1343,6 +1515,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
                     selectedLine = line;
                     selectedItem = null;
                     selectedRoomObject = null;
+                    selectedTextBox = null;
+                    backgroundSelected = false;
                     showPopupMenu(e);
                     repaint();
                     return;
@@ -1420,6 +1594,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	        selectedRoomObject = null;
             selectedLine = null;
+            selectedTextBox = null;
+            backgroundSelected = false;
 
 	        dragOffsetX = canvasX - selectedItem.getX();
 	        dragOffsetY = canvasY - selectedItem.getY();
@@ -1440,6 +1616,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	        selectedItem = null;
             selectedLine = null;
+            selectedTextBox = null;
+            backgroundSelected = false;
 
 	        roomObjectDragOffsetX = canvasX - selectedRoomObject.getX();
 	        roomObjectDragOffsetY = canvasY - selectedRoomObject.getY();
@@ -1458,6 +1636,37 @@ public class CanvasPanel extends JPanel implements MouseListener,
         if (selectedLine != null) {
             selectedItem = null;
             selectedRoomObject = null;
+            selectedTextBox = null;
+            backgroundSelected = false;
+            refreshPanels();
+            repaint();
+            return;
+        }
+
+        selectedTextBox = findTextBox(canvasX, canvasY);
+
+        if (selectedTextBox != null) {
+            selectedItem = null;
+            selectedRoomObject = null;
+            selectedLine = null;
+            backgroundSelected = false;
+            draggingTextBox = true;
+            textBoxDragOffsetX = canvasX - selectedTextBox.getX();
+            textBoxDragOffsetY = canvasY - selectedTextBox.getY();
+            refreshPanels();
+            repaint();
+            return;
+        }
+
+        if (isEditableBackgroundAt(canvasX, canvasY)) {
+            backgroundSelected = true;
+            selectedItem = null;
+            selectedRoomObject = null;
+            selectedLine = null;
+            selectedTextBox = null;
+            draggingBackground = true;
+            backgroundDragOffsetX = canvasX - backgroundMap.getX();
+            backgroundDragOffsetY = canvasY - backgroundMap.getY();
             refreshPanels();
             repaint();
             return;
@@ -1466,6 +1675,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    selectedItem = null;
 	    selectedRoomObject = null;
         selectedLine = null;
+        selectedTextBox = null;
+        backgroundSelected = false;
 
 	    refreshPanels();
 
@@ -1509,6 +1720,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
             notifyChanged();
         }
 
+        if (draggingTextBox || draggingBackground) {
+            notifyChanged();
+        }
+
 		draggingRoomObject = false;
 
 		resizingRoomObject = false;
@@ -1519,6 +1734,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         draggingLineStart = false;
         draggingLineEnd = false;
+        draggingTextBox = false;
+        draggingBackground = false;
 	}
 	@Override
 	public void mouseEntered(MouseEvent e) {}
@@ -1539,6 +1756,32 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		int canvasX = toCanvasX(e);
 		int canvasY = toCanvasY(e);
+
+        if (draggingTextBox && selectedTextBox != null) {
+            int x = canvasX - textBoxDragOffsetX;
+            int y = canvasY - textBoxDragOffsetY;
+
+            if (snapToGrid) {
+                x = snapValue(x);
+                y = snapValue(y);
+            }
+
+            selectedTextBox.setX(x);
+            selectedTextBox.setY(y);
+
+            repaint();
+
+            return;
+        }
+
+        if (draggingBackground && backgroundMap != null) {
+            backgroundMap.setX(canvasX - backgroundDragOffsetX);
+            backgroundMap.setY(canvasY - backgroundDragOffsetY);
+
+            repaint();
+
+            return;
+        }
 
         if ((draggingLineStart || draggingLineEnd) && selectedLine != null) {
 
@@ -1745,6 +1988,18 @@ public class CanvasPanel extends JPanel implements MouseListener,
             return;
         }
 
+        TextBoxItem textBox = findTextBox(mouseX, mouseY);
+
+        if (textBox != null) {
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            return;
+        }
+
+        if (isEditableBackgroundAt(mouseX, mouseY)) {
+            setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+            return;
+        }
+
 	    setCursor(Cursor.getDefaultCursor());
 	}
 		
@@ -1947,6 +2202,31 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	public void deleteSelectedItem() {
 
+        if (selectedTextBox != null) {
+            textBoxes.remove(selectedTextBox);
+            selectedTextBox = null;
+            draggingTextBox = false;
+
+            notifyChanged();
+
+            repaint();
+
+            return;
+        }
+
+        if (backgroundSelected && backgroundMap != null) {
+            backgroundMap = null;
+            backgroundImage = null;
+            backgroundSelected = false;
+            draggingBackground = false;
+
+            notifyChanged();
+
+            repaint();
+
+            return;
+        }
+
         if (selectedLine != null) {
 
             drawLines.remove(selectedLine);
@@ -2077,10 +2357,15 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    customRoomObjects.clear();
 
 	    drawLines.clear();
+        textBoxes.clear();
 
 	    selectedItem = null;
 	    selectedRoomObject = null;
         selectedLine = null;
+        selectedTextBox = null;
+        backgroundMap = null;
+        backgroundImage = null;
+        backgroundSelected = false;
 	    copiedItem = null;
 
 	    drawLineMode = false;
@@ -2201,6 +2486,44 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         return Math.sqrt(closestDx * closestDx + closestDy * closestDy);
     }
+
+    private TextBoxItem findTextBox(int x, int y) {
+
+        for (int i = textBoxes.size() - 1; i >= 0; i--) {
+            TextBoxItem textBox = textBoxes.get(i);
+            Rectangle rect =
+                    new Rectangle(
+                            textBox.getX(),
+                            textBox.getY(),
+                            textBox.getWidth(),
+                            textBox.getHeight());
+
+            if (rect.contains(x, y)) {
+                return textBox;
+            }
+        }
+
+        return null;
+    }
+
+    private boolean isEditableBackgroundAt(int x, int y) {
+
+        if (backgroundMap == null
+                || backgroundImage == null
+                || !backgroundMap.isVisible()
+                || backgroundMap.isLocked()) {
+            return false;
+        }
+
+        Rectangle rect =
+                new Rectangle(
+                        backgroundMap.getX(),
+                        backgroundMap.getY(),
+                        backgroundMap.getWidth(),
+                        backgroundMap.getHeight());
+
+        return rect.contains(x, y);
+    }
 	
 	public void setChangeCallback(Runnable changeCallback) {
 
@@ -2265,7 +2588,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
         return new LayoutSnapshot(
                 copyItems(items),
                 copyRoomObjects(customRoomObjects),
-                copyDrawLines(drawLines));
+                copyDrawLines(drawLines),
+                copyBackgroundMap(backgroundMap),
+                copyTextBoxes(textBoxes));
     }
 
     private void restoreSnapshot(LayoutSnapshot snapshot) {
@@ -2279,16 +2604,33 @@ public class CanvasPanel extends JPanel implements MouseListener,
         items = copyItems(snapshot.items);
         customRoomObjects = copyRoomObjects(snapshot.roomObjects);
         drawLines = copyDrawLines(snapshot.lines);
+        backgroundMap = copyBackgroundMap(snapshot.backgroundMap);
+        textBoxes = copyTextBoxes(snapshot.textBoxes);
+
+        if (backgroundMap != null && !backgroundMap.getImagePath().isBlank()) {
+            try {
+                backgroundImage =
+                        ImageIO.read(new File(backgroundMap.getImagePath()));
+            } catch (IOException ex) {
+                backgroundImage = null;
+            }
+        } else {
+            backgroundImage = null;
+        }
 
         selectedItem = null;
         selectedRoomObject = null;
         selectedLine = null;
+        selectedTextBox = null;
+        backgroundSelected = false;
         dragging = false;
         draggingRoomObject = false;
         resizingItem = false;
         resizingRoomObject = false;
         draggingLineStart = false;
         draggingLineEnd = false;
+        draggingTextBox = false;
+        draggingBackground = false;
 
         refreshPanels();
         repaint();
@@ -2424,6 +2766,53 @@ public class CanvasPanel extends JPanel implements MouseListener,
         return copiedLines;
     }
 
+    private BackgroundMap copyBackgroundMap(BackgroundMap source) {
+
+        if (source == null) {
+            return null;
+        }
+
+        BackgroundMap copy = new BackgroundMap();
+        copy.setImagePath(source.getImagePath());
+        copy.setX(source.getX());
+        copy.setY(source.getY());
+        copy.setWidth(source.getWidth());
+        copy.setHeight(source.getHeight());
+        copy.setOpacity(source.getOpacity());
+        copy.setRotation(source.getRotation());
+        copy.setVisible(source.isVisible());
+        copy.setLocked(source.isLocked());
+
+        return copy;
+    }
+
+    private List<TextBoxItem> copyTextBoxes(List<TextBoxItem> sourceTextBoxes) {
+
+        List<TextBoxItem> copiedTextBoxes = new ArrayList<>();
+
+        if (sourceTextBoxes == null) {
+            return copiedTextBoxes;
+        }
+
+        for (TextBoxItem textBox : sourceTextBoxes) {
+            TextBoxItem copy =
+                    new TextBoxItem(
+                            textBox.getText(),
+                            textBox.getX(),
+                            textBox.getY());
+            copy.setWidth(textBox.getWidth());
+            copy.setHeight(textBox.getHeight());
+            copy.setFontSize(textBox.getFontSize());
+            copy.setTextColor(textBox.getTextColor());
+            copy.setBackgroundColor(textBox.getBackgroundColor());
+            copy.setShowBackground(textBox.isShowBackground());
+            copy.setShowBorder(textBox.isShowBorder());
+            copiedTextBoxes.add(copy);
+        }
+
+        return copiedTextBoxes;
+    }
+
     private static class LayoutSnapshot {
 
         private final List<LayoutItem> items;
@@ -2432,14 +2821,22 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         private final List<DrawLine> lines;
 
+        private final BackgroundMap backgroundMap;
+
+        private final List<TextBoxItem> textBoxes;
+
         LayoutSnapshot(
                 List<LayoutItem> items,
                 List<RoomObject> roomObjects,
-                List<DrawLine> lines) {
+                List<DrawLine> lines,
+                BackgroundMap backgroundMap,
+                List<TextBoxItem> textBoxes) {
 
             this.items = items;
             this.roomObjects = roomObjects;
             this.lines = lines;
+            this.backgroundMap = backgroundMap;
+            this.textBoxes = textBoxes;
         }
     }
 	
@@ -2685,6 +3082,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    this.drawLineMode = drawLineMode;
         currentLineLabel = "";
+        textMode = false;
 	    
 	    if (drawLineMode) {
 	        roomObjectAddMode = null;
@@ -2701,6 +3099,221 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    repaint();
 	}
+
+    public void setTextMode(boolean textMode) {
+
+        this.textMode = textMode;
+        drawLineMode = false;
+        roomObjectAddMode = null;
+        lineStartX = null;
+        lineStartY = null;
+        selectedItem = null;
+        selectedRoomObject = null;
+        selectedLine = null;
+        backgroundSelected = false;
+
+        refreshPanels();
+        repaint();
+    }
+
+    public void switchToItemPlacementMode() {
+
+        // 機材パレットを押した時は、線や文字を描く作業が終わったと判断する。
+        drawLineMode = false;
+        textMode = false;
+        roomObjectAddMode = null;
+        lineStartX = null;
+        lineStartY = null;
+        selectedLine = null;
+        selectedRoomObject = null;
+        backgroundSelected = false;
+
+        repaint();
+    }
+
+    private void addTextBoxAt(int x, int y) {
+
+        String text =
+                JOptionPane.showInputDialog(
+                        this,
+                        "表示する文字を入力してください");
+
+        if (text == null || text.isBlank()) {
+            return;
+        }
+
+        TextBoxItem textBox = new TextBoxItem(text, x, y);
+        textBoxes.add(textBox);
+        selectedTextBox = textBox;
+
+        notifyChanged();
+        repaint();
+    }
+
+    private void editSelectedTextBox() {
+
+        if (selectedTextBox == null) {
+            return;
+        }
+
+        String text =
+                JOptionPane.showInputDialog(
+                        this,
+                        "表示する文字を入力してください",
+                        selectedTextBox.getText());
+
+        if (text == null) {
+            return;
+        }
+
+        selectedTextBox.setText(text);
+        notifyChanged();
+        repaint();
+    }
+
+    public void loadBackgroundMap(File file) {
+
+        if (file == null) {
+            return;
+        }
+
+        String lowerName = file.getName().toLowerCase();
+
+        if (lowerName.endsWith(".pdf")) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "PDF背景読み込みにはPDFBoxの追加が必要です。\n"
+                            + "現在はPNG/JPG/JPEGを読み込めます。");
+            return;
+        }
+
+        try {
+            // 背景図面はImageIOで読み込み、キャンバスの下絵として描画する。
+            BufferedImage image = ImageIO.read(file);
+
+            if (image == null) {
+                throw new IOException("画像として読み込めませんでした。");
+            }
+
+            backgroundImage = image;
+            backgroundMap = new BackgroundMap();
+            backgroundMap.setImagePath(file.getAbsolutePath());
+            backgroundMap.setX(0);
+            backgroundMap.setY(0);
+            backgroundMap.setWidth(image.getWidth());
+            backgroundMap.setHeight(image.getHeight());
+            backgroundMap.setLocked(true);
+            backgroundMap.setVisible(true);
+            backgroundSelected = false;
+
+            fitBackgroundToSheetWidth();
+            notifyChanged();
+            repaint();
+
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "背景図面の読み込みに失敗しました。\n" + ex.getMessage());
+        }
+    }
+
+    public void setBackgroundMap(BackgroundMap backgroundMap) {
+
+        this.backgroundMap = backgroundMap;
+        backgroundImage = null;
+        backgroundSelected = false;
+
+        if (backgroundMap != null && !backgroundMap.getImagePath().isBlank()) {
+            try {
+                backgroundImage = ImageIO.read(new File(backgroundMap.getImagePath()));
+            } catch (IOException ex) {
+                backgroundImage = null;
+            }
+        }
+
+        repaint();
+    }
+
+    public BackgroundMap getBackgroundMap() {
+        return backgroundMap;
+    }
+
+    public void toggleBackgroundVisible() {
+
+        if (backgroundMap == null) {
+            return;
+        }
+
+        backgroundMap.setVisible(!backgroundMap.isVisible());
+        notifyChanged();
+        repaint();
+    }
+
+    public void toggleBackgroundLocked() {
+
+        if (backgroundMap == null) {
+            return;
+        }
+
+        backgroundMap.setLocked(!backgroundMap.isLocked());
+        backgroundSelected = false;
+        notifyChanged();
+        repaint();
+    }
+
+    public void setBackgroundOpacity(float opacity) {
+
+        if (backgroundMap == null) {
+            return;
+        }
+
+        backgroundMap.setOpacity(opacity);
+        notifyChanged();
+        repaint();
+    }
+
+    public void clearBackgroundMap() {
+
+        backgroundMap = null;
+        backgroundImage = null;
+        backgroundSelected = false;
+        notifyChanged();
+        repaint();
+    }
+
+    public void fitBackgroundToSheetWidth() {
+
+        if (backgroundMap == null || backgroundImage == null) {
+            return;
+        }
+
+        double scale = getSheetContentWidth() / (double) backgroundImage.getWidth();
+        backgroundMap.setWidth(getSheetContentWidth());
+        backgroundMap.setHeight((int) Math.round(backgroundImage.getHeight() * scale));
+        centerBackgroundMap();
+    }
+
+    public void centerBackgroundMap() {
+
+        if (backgroundMap == null) {
+            return;
+        }
+
+        backgroundMap.setX((getSheetContentWidth() - backgroundMap.getWidth()) / 2);
+        backgroundMap.setY((getSheetContentHeight() - backgroundMap.getHeight()) / 2);
+        notifyChanged();
+        repaint();
+    }
+
+    public List<TextBoxItem> getTextBoxes() {
+        return textBoxes;
+    }
+
+    public void setTextBoxes(List<TextBoxItem> textBoxes) {
+        this.textBoxes = textBoxes == null ? new ArrayList<>() : textBoxes;
+        selectedTextBox = null;
+        repaint();
+    }
 
 	public boolean isDrawLineMode() {
 	    return drawLineMode;
@@ -3012,6 +3625,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    this.roomObjectAddMode = mode;
 	    
 	    drawLineMode = false;
+        textMode = false;
 	    
 	    lineStartX = null;
 	    lineStartY = null;
@@ -3019,6 +3633,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    selectedItem = null;
 	    selectedRoomObject = null;
         selectedLine = null;
+        selectedTextBox = null;
 	    
 	    refreshPanels();
 
@@ -3356,6 +3971,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public void setSelectMode() {
 
 	    drawLineMode = false;
+        textMode = false;
 
 	    roomObjectAddMode = null;
 
@@ -3364,6 +3980,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    selectedItem = null;
 	    selectedRoomObject = null;
+        selectedLine = null;
+        selectedTextBox = null;
+        backgroundSelected = false;
 
 	    repaint();
 	}

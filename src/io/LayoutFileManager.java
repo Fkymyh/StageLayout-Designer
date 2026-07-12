@@ -7,12 +7,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import model.BackgroundMap;
 import model.DrawLine;
 import model.Equipment;
 import model.EquipmentFactory;
 import model.LayoutItem;
 import model.ProjectInfo;
 import model.RoomObject;
+import model.TextBoxItem;
 
 public class LayoutFileManager {
 
@@ -21,6 +23,8 @@ public class LayoutFileManager {
     				List<LayoutItem> items,
     				List<RoomObject> customRoomObjects,
     		        List<DrawLine> drawLines,
+                    BackgroundMap backgroundMap,
+                    List<TextBoxItem> textBoxes,
     				ProjectInfo projectInfo,
     				String fileName)
     				throws IOException {
@@ -89,6 +93,41 @@ public class LayoutFileManager {
             writer.write("\n");
         }
 
+        writer.write("#BACKGROUND\n");
+
+        if (backgroundMap != null) {
+            writer.write(
+                    escape(backgroundMap.getImagePath()) + "," +
+                    backgroundMap.getX() + "," +
+                    backgroundMap.getY() + "," +
+                    backgroundMap.getWidth() + "," +
+                    backgroundMap.getHeight() + "," +
+                    backgroundMap.getOpacity() + "," +
+                    backgroundMap.getRotation() + "," +
+                    backgroundMap.isVisible() + "," +
+                    backgroundMap.isLocked());
+
+            writer.write("\n");
+        }
+
+        writer.write("#TEXT_BOXES\n");
+
+        for (TextBoxItem textBox : textBoxes) {
+            writer.write(
+                    escape(textBox.getText()) + "," +
+                    textBox.getX() + "," +
+                    textBox.getY() + "," +
+                    textBox.getWidth() + "," +
+                    textBox.getHeight() + "," +
+                    textBox.getFontSize() + "," +
+                    textBox.getTextColor().getRGB() + "," +
+                    textBox.getBackgroundColor().getRGB() + "," +
+                    textBox.isShowBackground() + "," +
+                    textBox.isShowBorder());
+
+            writer.write("\n");
+        }
+
         writer.close();
     }
     
@@ -151,6 +190,8 @@ public class LayoutFileManager {
         List<LayoutItem> items = new ArrayList<>();
         List<RoomObject> customRoomObjects = new ArrayList<>();
         List<DrawLine> drawLines = new ArrayList<>();
+        List<TextBoxItem> textBoxes = new ArrayList<>();
+        BackgroundMap backgroundMap = null;
 
         BufferedReader reader =
                 new BufferedReader(new FileReader(fileName));
@@ -182,6 +223,16 @@ public class LayoutFileManager {
 
             if (line.equals("#LINES")) {
                 mode = "LINES";
+                continue;
+            }
+
+            if (line.equals("#BACKGROUND")) {
+                mode = "BACKGROUND";
+                continue;
+            }
+
+            if (line.equals("#TEXT_BOXES")) {
+                mode = "TEXT_BOXES";
                 continue;
             }
 
@@ -384,6 +435,53 @@ public class LayoutFileManager {
 
                 continue;
             }
+
+            if ("BACKGROUND".equals(mode)) {
+
+                String[] data = splitEscapedCsv(line);
+
+                if (data.length >= 9) {
+                    backgroundMap = new BackgroundMap();
+                    backgroundMap.setImagePath(unescape(data[0]));
+                    backgroundMap.setX(Integer.parseInt(data[1]));
+                    backgroundMap.setY(Integer.parseInt(data[2]));
+                    backgroundMap.setWidth(Integer.parseInt(data[3]));
+                    backgroundMap.setHeight(Integer.parseInt(data[4]));
+                    backgroundMap.setOpacity(Float.parseFloat(data[5]));
+                    backgroundMap.setRotation(Integer.parseInt(data[6]));
+                    backgroundMap.setVisible(Boolean.parseBoolean(data[7]));
+                    backgroundMap.setLocked(Boolean.parseBoolean(data[8]));
+                }
+
+                continue;
+            }
+
+            if ("TEXT_BOXES".equals(mode)) {
+
+                String[] data = splitEscapedCsv(line);
+
+                if (data.length >= 10) {
+                    TextBoxItem textBox =
+                            new TextBoxItem(
+                                    unescape(data[0]),
+                                    Integer.parseInt(data[1]),
+                                    Integer.parseInt(data[2]));
+
+                    textBox.setWidth(Integer.parseInt(data[3]));
+                    textBox.setHeight(Integer.parseInt(data[4]));
+                    textBox.setFontSize(Integer.parseInt(data[5]));
+                    textBox.setTextColor(new java.awt.Color(
+                            Integer.parseInt(data[6]), true));
+                    textBox.setBackgroundColor(new java.awt.Color(
+                            Integer.parseInt(data[7]), true));
+                    textBox.setShowBackground(Boolean.parseBoolean(data[8]));
+                    textBox.setShowBorder(Boolean.parseBoolean(data[9]));
+
+                    textBoxes.add(textBox);
+                }
+
+                continue;
+            }
         }
 
         reader.close();
@@ -392,7 +490,9 @@ public class LayoutFileManager {
                 projectInfo,
                 items,
                 customRoomObjects,
-                drawLines);
+                drawLines,
+                backgroundMap,
+                textBoxes);
     }
     
     private static String[] splitEscapedCsv(String line) {

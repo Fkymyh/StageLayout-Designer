@@ -89,6 +89,8 @@ public class EquipmentPanel extends JPanel {
 
     private Set<String> favoriteNames = new LinkedHashSet<>();
 
+    private Runnable equipmentSelectionCallback;
+
     public EquipmentPanel() {
 
         setLayout(new BorderLayout(6, 6));
@@ -522,12 +524,20 @@ public class EquipmentPanel extends JPanel {
 
             selectedEquipmentName = name;
 
+            if (equipmentSelectionCallback != null) {
+                equipmentSelectionCallback.run();
+            }
+
             updateButtonSelection();
         });
 
         button.setComponentPopupMenu(createEquipmentPopupMenu(name));
 
         return button;
+    }
+
+    public void setEquipmentSelectionCallback(Runnable equipmentSelectionCallback) {
+        this.equipmentSelectionCallback = equipmentSelectionCallback;
     }
 
     private JPopupMenu createEquipmentPopupMenu(String name) {

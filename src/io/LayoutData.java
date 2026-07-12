@@ -2,10 +2,12 @@ package io;
 
 import java.util.List;
 
+import model.BackgroundMap;
 import model.DrawLine;
 import model.LayoutItem;
 import model.ProjectInfo;
 import model.RoomObject;
+import model.TextBoxItem;
 
 public class LayoutData {
 
@@ -17,12 +19,22 @@ public class LayoutData {
     
     private List<DrawLine> drawLines;
 
-    public LayoutData(ProjectInfo projectInfo, List<LayoutItem> items,
-    		 List<RoomObject> customRoomObjects,List<DrawLine> drawLines) {
+    private BackgroundMap backgroundMap;
+
+    private List<TextBoxItem> textBoxes;
+
+    public LayoutData(ProjectInfo projectInfo,
+             List<LayoutItem> items,
+             List<RoomObject> customRoomObjects,
+             List<DrawLine> drawLines,
+             BackgroundMap backgroundMap,
+             List<TextBoxItem> textBoxes) {
         this.projectInfo = projectInfo;
         this.items = items;
         this.customRoomObjects = customRoomObjects;
         this.drawLines = drawLines;
+        this.backgroundMap = backgroundMap;
+        this.textBoxes = textBoxes;
     }
 
     public ProjectInfo getProjectInfo() {
@@ -39,6 +51,14 @@ public class LayoutData {
 
     public List<DrawLine> getDrawLines() {
         return drawLines;
+    }
+
+    public BackgroundMap getBackgroundMap() {
+        return backgroundMap;
+    }
+
+    public List<TextBoxItem> getTextBoxes() {
+        return textBoxes;
     }
     
 }
