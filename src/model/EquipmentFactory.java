@@ -74,7 +74,7 @@ public class EquipmentFactory {
 
         register(
                 "バミリ 横",
-                "舞台",
+                "舞台 > バミリ",
                 Color.RED,
                 25,
                 4,
@@ -82,7 +82,7 @@ public class EquipmentFactory {
 
         register(
                 "バミリ 縦",
-                "舞台",
+                "舞台 > バミリ",
                 Color.RED,
                 4,
                 25,
@@ -90,7 +90,7 @@ public class EquipmentFactory {
 
         register(
                 "バミリ X",
-                "舞台",
+                "舞台 > バミリ",
                 Color.RED,
                 18,
                 18,
@@ -98,10 +98,34 @@ public class EquipmentFactory {
         
         register(
                 "バミリ ＋",
-                "舞台",
+                "舞台 > バミリ",
                 Color.RED,
                 22,
                 22,
+                null);
+
+        register(
+                "バミリ L",
+                "舞台 > バミリ",
+                Color.RED,
+                22,
+                22,
+                null);
+
+        register(
+                "バミリ T",
+                "舞台 > バミリ",
+                Color.RED,
+                22,
+                22,
+                null);
+
+        register(
+                "バミリ 自由線",
+                "舞台 > バミリ",
+                Color.RED,
+                40,
+                6,
                 null);
 
         register(

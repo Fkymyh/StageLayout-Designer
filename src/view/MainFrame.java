@@ -70,6 +70,14 @@ public class MainFrame extends JFrame {
         propertyPanel = new PropertyPanel();
         canvasPanel = new CanvasPanel(equipmentPanel, propertyPanel);
         equipmentPanel.setEquipmentSelectionCallback(() -> {
+            String selectedEquipment = equipmentPanel.getSelectedEquipment();
+
+            if ("バミリ 自由線".equals(selectedEquipment)) {
+                canvasPanel.setBamiriFreeLineMode();
+                statusLabel.setText("モード: バミリ自由線");
+                return;
+            }
+
             canvasPanel.switchToItemPlacementMode();
             statusLabel.setText("モード: 機材配置");
         });
@@ -534,7 +542,7 @@ public class MainFrame extends JFrame {
         JComboBox<Integer> strokeComboBox =
                 new JComboBox<>(new Integer[] {1, 2, 3, 4, 5, 6, 8, 10});
 
-        strokeComboBox.setSelectedItem(3);
+        strokeComboBox.setSelectedItem(5);
         
         colorComboBox.setMaximumSize(new Dimension(80, 28));
         colorComboBox.setPreferredSize(new Dimension(80, 28));
@@ -560,7 +568,7 @@ public class MainFrame extends JFrame {
         });
 
         bamiriLineButton.addActionListener(e -> {
-            canvasPanel.setBamiriLineMode();
+            canvasPanel.setBamiriFreeLineMode();
             colorComboBox.setSelectedItem("赤");
             strokeComboBox.setSelectedItem(5);
             statusLabel.setText("モード: バミリ線");

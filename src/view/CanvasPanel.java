@@ -78,7 +78,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private Color currentLineColor = Color.RED;
 
-	private int currentLineStrokeWidth = 3;
+	private int currentLineStrokeWidth = 5;
 
     private String currentLineLabel = "";
 	
@@ -1129,28 +1129,45 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    int w = item.getWidth();
 	    int h = item.getHeight();
 
-	    g.setColor(item.getEquipment().getColor());
+        Graphics2D g2 = (Graphics2D) g.create();
+        double centerX = x + w / 2.0;
+        double centerY = y + h / 2.0;
+        g2.rotate(Math.toRadians(item.getRotation()), centerX, centerY);
+
+	    g2.setColor(item.getEquipment().getColor());
 
 	    if ("バミリ X".equals(name)) {
 
-	        g.drawLine(x, y, x + w, y + h);
-	        g.drawLine(x + w, y, x, y + h);
+	        g2.drawLine(x, y, x + w, y + h);
+	        g2.drawLine(x + w, y, x, y + h);
 
 	    } else if ("バミリ ＋".equals(name)) {
 
-	        g.drawLine(x + w / 2, y, x + w / 2, y + h);
-	        g.drawLine(x, y + h / 2, x + w, y + h / 2);
+	        g2.drawLine(x + w / 2, y, x + w / 2, y + h);
+	        g2.drawLine(x, y + h / 2, x + w, y + h / 2);
+
+	    } else if (name.endsWith(" L")) {
+
+	        g2.fillRect(x, y, Math.max(3, w / 5), h);
+	        g2.fillRect(x, y + h - Math.max(3, h / 5), w, Math.max(3, h / 5));
+
+	    } else if (name.endsWith(" T")) {
+
+	        g2.fillRect(x, y, w, Math.max(3, h / 5));
+	        g2.fillRect(x + w / 2 - Math.max(2, w / 10), y, Math.max(4, w / 5), h);
 
 	    } else {
 
 	        // バミリ 横・縦
-	        g.fillRect(x, y, w, h);
+	        g2.fillRect(x, y, w, h);
 	    }
 
 	    if (item == selectedItem) {
-	        g.setColor(Color.RED);
-	        g.drawRect(x - 3, y - 3, w + 6, h + 6);
+	        g2.setColor(Color.RED);
+	        g2.drawRect(x - 3, y - 3, w + 6, h + 6);
 	    }
+
+        g2.dispose();
 	}
 	
 	private void drawModeNotice(Graphics g) {
@@ -3180,9 +3197,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	public void setDrawLineMode(boolean drawLineMode) {
 
+        clearAllModes();
 	    this.drawLineMode = drawLineMode;
         currentLineLabel = "";
-        textMode = false;
 	    
 	    if (drawLineMode) {
 	        roomObjectAddMode = null;
@@ -3202,9 +3219,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
     public void setTextMode(boolean textMode) {
 
+        clearAllModes();
         this.textMode = textMode;
-        drawLineMode = false;
-        roomObjectAddMode = null;
         lineStartX = null;
         lineStartY = null;
         selectedItem = null;
@@ -3218,6 +3234,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
     public void switchToItemPlacementMode() {
 
+        clearAllModes();
+
         // 機材パレットを押した時は、線や文字を描く作業が終わったと判断する。
         drawLineMode = false;
         textMode = false;
@@ -3229,6 +3247,32 @@ public class CanvasPanel extends JPanel implements MouseListener,
         backgroundSelected = false;
 
         repaint();
+    }
+
+    private void clearAllModes() {
+
+        textMode = false;
+        drawLineMode = false;
+        roomObjectAddMode = null;
+
+        lineStartX = null;
+        lineStartY = null;
+
+        selectedTextBox = null;
+        selectedItem = null;
+        selectedRoomObject = null;
+        selectedLine = null;
+        backgroundSelected = false;
+
+        dragging = false;
+        draggingRoomObject = false;
+        resizingRoomObject = false;
+        resizingItem = false;
+        draggingLineStart = false;
+        draggingLineEnd = false;
+        draggingTextBox = false;
+        resizingTextBox = false;
+        draggingBackground = false;
     }
 
     private void addTextBoxAt(int x, int y) {
@@ -3376,7 +3420,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         }
 
         try {
-            // BackgroundImageLoader also handles the first page of a PDF when PDFBox is available.
+            // PDFは提出用の下絵として使いやすいよう、先頭ページだけ画像化する。
             BufferedImage image = BackgroundImageLoader.load(file);
 
             backgroundImage = image;
@@ -3399,7 +3443,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
                     this,
                     "背景図面の読み込みに失敗しました。\n"
                             + ex.getMessage()
-                            + "\n\nPDFを読む場合は、libフォルダにpdfbox-app-3.x.x.jarを置いてください。");
+                            + "\n\nPDFの場合は、破損していないファイルか、ページがあるPDFかを確認してください。");
         }
     }
 
@@ -3555,11 +3599,17 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    this.currentLineStrokeWidth = strokeWidth;
 
+        if (selectedLine != null) {
+            selectedLine.setStrokeWidth(strokeWidth);
+            notifyChanged();
+        }
+
 	    repaint();
 	}
 
     public void setBamiriLineMode() {
 
+        clearAllModes();
         drawLineMode = false;
         if (equipmentPanel != null) {
             equipmentPanel.selectEquipmentByName("バミリ 横");
@@ -3578,6 +3628,18 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         refreshPanels();
 
+        repaint();
+    }
+
+    public void setBamiriFreeLineMode() {
+
+        clearAllModes();
+        drawLineMode = true;
+        currentLineColor = Color.RED;
+        currentLineStrokeWidth = 5;
+        currentLineLabel = "バミリ";
+
+        refreshPanels();
         repaint();
     }
 	
