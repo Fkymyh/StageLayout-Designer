@@ -107,7 +107,15 @@ public class LayoutFileManager {
                     backgroundMap.getOpacity() + "," +
                     backgroundMap.getRotation() + "," +
                     backgroundMap.isVisible() + "," +
-                    backgroundMap.isLocked());
+                    backgroundMap.isLocked() + "," +
+                    escape(backgroundMap.getOriginalFileName()) + "," +
+                    backgroundMap.getActualWidthMeters() + "," +
+                    backgroundMap.getActualHeightMeters() + "," +
+                    backgroundMap.getCropX() + "," +
+                    backgroundMap.getCropY() + "," +
+                    backgroundMap.getCropWidth() + "," +
+                    backgroundMap.getCropHeight() + "," +
+                    escape(backgroundMap.getPreviewMode()));
 
             writer.write("\n");
         }
@@ -466,6 +474,26 @@ public class LayoutFileManager {
                     backgroundMap.setRotation(Integer.parseInt(data[6]));
                     backgroundMap.setVisible(Boolean.parseBoolean(data[7]));
                     backgroundMap.setLocked(Boolean.parseBoolean(data[8]));
+
+                    if (data.length >= 10) {
+                        backgroundMap.setOriginalFileName(unescape(data[9]));
+                    }
+
+                    if (data.length >= 12) {
+                        backgroundMap.setActualWidthMeters(Double.parseDouble(data[10]));
+                        backgroundMap.setActualHeightMeters(Double.parseDouble(data[11]));
+                    }
+
+                    if (data.length >= 16) {
+                        backgroundMap.setCropX(Integer.parseInt(data[12]));
+                        backgroundMap.setCropY(Integer.parseInt(data[13]));
+                        backgroundMap.setCropWidth(Integer.parseInt(data[14]));
+                        backgroundMap.setCropHeight(Integer.parseInt(data[15]));
+                    }
+
+                    if (data.length >= 17) {
+                        backgroundMap.setPreviewMode(unescape(data[16]));
+                    }
                 }
 
                 continue;

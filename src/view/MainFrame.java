@@ -228,6 +228,8 @@ public class MainFrame extends JFrame {
                             canvasPanel.getBackgroundMap(),
                             canvasPanel.getTextBoxes(),
                             canvasPanel.getRoomTemplate(),
+                            canvasPanel.getPreviewSheetWidth(),
+                            canvasPanel.getPreviewSheetHeight(),
                             canvasPanel.isShowNames(),
                             PreviewDialog.ORIENTATION_LANDSCAPE);
 
@@ -256,12 +258,12 @@ public class MainFrame extends JFrame {
 
             try {
 
-                // 会場テンプレート保存では、当日の機材や線は保存せず会場パーツだけ残す。
+                // 会場テンプレート保存では、当日の機材や線は保存せず会場パーツと背景図面だけ残す。
                 LayoutFileManager.save(
                         new ArrayList<>(),
                         canvasPanel.getCustomRoomObjects(),
                         new ArrayList<>(),
-                        null,
+                        canvasPanel.getBackgroundMap(),
                         new ArrayList<>(),
                         projectInfo,
                         fileName);
@@ -314,8 +316,9 @@ public class MainFrame extends JFrame {
                 LayoutData data =
                         LayoutFileManager.load(fileName);
 
-                // 会場テンプレート読み込みは、機材配置を残して会場だけ差し替える。
+                // 会場テンプレート読み込みは、機材配置を残して会場と背景図面だけ差し替える。
                 canvasPanel.setCustomRoomObjects(data.getCustomRoomObjects());
+                canvasPanel.setBackgroundMap(data.getBackgroundMap());
                 canvasPanel.setRoomTemplate(null);
                 canvasPanel.setStageLocked(false);
                 updateStageLockCheckBox(false);
@@ -452,6 +455,12 @@ public class MainFrame extends JFrame {
         JMenuItem fitBackgroundItem = new JMenuItem("シート幅に合わせる");
         fitBackgroundItem.addActionListener(e -> canvasPanel.fitBackgroundToSheetWidth());
 
+        JMenuItem fitBackgroundHeightItem = new JMenuItem("シート高さに合わせる");
+        fitBackgroundHeightItem.addActionListener(e -> canvasPanel.fitBackgroundToSheetHeight());
+
+        JMenuItem actualBackgroundSizeItem = new JMenuItem("実寸幅を設定");
+        actualBackgroundSizeItem.addActionListener(e -> canvasPanel.askAndFitBackgroundToActualSize());
+
         JMenuItem centerBackgroundItem = new JMenuItem("中央に配置");
         centerBackgroundItem.addActionListener(e -> canvasPanel.centerBackgroundMap());
 
@@ -464,6 +473,8 @@ public class MainFrame extends JFrame {
         backgroundMenu.add(opacity75Item);
         backgroundMenu.addSeparator();
         backgroundMenu.add(fitBackgroundItem);
+        backgroundMenu.add(fitBackgroundHeightItem);
+        backgroundMenu.add(actualBackgroundSizeItem);
         backgroundMenu.add(centerBackgroundItem);
 
         menuBar.add(fileMenu);
@@ -621,6 +632,8 @@ public class MainFrame extends JFrame {
                             canvasPanel.getBackgroundMap(),
                             canvasPanel.getTextBoxes(),
                             canvasPanel.getRoomTemplate(),
+                            canvasPanel.getPreviewSheetWidth(),
+                            canvasPanel.getPreviewSheetHeight(),
                             canvasPanel.isShowNames(),
                             PreviewDialog.ORIENTATION_LANDSCAPE);
 

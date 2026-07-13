@@ -2891,6 +2891,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         BackgroundMap copy = new BackgroundMap();
         copy.setImagePath(source.getImagePath());
+        copy.setOriginalFileName(source.getOriginalFileName());
         copy.setX(source.getX());
         copy.setY(source.getY());
         copy.setWidth(source.getWidth());
@@ -2899,6 +2900,13 @@ public class CanvasPanel extends JPanel implements MouseListener,
         copy.setRotation(source.getRotation());
         copy.setVisible(source.isVisible());
         copy.setLocked(source.isLocked());
+        copy.setActualWidthMeters(source.getActualWidthMeters());
+        copy.setActualHeightMeters(source.getActualHeightMeters());
+        copy.setCropX(source.getCropX());
+        copy.setCropY(source.getCropY());
+        copy.setCropWidth(source.getCropWidth());
+        copy.setCropHeight(source.getCropHeight());
+        copy.setPreviewMode(source.getPreviewMode());
 
         return copy;
     }
@@ -3426,15 +3434,26 @@ public class CanvasPanel extends JPanel implements MouseListener,
             backgroundImage = image;
             backgroundMap = new BackgroundMap();
             backgroundMap.setImagePath(file.getAbsolutePath());
+            backgroundMap.setOriginalFileName(file.getName());
             backgroundMap.setX(0);
             backgroundMap.setY(0);
             backgroundMap.setWidth(image.getWidth());
             backgroundMap.setHeight(image.getHeight());
+            backgroundMap.setCropWidth(image.getWidth());
+            backgroundMap.setCropHeight(image.getHeight());
+            backgroundMap.setPreviewMode(SheetPreviewPanel.PREVIEW_CONTENT);
             backgroundMap.setLocked(true);
             backgroundMap.setVisible(true);
             backgroundSelected = false;
 
-            fitBackgroundToSheetWidth();
+            double[] actualSizeMeters = askBackgroundActualSizeMeters(image);
+
+            if (actualSizeMeters == null) {
+                fitBackgroundToSheetWidth();
+            } else {
+                fitBackgroundToActualSize(actualSizeMeters[0], actualSizeMeters[1]);
+            }
+
             notifyChanged();
             repaint();
 
@@ -3444,6 +3463,54 @@ public class CanvasPanel extends JPanel implements MouseListener,
                     "背景図面の読み込みに失敗しました。\n"
                             + ex.getMessage()
                             + "\n\nPDFの場合は、破損していないファイルか、ページがあるPDFかを確認してください。");
+        }
+    }
+
+    private double[] askBackgroundActualSizeMeters(BufferedImage image) {
+
+        JTextField widthField = new JTextField();
+        JTextField heightField = new JTextField();
+
+        JPanel panel = new JPanel(new java.awt.GridLayout(2, 2, 8, 8));
+        panel.add(new JLabel("横幅 m"));
+        panel.add(widthField);
+        panel.add(new JLabel("高さ m（空欄なら比率で自動）"));
+        panel.add(heightField);
+
+        int result =
+                JOptionPane.showConfirmDialog(
+                        this,
+                        panel,
+                        "背景図面の実寸幅",
+                        JOptionPane.OK_CANCEL_OPTION,
+                        JOptionPane.PLAIN_MESSAGE);
+
+        if (result != JOptionPane.OK_OPTION) {
+            return null;
+        }
+
+        try {
+            double widthMeters = Double.parseDouble(widthField.getText().trim());
+            double heightMeters = 0.0;
+
+            if (!heightField.getText().trim().isBlank()) {
+                heightMeters = Double.parseDouble(heightField.getText().trim());
+            } else if (image != null && image.getWidth() > 0) {
+                heightMeters = widthMeters * image.getHeight() / image.getWidth();
+            }
+
+            if (widthMeters <= 0.0 || heightMeters <= 0.0) {
+                throw new NumberFormatException();
+            }
+
+            return new double[] {widthMeters, heightMeters};
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "実寸幅は 20 や 17.5 のような数字で入力してください。\n"
+                            + "今回はシート幅に合わせて読み込みます。");
+            return null;
         }
     }
 
@@ -3522,6 +3589,71 @@ public class CanvasPanel extends JPanel implements MouseListener,
         backgroundMap.setWidth(getSheetContentWidth());
         backgroundMap.setHeight((int) Math.round(backgroundImage.getHeight() * scale));
         centerBackgroundMap();
+    }
+
+    public void fitBackgroundToSheetHeight() {
+
+        if (backgroundMap == null || backgroundImage == null) {
+            return;
+        }
+
+        double scale = getSheetContentHeight() / (double) backgroundImage.getHeight();
+        backgroundMap.setHeight(getSheetContentHeight());
+        backgroundMap.setWidth((int) Math.round(backgroundImage.getWidth() * scale));
+        centerBackgroundMap();
+    }
+
+    public void fitBackgroundToActualSize(double actualWidthMeters, double actualHeightMeters) {
+
+        if (backgroundMap == null) {
+            return;
+        }
+
+        if (actualWidthMeters <= 0.0) {
+            return;
+        }
+
+        int widthPx = (int) Math.round(actualWidthMeters * getPixelsPerMeter());
+        int heightPx;
+
+        if (actualHeightMeters > 0.0) {
+            heightPx = (int) Math.round(actualHeightMeters * getPixelsPerMeter());
+        } else if (backgroundImage != null && backgroundImage.getWidth() > 0) {
+            heightPx =
+                    (int) Math.round(
+                            widthPx * backgroundImage.getHeight()
+                                    / (double) backgroundImage.getWidth());
+        } else {
+            heightPx = backgroundMap.getHeight();
+        }
+
+        backgroundMap.setActualWidthMeters(actualWidthMeters);
+        backgroundMap.setActualHeightMeters(actualHeightMeters);
+        backgroundMap.setWidth(widthPx);
+        backgroundMap.setHeight(heightPx);
+
+        if (widthPx > getSheetContentWidth() || heightPx > getSheetContentHeight()) {
+            setSheetSizeMeters(
+                    Math.max(2.0, actualWidthMeters + 2.0),
+                    Math.max(2.0, actualHeightMeters + 2.0));
+        }
+
+        centerBackgroundMap();
+    }
+
+    public void askAndFitBackgroundToActualSize() {
+
+        if (backgroundMap == null) {
+            return;
+        }
+
+        double[] actualSizeMeters = askBackgroundActualSizeMeters(backgroundImage);
+
+        if (actualSizeMeters == null) {
+            return;
+        }
+
+        fitBackgroundToActualSize(actualSizeMeters[0], actualSizeMeters[1]);
     }
 
     public void centerBackgroundMap() {
@@ -3714,6 +3846,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
         return sheetWidth;
     }
 
+    public int getPreviewSheetWidth() {
+        return getSheetContentWidth();
+    }
+
     private int getSheetContentHeight() {
 
         if (roomTemplate != null) {
@@ -3721,6 +3857,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
         }
 
         return sheetHeight;
+    }
+
+    public int getPreviewSheetHeight() {
+        return getSheetContentHeight();
     }
 
     public void setSheetSizeMeters(double widthMeters, double heightMeters) {

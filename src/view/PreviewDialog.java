@@ -13,8 +13,10 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -42,6 +44,8 @@ public class PreviewDialog extends JDialog{
             BackgroundMap backgroundMap,
             List<TextBoxItem> textBoxes,
 			RoomTemplate roomTemplate,
+            int sheetWidth,
+            int sheetHeight,
             boolean showNames,
 			String orientation) {
 		
@@ -66,6 +70,8 @@ public class PreviewDialog extends JDialog{
                         backgroundMap,
                         textBoxes,
 						roomTemplate,
+                        sheetWidth,
+                        sheetHeight,
                         showNames,
 						orientation);
 		
@@ -76,6 +82,25 @@ public class PreviewDialog extends JDialog{
 
 		JPanel buttonPanel = new JPanel();
 
+        JComboBox<String> previewRangeComboBox =
+                new JComboBox<>(
+                        new String[] {
+                                SheetPreviewPanel.PREVIEW_CONTENT,
+                                SheetPreviewPanel.PREVIEW_BACKGROUND,
+                                SheetPreviewPanel.PREVIEW_SHEET
+                        });
+
+        previewRangeComboBox.setSelectedItem(initialPreviewMode(backgroundMap));
+        previewPanel.setPreviewRangeMode((String) previewRangeComboBox.getSelectedItem());
+        previewRangeComboBox.addActionListener(e -> {
+            String selectedMode = (String) previewRangeComboBox.getSelectedItem();
+            previewPanel.setPreviewRangeMode(selectedMode);
+
+            if (backgroundMap != null) {
+                backgroundMap.setPreviewMode(selectedMode);
+            }
+        });
+
 		JButton exportButton = new JButton("PNG画像として保存");
         JButton printButton = new JButton("印刷");
 		JButton closeButton = new JButton("閉じる");
@@ -84,6 +109,8 @@ public class PreviewDialog extends JDialog{
         printButton.addActionListener(e -> printPreview(previewPanel));
 		closeButton.addActionListener(e -> dispose());
 
+        buttonPanel.add(new JLabel("プレビュー範囲"));
+        buttonPanel.add(previewRangeComboBox);
 		buttonPanel.add(exportButton);
         buttonPanel.add(printButton);
 		buttonPanel.add(closeButton);
@@ -92,6 +119,15 @@ public class PreviewDialog extends JDialog{
 		
 		
 	}
+
+    private String initialPreviewMode(BackgroundMap backgroundMap) {
+
+        if (backgroundMap == null || backgroundMap.getPreviewMode().isBlank()) {
+            return SheetPreviewPanel.PREVIEW_CONTENT;
+        }
+
+        return backgroundMap.getPreviewMode();
+    }
 
     private void printPreview(SheetPreviewPanel previewPanel) {
 

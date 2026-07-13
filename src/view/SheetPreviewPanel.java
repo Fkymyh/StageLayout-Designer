@@ -9,6 +9,7 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.image.BufferedImage;
@@ -31,6 +32,10 @@ import util.BackgroundImageLoader;
 import util.ImageLoader;
 
 public class SheetPreviewPanel extends JPanel{
+
+    public static final String PREVIEW_CONTENT = "配置物に合わせる";
+    public static final String PREVIEW_BACKGROUND = "背景図面に合わせる";
+    public static final String PREVIEW_SHEET = "作業シート全体";
 	
 	private ProjectInfo projectInfo;
 	
@@ -46,7 +51,13 @@ public class SheetPreviewPanel extends JPanel{
 	
 	private RoomTemplate roomTemplate;
 
+    private int sheetWidth;
+
+    private int sheetHeight;
+
     private boolean showNames;
+
+    private String previewRangeMode = PREVIEW_CONTENT;
 	
 	private String orientation;
 	
@@ -64,6 +75,8 @@ public class SheetPreviewPanel extends JPanel{
             BackgroundMap backgroundMap,
             List<TextBoxItem> textBoxes,
 			RoomTemplate roomTemplate,
+            int sheetWidth,
+            int sheetHeight,
             boolean showNames,
 			String orientation) {
 		
@@ -74,6 +87,8 @@ public class SheetPreviewPanel extends JPanel{
         this.backgroundMap = backgroundMap;
         this.textBoxes = textBoxes;
 		this.roomTemplate = roomTemplate;
+        this.sheetWidth = sheetWidth;
+        this.sheetHeight = sheetHeight;
         this.showNames = showNames;
 		this.orientation = orientation;
 		
@@ -89,6 +104,17 @@ public class SheetPreviewPanel extends JPanel{
 		                    (int) (1200 * previewScale)));
 		}
 	}
+
+    public void setPreviewRangeMode(String previewRangeMode) {
+
+        if (previewRangeMode == null || previewRangeMode.isBlank()) {
+            this.previewRangeMode = PREVIEW_CONTENT;
+        } else {
+            this.previewRangeMode = previewRangeMode;
+        }
+
+        repaint();
+    }
 	
 	@Override
 	protected void paintComponent(Graphics g) {
@@ -434,103 +460,12 @@ public class SheetPreviewPanel extends JPanel{
             return;
         }
 
-        int minX = 0;
-        int minY = 0;
-        int maxX = 0;
-        int maxY = 0;
+        Rectangle bounds = calculatePreviewBounds();
 
-        if (roomTemplate != null) {
-
-            maxX = roomTemplate.getWidth();
-            maxY = roomTemplate.getHeight();
-
-        } else {
-
-            minX = Integer.MAX_VALUE;
-            minY = Integer.MAX_VALUE;
-            maxX = Integer.MIN_VALUE;
-            maxY = Integer.MIN_VALUE;
-
-            if (items != null) {
-
-                for (LayoutItem item : items) {
-
-                    minX = Math.min(minX, item.getX());
-                    minY = Math.min(minY, item.getY());
-
-                    maxX = Math.max(
-                            maxX,
-                            item.getX() + item.getWidth());
-
-                    maxY = Math.max(
-                            maxY,
-                            item.getY() + item.getHeight());
-                }
-            }
-
-            if (customRoomObjects != null) {
-
-                for (RoomObject object : customRoomObjects) {
-
-                    minX = Math.min(minX, object.getX());
-                    minY = Math.min(minY, object.getY());
-
-                    maxX = Math.max(
-                            maxX,
-                            object.getX() + object.getWidth());
-
-                    maxY = Math.max(
-                            maxY,
-                            object.getY() + object.getHeight());
-                }
-            }
-
-            if (drawLines != null) {
-
-                for (DrawLine line : drawLines) {
-
-                    minX = Math.min(
-                            minX,
-                            Math.min(line.getStartX(), line.getEndX()));
-
-                    minY = Math.min(
-                            minY,
-                            Math.min(line.getStartY(), line.getEndY()));
-
-                    maxX = Math.max(
-                            maxX,
-                            Math.max(line.getStartX(), line.getEndX()));
-
-                    maxY = Math.max(
-                            maxY,
-                            Math.max(line.getStartY(), line.getEndY()));
-                }
-            }
-
-            if (backgroundMap != null && backgroundMap.isVisible()) {
-                minX = Math.min(minX, backgroundMap.getX());
-                minY = Math.min(minY, backgroundMap.getY());
-                maxX = Math.max(maxX, backgroundMap.getX() + backgroundMap.getWidth());
-                maxY = Math.max(maxY, backgroundMap.getY() + backgroundMap.getHeight());
-            }
-
-            if (textBoxes != null) {
-                for (TextBoxItem textBox : textBoxes) {
-                    minX = Math.min(minX, textBox.getX());
-                    minY = Math.min(minY, textBox.getY());
-                    maxX = Math.max(maxX, textBox.getX() + textBox.getWidth());
-                    maxY = Math.max(maxY, textBox.getY() + textBox.getHeight());
-                }
-            }
-        }
-
-        if (minX == Integer.MAX_VALUE || minY == Integer.MAX_VALUE) {
-            minX = 0;
-            minY = 0;
-        }
-
-        int contentW = maxX - minX;
-        int contentH = maxY - minY;
+        int minX = bounds.x;
+        int minY = bounds.y;
+        int contentW = bounds.width;
+        int contentH = bounds.height;
 
         if (contentW <= 0 || contentH <= 0) {
             return;
@@ -668,6 +603,135 @@ public class SheetPreviewPanel extends JPanel{
 
         g2.setClip(oldClip);
         g2.dispose();
+    }
+
+    private Rectangle calculatePreviewBounds() {
+
+        if (PREVIEW_SHEET.equals(previewRangeMode)) {
+            int width = sheetWidth > 0 ? sheetWidth : 1;
+            int height = sheetHeight > 0 ? sheetHeight : 1;
+            return new Rectangle(0, 0, width, height);
+        }
+
+        if (PREVIEW_BACKGROUND.equals(previewRangeMode)
+                && backgroundMap != null
+                && backgroundMap.isVisible()) {
+            return new Rectangle(
+                    backgroundMap.getX(),
+                    backgroundMap.getY(),
+                    Math.max(1, backgroundMap.getWidth()),
+                    Math.max(1, backgroundMap.getHeight()));
+        }
+
+        Rectangle contentBounds = calculateContentBounds();
+
+        if (contentBounds != null) {
+            return addPreviewMargin(contentBounds);
+        }
+
+        if (backgroundMap != null && backgroundMap.isVisible()) {
+            return new Rectangle(
+                    backgroundMap.getX(),
+                    backgroundMap.getY(),
+                    Math.max(1, backgroundMap.getWidth()),
+                    Math.max(1, backgroundMap.getHeight()));
+        }
+
+        int width = sheetWidth > 0 ? sheetWidth : 1;
+        int height = sheetHeight > 0 ? sheetHeight : 1;
+        return new Rectangle(0, 0, width, height);
+    }
+
+    private Rectangle calculateContentBounds() {
+
+        Rectangle bounds = null;
+
+        if (roomTemplate != null) {
+            bounds = union(bounds, new Rectangle(0, 0, roomTemplate.getWidth(), roomTemplate.getHeight()));
+        }
+
+        if (items != null) {
+            for (LayoutItem item : items) {
+                bounds =
+                        union(
+                                bounds,
+                                new Rectangle(
+                                        item.getX(),
+                                        item.getY(),
+                                        item.getWidth(),
+                                        item.getHeight()));
+            }
+        }
+
+        if (customRoomObjects != null) {
+            for (RoomObject object : customRoomObjects) {
+                bounds =
+                        union(
+                                bounds,
+                                new Rectangle(
+                                        object.getX(),
+                                        object.getY(),
+                                        object.getWidth(),
+                                        object.getHeight()));
+            }
+        }
+
+        if (drawLines != null) {
+            for (DrawLine line : drawLines) {
+                int minX = Math.min(line.getStartX(), line.getEndX());
+                int minY = Math.min(line.getStartY(), line.getEndY());
+                int width = Math.abs(line.getStartX() - line.getEndX());
+                int height = Math.abs(line.getStartY() - line.getEndY());
+
+                bounds =
+                        union(
+                                bounds,
+                                new Rectangle(
+                                        minX,
+                                        minY,
+                                        Math.max(1, width),
+                                        Math.max(1, height)));
+            }
+        }
+
+        if (textBoxes != null) {
+            for (TextBoxItem textBox : textBoxes) {
+                bounds =
+                        union(
+                                bounds,
+                                new Rectangle(
+                                        textBox.getX(),
+                                        textBox.getY(),
+                                        textBox.getWidth(),
+                                        textBox.getHeight()));
+            }
+        }
+
+        return bounds;
+    }
+
+    private Rectangle union(Rectangle current, Rectangle next) {
+
+        if (next == null) {
+            return current;
+        }
+
+        if (current == null) {
+            return new Rectangle(next);
+        }
+
+        return current.union(next);
+    }
+
+    private Rectangle addPreviewMargin(Rectangle bounds) {
+
+        int margin = 30;
+
+        return new Rectangle(
+                bounds.x - margin,
+                bounds.y - margin,
+                bounds.width + margin * 2,
+                bounds.height + margin * 2);
     }
 
     private String safe(String value) {
