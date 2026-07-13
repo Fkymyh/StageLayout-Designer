@@ -11,6 +11,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -35,6 +36,8 @@ public class PropertyPanel extends JPanel {
 
     private JTextField heightField;
 
+    private JCheckBox showLabelCheckBox;
+
     private List<LayoutItem> allItems;
 
     public PropertyPanel() {
@@ -56,6 +59,7 @@ public class PropertyPanel extends JPanel {
         labelField = new JTextField();
         widthField = new JTextField();
         heightField = new JTextField();
+        showLabelCheckBox = new JCheckBox("ラベルを表示", true);
 
         equipmentField.setEditable(false);
 
@@ -78,6 +82,8 @@ public class PropertyPanel extends JPanel {
         editPanel.add(Box.createVerticalStrut(10));
 
         editPanel.add(createSizePanel());
+        editPanel.add(Box.createVerticalStrut(10));
+        editPanel.add(showLabelCheckBox);
         editPanel.add(Box.createVerticalStrut(10));
 
         editPanel.add(saveButton);
@@ -140,6 +146,7 @@ public class PropertyPanel extends JPanel {
 
             currentItem.setSize(width, height);
             currentItem.setLabel(labelField.getText());
+            currentItem.setShowLabel(showLabelCheckBox.isSelected());
 
             displayItem(currentItem);
             displaySummary(allItems);
@@ -165,6 +172,7 @@ public class PropertyPanel extends JPanel {
             labelField.setText("");
             widthField.setText("");
             heightField.setText("");
+            showLabelCheckBox.setSelected(true);
 
             return;
         }
@@ -173,6 +181,7 @@ public class PropertyPanel extends JPanel {
         labelField.setText(item.getLabel());
         widthField.setText(String.valueOf(item.getWidth()));
         heightField.setText(String.valueOf(item.getHeight()));
+        showLabelCheckBox.setSelected(item.isShowLabel());
     }
 
     public void displaySummary(List<LayoutItem> items) {

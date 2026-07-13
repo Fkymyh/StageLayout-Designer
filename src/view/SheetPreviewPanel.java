@@ -538,6 +538,18 @@ public class SheetPreviewPanel extends JPanel{
                 int drawW = Math.max(8, (int) (item.getWidth() * scale));
                 int drawH = Math.max(8, (int) (item.getHeight() * scale));
 
+                if (isBamiriItem(item)) {
+                    drawPreviewBamiri(g2, item, drawX, drawY, drawW, drawH);
+
+                    if (showNames && item.isShowLabel()) {
+                        g2.setColor(Color.BLACK);
+                        g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
+                        g2.drawString(item.getDisplayName(), drawX + 4, drawY + drawH + 12);
+                    }
+
+                    continue;
+                }
+
                 double centerX = drawX + drawW / 2.0;
                 double centerY = drawY + drawH / 2.0;
 
@@ -583,12 +595,12 @@ public class SheetPreviewPanel extends JPanel{
 
                 itemG.dispose();
 
-                if (showNames) {
+                if (showNames && item.isShowLabel()) {
                     g2.setColor(Color.BLACK);
                     g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
 
                     g2.drawString(
-                            item.getEquipment().getName(),
+                            item.getDisplayName(),
                             drawX,
                             drawY + drawH + 12);
                 }
@@ -737,6 +749,67 @@ public class SheetPreviewPanel extends JPanel{
     private String safe(String value) {
 
         return value == null ? "" : value;
+    }
+
+    private boolean isBamiriItem(LayoutItem item) {
+
+        return item != null
+                && item.getEquipment() != null
+                && item.getEquipment().getName() != null
+                && item.getEquipment().getName().startsWith("バミリ");
+    }
+
+    private void drawPreviewBamiri(
+            Graphics2D g2,
+            LayoutItem item,
+            int x,
+            int y,
+            int w,
+            int h) {
+
+        String name = item.getEquipment().getName();
+        Graphics2D markG = (Graphics2D) g2.create();
+
+        double centerX = x + w / 2.0;
+        double centerY = y + h / 2.0;
+        markG.rotate(Math.toRadians(item.getRotation()), centerX, centerY);
+        markG.setColor(item.getEquipment().getColor());
+        markG.setStroke(
+                new BasicStroke(
+                        Math.max(2, Math.min(w, h) / 5f),
+                        BasicStroke.CAP_ROUND,
+                        BasicStroke.JOIN_ROUND));
+
+        if ("バミリ X".equals(name)) {
+
+            markG.drawLine(x, y, x + w, y + h);
+            markG.drawLine(x + w, y, x, y + h);
+
+        } else if ("バミリ ＋".equals(name)) {
+
+            markG.drawLine(x + w / 2, y, x + w / 2, y + h);
+            markG.drawLine(x, y + h / 2, x + w, y + h / 2);
+
+        } else if (name.endsWith(" L")) {
+
+            int thickW = Math.max(3, w / 5);
+            int thickH = Math.max(3, h / 5);
+            markG.fillRect(x, y, thickW, h);
+            markG.fillRect(x, y + h - thickH, w, thickH);
+
+        } else if (name.endsWith(" T")) {
+
+            int thickH = Math.max(3, h / 5);
+            int thickW = Math.max(4, w / 5);
+            markG.fillRect(x, y, w, thickH);
+            markG.fillRect(x + w / 2 - Math.max(2, w / 10), y, thickW, h);
+
+        } else {
+
+            markG.fillRect(x, y, w, h);
+        }
+
+        markG.dispose();
     }
 
     private void drawFittedString(
@@ -1013,7 +1086,7 @@ public class SheetPreviewPanel extends JPanel{
             }
 
             if (showNames
-                    && !isBamiriLine(line)
+                    && line.isShowLabel()
                     && line.getLabel() != null
                     && !line.getLabel().isBlank()) {
                 g2.setFont(new Font("SansSerif", Font.PLAIN, 10));

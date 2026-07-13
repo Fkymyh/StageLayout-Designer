@@ -20,6 +20,8 @@ public class LayoutItem {
     
     private String label = "";
 
+    private boolean showLabel = true;
+
     public LayoutItem(Equipment equipment, int x, int y) {
 
         this.equipment = equipment;
@@ -111,6 +113,14 @@ public class LayoutItem {
 
     public void setLabel(String label) {
         this.label = label;
+    }
+
+    public boolean isShowLabel() {
+        return showLabel;
+    }
+
+    public void setShowLabel(boolean showLabel) {
+        this.showLabel = showLabel;
     }
 
     public String getDisplayName() {

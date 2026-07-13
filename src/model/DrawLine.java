@@ -23,6 +23,8 @@ public class DrawLine {
 
     private String lineType = TYPE_NORMAL;
 
+    private boolean showLabel = true;
+
     public DrawLine(int startX, int startY, int endX, int endY) {
 
         this.startX = startX;
@@ -92,6 +94,14 @@ public class DrawLine {
         }
 
         this.lineType = lineType;
+    }
+
+    public boolean isShowLabel() {
+        return showLabel;
+    }
+
+    public void setShowLabel(boolean showLabel) {
+        this.showLabel = showLabel;
     }
     
     public int getStrokeWidth() {

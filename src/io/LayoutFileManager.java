@@ -52,7 +52,9 @@ public class LayoutFileManager {
         	        item.getHeight() + "," +
         	        item.getRotation() + "," +
         	        item.getQuantity() + "," +
-        	        item.getMemo());
+                    escape(item.getMemo()) + "," +
+                    escape(item.getLabel()) + "," +
+                    item.isShowLabel());
 
             writer.write("\n");
         }
@@ -90,7 +92,8 @@ public class LayoutFileManager {
                     line.getStrokeWidth() + "," +
                     escape(line.getLabel()) + "," +
                     line.isShowLength() + "," +
-                    escape(line.getLineType()));
+                    escape(line.getLineType()) + "," +
+                    line.isShowLabel());
 
             writer.write("\n");
         }
@@ -318,6 +321,14 @@ public class LayoutFileManager {
                     item.setQuantity(quantity);
                     item.setMemo(memo);
 
+                    if (data.length >= 9) {
+                        item.setLabel(unescape(data[8]));
+                    }
+
+                    if (data.length >= 10) {
+                        item.setShowLabel(Boolean.parseBoolean(data[9]));
+                    }
+
                 } else if (data.length >= 6) {
 
                     int width = Integer.parseInt(data[3]);
@@ -441,6 +452,12 @@ public class LayoutFileManager {
                     lineType = unescape(data[10]);
                 }
 
+                boolean showLabel = true;
+
+                if (data.length >= 12) {
+                    showLabel = Boolean.parseBoolean(data[11]);
+                }
+
                 DrawLine drawLine =
                         new DrawLine(
                                 startX,
@@ -453,6 +470,7 @@ public class LayoutFileManager {
                 drawLine.setLabel(label);
                 drawLine.setShowLength(showLength);
                 drawLine.setLineType(lineType);
+                drawLine.setShowLabel(showLabel);
 
                 drawLines.add(drawLine);
 

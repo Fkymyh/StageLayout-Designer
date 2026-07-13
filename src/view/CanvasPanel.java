@@ -610,7 +610,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         	    g.setColor(Color.BLACK);
         	    
-        	    if (showNames) {
+                if (showNames && item.isShowLabel()) {
         	        g.drawString(
         	                item.getDisplayName(),
         	                item.getX() + 8,
@@ -693,7 +693,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         		
         		g.setColor(Color.BLACK);
         	
-        		if (showNames) {
+                if (showNames && item.isShowLabel()) {
         		    g.drawString(
         		            item.getDisplayName(),
         		            item.getX() + 8,
@@ -1076,8 +1076,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	                    labelY);
 	        }
 
-	        if (!isBamiriLine(line)
-                    && showNames
+	        if (showNames
+                    && line.isShowLabel()
 	                && line.getLabel() != null
 	                && !line.getLabel().isBlank()) {
 
@@ -2406,6 +2406,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		item.setQuantity(copiedItem.getQuantity());
 		
 		item.setLabel(copiedItem.getLabel());
+
+        item.setShowLabel(copiedItem.isShowLabel());
 		
 		items.add(item);
 		
@@ -2778,6 +2780,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
             copiedItem.setRotation(item.getRotation());
             copiedItem.setMemo(item.getMemo());
             copiedItem.setLabel(item.getLabel());
+            copiedItem.setShowLabel(item.isShowLabel());
 
             copiedItems.add(copiedItem);
         }
@@ -2876,6 +2879,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
             copiedLine.setLabel(line.getLabel());
             copiedLine.setShowLength(line.isShowLength());
             copiedLine.setLineType(line.getLineType());
+            copiedLine.setShowLabel(line.isShowLabel());
 
             copiedLines.add(copiedLine);
         }

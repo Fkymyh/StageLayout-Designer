@@ -21,6 +21,13 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+
 import model.DrawLine;
 import model.BackgroundMap;
 import model.LayoutItem;
@@ -102,16 +109,19 @@ public class PreviewDialog extends JDialog{
         });
 
 		JButton exportButton = new JButton("PNG画像として保存");
+        JButton exportPdfButton = new JButton("PDFとして保存");
         JButton printButton = new JButton("印刷");
 		JButton closeButton = new JButton("閉じる");
 
 		exportButton.addActionListener(e -> exportPreviewImage(previewPanel, projectInfo));
+        exportPdfButton.addActionListener(e -> exportPreviewPdf(previewPanel, projectInfo));
         printButton.addActionListener(e -> printPreview(previewPanel));
 		closeButton.addActionListener(e -> dispose());
 
         buttonPanel.add(new JLabel("プレビュー範囲"));
         buttonPanel.add(previewRangeComboBox);
 		buttonPanel.add(exportButton);
+        buttonPanel.add(exportPdfButton);
         buttonPanel.add(printButton);
 		buttonPanel.add(closeButton);
 
@@ -193,7 +203,7 @@ public class PreviewDialog extends JDialog{
 	    JFileChooser fileChooser = new JFileChooser();
 
 	    fileChooser.setSelectedFile(
-	            new File(createDefaultExportFileName(projectInfo)));
+	            new File(createDefaultExportFileName(projectInfo, ".png")));
 
 	    int result = fileChooser.showSaveDialog(this);
 
@@ -227,7 +237,73 @@ public class PreviewDialog extends JDialog{
 	    }
 	}
 
-	private String createDefaultExportFileName(ProjectInfo projectInfo) {
+    private void exportPreviewPdf(
+            SheetPreviewPanel previewPanel,
+            ProjectInfo projectInfo) {
+
+        JFileChooser fileChooser = new JFileChooser();
+
+        fileChooser.setSelectedFile(
+                new File(createDefaultExportFileName(projectInfo, ".pdf")));
+
+        int result = fileChooser.showSaveDialog(this);
+
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        File file = fileChooser.getSelectedFile();
+
+        if (!file.getName().toLowerCase().endsWith(".pdf")) {
+            file = new File(file.getParentFile(), file.getName() + ".pdf");
+        }
+
+        try {
+
+            BufferedImage image = previewPanel.createExportImage();
+
+            try (PDDocument document = new PDDocument()) {
+
+                PDPage page =
+                        new PDPage(
+                                new PDRectangle(
+                                        image.getWidth(),
+                                        image.getHeight()));
+
+                document.addPage(page);
+
+                PDImageXObject pdfImage =
+                        LosslessFactory.createFromImage(document, image);
+
+                try (PDPageContentStream contentStream =
+                        new PDPageContentStream(document, page)) {
+
+                    contentStream.drawImage(
+                            pdfImage,
+                            0,
+                            0,
+                            image.getWidth(),
+                            image.getHeight());
+                }
+
+                document.save(file);
+            }
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "PDFを保存しました。\n" + file.getAbsolutePath());
+
+        } catch (Exception ex) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "PDFの保存に失敗しました。\n" + ex.getMessage());
+
+            ex.printStackTrace();
+        }
+    }
+
+	private String createDefaultExportFileName(ProjectInfo projectInfo, String extension) {
 
 	    String title = projectInfo == null ? "" : projectInfo.getTitle();
 	    String date = projectInfo == null ? "" : projectInfo.getDate();
@@ -240,10 +316,10 @@ public class PreviewDialog extends JDialog{
 	    }
 
 	    if (!date.isBlank()) {
-	        return date + "_" + title + "_配置図.png";
+	        return date + "_" + title + "_配置図" + extension;
 	    }
 
-	    return title + "_配置図.png";
+	    return title + "_配置図" + extension;
 	}
 
 	private String sanitizeFileName(String value) {

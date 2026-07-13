@@ -5,6 +5,10 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 
 import javax.swing.BorderFactory;
@@ -28,6 +32,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import io.LayoutData;
 import io.LayoutFileManager;
+import model.BackgroundMap;
 import model.ProjectInfo;
 import model.RoomTemplate;
 import model.RoomTemplateFactory;
@@ -464,6 +469,14 @@ public class MainFrame extends JFrame {
         JMenuItem centerBackgroundItem = new JMenuItem("中央に配置");
         centerBackgroundItem.addActionListener(e -> canvasPanel.centerBackgroundMap());
 
+        JMenuItem registerBackgroundTemplateItem =
+                new JMenuItem("背景図面をテンプレート登録");
+        registerBackgroundTemplateItem.addActionListener(e -> registerBackgroundTemplate());
+
+        JMenuItem loadBackgroundTemplateItem =
+                new JMenuItem("登録済み背景テンプレートを読み込み");
+        loadBackgroundTemplateItem.addActionListener(e -> loadRegisteredBackgroundTemplate());
+
         backgroundMenu.add(loadBackgroundItem);
         backgroundMenu.add(toggleBackgroundVisibleItem);
         backgroundMenu.add(toggleBackgroundLockedItem);
@@ -476,6 +489,9 @@ public class MainFrame extends JFrame {
         backgroundMenu.add(fitBackgroundHeightItem);
         backgroundMenu.add(actualBackgroundSizeItem);
         backgroundMenu.add(centerBackgroundItem);
+        backgroundMenu.addSeparator();
+        backgroundMenu.add(registerBackgroundTemplateItem);
+        backgroundMenu.add(loadBackgroundTemplateItem);
 
         menuBar.add(fileMenu);
         menuBar.add(templateMenu);
@@ -913,6 +929,176 @@ public class MainFrame extends JFrame {
 
         canvasPanel.loadBackgroundMap(fileChooser.getSelectedFile());
         statusLabel.setText("背景図面を読み込みました");
+    }
+
+    private void registerBackgroundTemplate() {
+
+        BackgroundMap backgroundMap = canvasPanel.getBackgroundMap();
+
+        if (backgroundMap == null || backgroundMap.getImagePath().isBlank()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "先にPDFまたは画像を背景図面として読み込んでください。");
+            return;
+        }
+
+        String templateName =
+                JOptionPane.showInputDialog(
+                        this,
+                        "テンプレート名を入力してください。",
+                        projectInfo.getPlace().isBlank()
+                                ? "背景テンプレート"
+                                : projectInfo.getPlace());
+
+        if (templateName == null || templateName.isBlank()) {
+            return;
+        }
+
+        templateName = sanitizeTemplateName(templateName);
+
+        try {
+
+            File templateFolder = getBackgroundTemplateFolder();
+            Files.createDirectories(templateFolder.toPath());
+
+            File sourceFile = new File(backgroundMap.getImagePath());
+            String extension = extensionOf(sourceFile.getName());
+            File copiedSource =
+                    new File(templateFolder, templateName + extension);
+
+            Files.copy(
+                    sourceFile.toPath(),
+                    copiedSource.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING);
+
+            BackgroundMap templateBackground = copyBackgroundMap(backgroundMap);
+            templateBackground.setImagePath(copiedSource.getAbsolutePath());
+            templateBackground.setOriginalFileName(sourceFile.getName());
+            templateBackground.setLocked(true);
+            templateBackground.setVisible(true);
+
+            ProjectInfo templateInfo = new ProjectInfo();
+            templateInfo.setPlace(templateName);
+            templateInfo.setTemplateName("");
+
+            File templateFile =
+                    new File(templateFolder, templateName + ".stage");
+
+            LayoutFileManager.save(
+                    new ArrayList<>(),
+                    canvasPanel.getCustomRoomObjects(),
+                    new ArrayList<>(),
+                    templateBackground,
+                    new ArrayList<>(),
+                    templateInfo,
+                    templateFile.getAbsolutePath());
+
+            statusLabel.setText("背景テンプレートを登録しました: " + templateName);
+
+        } catch (Exception ex) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "背景テンプレート登録に失敗しました。\n" + ex.getMessage());
+
+            ex.printStackTrace();
+        }
+    }
+
+    private void loadRegisteredBackgroundTemplate() {
+
+        File templateFolder = getBackgroundTemplateFolder();
+
+        JFileChooser fileChooser = new JFileChooser(templateFolder);
+        fileChooser.setFileFilter(
+                new FileNameExtensionFilter(
+                        "背景テンプレート（.stage）",
+                        "stage"));
+
+        int result = fileChooser.showOpenDialog(this);
+
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        try {
+
+            LayoutData data =
+                    LayoutFileManager.load(fileChooser.getSelectedFile().getAbsolutePath());
+
+            canvasPanel.setCustomRoomObjects(data.getCustomRoomObjects());
+            canvasPanel.setBackgroundMap(data.getBackgroundMap());
+            canvasPanel.setRoomTemplate(null);
+            canvasPanel.setStageLocked(false);
+            updateStageLockCheckBox(false);
+
+            ProjectInfo loadedInfo = data.getProjectInfo();
+
+            if (loadedInfo != null && !loadedInfo.getPlace().isBlank()) {
+                projectInfo.setPlace(loadedInfo.getPlace());
+            }
+
+            statusLabel.setText("背景テンプレートを読み込みました");
+
+        } catch (Exception ex) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "背景テンプレートの読み込みに失敗しました。\n" + ex.getMessage());
+
+            ex.printStackTrace();
+        }
+    }
+
+    private File getBackgroundTemplateFolder() {
+
+        return new File("user-templates/backgrounds");
+    }
+
+    private BackgroundMap copyBackgroundMap(BackgroundMap source) {
+
+        BackgroundMap copy = new BackgroundMap();
+        copy.setImagePath(source.getImagePath());
+        copy.setOriginalFileName(source.getOriginalFileName());
+        copy.setX(source.getX());
+        copy.setY(source.getY());
+        copy.setWidth(source.getWidth());
+        copy.setHeight(source.getHeight());
+        copy.setOpacity(source.getOpacity());
+        copy.setRotation(source.getRotation());
+        copy.setVisible(source.isVisible());
+        copy.setLocked(source.isLocked());
+        copy.setActualWidthMeters(source.getActualWidthMeters());
+        copy.setActualHeightMeters(source.getActualHeightMeters());
+        copy.setCropX(source.getCropX());
+        copy.setCropY(source.getCropY());
+        copy.setCropWidth(source.getCropWidth());
+        copy.setCropHeight(source.getCropHeight());
+        copy.setPreviewMode(source.getPreviewMode());
+
+        return copy;
+    }
+
+    private String sanitizeTemplateName(String value) {
+
+        return value.trim()
+                .replaceAll("[\\\\/:*?\"<>|]", "_")
+                .replaceAll("\\s+", "_");
+    }
+
+    private String extensionOf(String fileName) {
+
+        if (fileName == null) {
+            return "";
+        }
+
+        int dotIndex = fileName.lastIndexOf('.');
+
+        if (dotIndex < 0) {
+            return "";
+        }
+
+        return fileName.substring(dotIndex);
     }
 
     private double[] askSheetSizeMeters() {
