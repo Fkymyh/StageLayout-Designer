@@ -3445,7 +3445,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
             backgroundMap.setHeight(image.getHeight());
             backgroundMap.setCropWidth(image.getWidth());
             backgroundMap.setCropHeight(image.getHeight());
-            backgroundMap.setPreviewMode(SheetPreviewPanel.PREVIEW_CONTENT);
+            backgroundMap.setPreviewMode(SheetPreviewPanel.PREVIEW_BACKGROUND);
             backgroundMap.setLocked(true);
             backgroundMap.setVisible(true);
             backgroundSelected = false;

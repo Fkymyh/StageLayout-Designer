@@ -92,12 +92,14 @@ public class PreviewDialog extends JDialog{
         JComboBox<String> previewRangeComboBox =
                 new JComboBox<>(
                         new String[] {
+                                SheetPreviewPanel.PREVIEW_STAGE,
+                                SheetPreviewPanel.PREVIEW_VENUE,
                                 SheetPreviewPanel.PREVIEW_CONTENT,
                                 SheetPreviewPanel.PREVIEW_BACKGROUND,
                                 SheetPreviewPanel.PREVIEW_SHEET
                         });
 
-        previewRangeComboBox.setSelectedItem(initialPreviewMode(backgroundMap));
+        previewRangeComboBox.setSelectedItem(initialPreviewMode(backgroundMap, roomTemplate, customRoomObjects));
         previewPanel.setPreviewRangeMode((String) previewRangeComboBox.getSelectedItem());
         previewRangeComboBox.addActionListener(e -> {
             String selectedMode = (String) previewRangeComboBox.getSelectedItem();
@@ -130,13 +132,62 @@ public class PreviewDialog extends JDialog{
 		
 	}
 
-    private String initialPreviewMode(BackgroundMap backgroundMap) {
+    private String initialPreviewMode(
+            BackgroundMap backgroundMap,
+            RoomTemplate roomTemplate,
+            List<RoomObject> customRoomObjects) {
 
-        if (backgroundMap == null || backgroundMap.getPreviewMode().isBlank()) {
-            return SheetPreviewPanel.PREVIEW_CONTENT;
+        if (backgroundMap != null && !backgroundMap.getPreviewMode().isBlank()) {
+            return backgroundMap.getPreviewMode();
         }
 
-        return backgroundMap.getPreviewMode();
+        if (hasStageObject(roomTemplate, customRoomObjects)) {
+            return SheetPreviewPanel.PREVIEW_STAGE;
+        }
+
+        if (roomTemplate != null
+                || (customRoomObjects != null && !customRoomObjects.isEmpty())) {
+            return SheetPreviewPanel.PREVIEW_VENUE;
+        }
+
+        if (backgroundMap != null && backgroundMap.isVisible()) {
+            return SheetPreviewPanel.PREVIEW_BACKGROUND;
+        }
+
+        return SheetPreviewPanel.PREVIEW_SHEET;
+    }
+
+    private boolean hasStageObject(
+            RoomTemplate roomTemplate,
+            List<RoomObject> customRoomObjects) {
+
+        if (roomTemplate != null) {
+            for (RoomObject object : roomTemplate.getObjects()) {
+                if (isStageObject(object)) {
+                    return true;
+                }
+            }
+        }
+
+        if (customRoomObjects != null) {
+            for (RoomObject object : customRoomObjects) {
+                if (isStageObject(object)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isStageObject(RoomObject object) {
+
+        if (object == null || object.getName() == null) {
+            return false;
+        }
+
+        return object.getName().contains("ステージ")
+                || object.getName().contains("舞台");
     }
 
     private void printPreview(SheetPreviewPanel previewPanel) {

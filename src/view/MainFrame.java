@@ -115,8 +115,8 @@ public class MainFrame extends JFrame {
         JMenuItem loadItem = new JMenuItem("読み込み");
         JMenuItem projectInfoItem = new JMenuItem("イベント情報");
         JMenuItem previewItem = new JMenuItem("プレビュー");
-        JMenuItem loadVenueTemplateItem = new JMenuItem("会場テンプレートを読み込み");
-        JMenuItem saveVenueTemplateItem = new JMenuItem("会場だけ保存");
+        JMenuItem loadVenueTemplateItem = new JMenuItem("テンプレートファイルを読み込み");
+        JMenuItem saveVenueTemplateItem = new JMenuItem("現在の会場をテンプレート保存");
         JMenuItem exitItem = new JMenuItem("終了");
         JMenu helpMenu = new JMenu("ヘルプ");
         JMenuItem helpItem = new JMenuItem("使い方");
@@ -350,8 +350,6 @@ public class MainFrame extends JFrame {
         fileMenu.addSeparator();
         fileMenu.add(projectInfoItem);
         fileMenu.add(previewItem);
-        fileMenu.add(loadVenueTemplateItem);
-        fileMenu.add(saveVenueTemplateItem);
         fileMenu.addSeparator();
         fileMenu.add(saveItem);
         fileMenu.add(loadItem);
@@ -390,8 +388,23 @@ public class MainFrame extends JFrame {
             statusLabel.setText("テンプレートを解除しました");
         });
 
-        templateMenu.add(classroomItem);
-        templateMenu.add(outdoorStageItem);
+        JMenuItem createTemplateFromBackgroundItem =
+                new JMenuItem("背景図面をテンプレート登録");
+        createTemplateFromBackgroundItem.addActionListener(e -> registerBackgroundTemplate());
+
+        JMenuItem loadRegisteredTemplateItem =
+                new JMenuItem("登録済みPDF/画像テンプレートを読み込み");
+        loadRegisteredTemplateItem.addActionListener(e -> loadRegisteredBackgroundTemplate());
+
+        JMenu chooseTemplateMenu = new JMenu("テンプレートを選択");
+        chooseTemplateMenu.add(classroomItem);
+        chooseTemplateMenu.add(outdoorStageItem);
+        chooseTemplateMenu.add(loadVenueTemplateItem);
+        chooseTemplateMenu.add(loadRegisteredTemplateItem);
+
+        templateMenu.add(chooseTemplateMenu);
+        templateMenu.add(saveVenueTemplateItem);
+        templateMenu.add(createTemplateFromBackgroundItem);
         templateMenu.addSeparator();
         templateMenu.add(clearTemplateItem);
 
@@ -469,14 +482,6 @@ public class MainFrame extends JFrame {
         JMenuItem centerBackgroundItem = new JMenuItem("中央に配置");
         centerBackgroundItem.addActionListener(e -> canvasPanel.centerBackgroundMap());
 
-        JMenuItem registerBackgroundTemplateItem =
-                new JMenuItem("背景図面をテンプレート登録");
-        registerBackgroundTemplateItem.addActionListener(e -> registerBackgroundTemplate());
-
-        JMenuItem loadBackgroundTemplateItem =
-                new JMenuItem("登録済み背景テンプレートを読み込み");
-        loadBackgroundTemplateItem.addActionListener(e -> loadRegisteredBackgroundTemplate());
-
         backgroundMenu.add(loadBackgroundItem);
         backgroundMenu.add(toggleBackgroundVisibleItem);
         backgroundMenu.add(toggleBackgroundLockedItem);
@@ -489,9 +494,6 @@ public class MainFrame extends JFrame {
         backgroundMenu.add(fitBackgroundHeightItem);
         backgroundMenu.add(actualBackgroundSizeItem);
         backgroundMenu.add(centerBackgroundItem);
-        backgroundMenu.addSeparator();
-        backgroundMenu.add(registerBackgroundTemplateItem);
-        backgroundMenu.add(loadBackgroundTemplateItem);
 
         menuBar.add(fileMenu);
         menuBar.add(templateMenu);

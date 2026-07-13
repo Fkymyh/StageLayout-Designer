@@ -34,6 +34,8 @@ import util.ImageLoader;
 public class SheetPreviewPanel extends JPanel{
 
     public static final String PREVIEW_CONTENT = "配置物に合わせる";
+    public static final String PREVIEW_STAGE = "ステージ範囲に合わせる";
+    public static final String PREVIEW_VENUE = "会場テンプレートに合わせる";
     public static final String PREVIEW_BACKGROUND = "背景図面に合わせる";
     public static final String PREVIEW_SHEET = "作業シート全体";
 	
@@ -233,10 +235,10 @@ public class SheetPreviewPanel extends JPanel{
             int pageW,
             int pageH) {
 
-        int x = pageX + 50;
-        int y = pageY + 70;
-        int w = pageW - 100;
-        int h = 470;
+        int x = pageX + 35;
+        int y = pageY + 65;
+        int w = pageW - 70;
+        int h = 490;
 
         g.setColor(new Color(252, 252, 252));
         g.fillRect(x, y, w, h);
@@ -262,9 +264,9 @@ public class SheetPreviewPanel extends JPanel{
             int pageH) {
 
         int x = pageX + 60;
-        int y = pageY + 560;
+        int y = pageY + 570;
         int w = 460;
-        int h = 140;
+        int h = 135;
 
         g.setColor(Color.BLACK);
         g.drawRect(x, y, w, h);
@@ -272,47 +274,52 @@ public class SheetPreviewPanel extends JPanel{
         g.setFont(new Font("SansSerif", Font.BOLD, 14));
         g.drawString("必要機材一覧", x + 15, y + 25);
 
-        g.setFont(new Font("SansSerif", Font.PLAIN, 13));
-
         Map<String, Integer> summary = createEquipmentSummary();
 
-        int textY = y + 50;
-        int lineHeight = 22;
-        int maxLines = Math.max(1, (y + h - 15 - textY) / lineHeight + 1);
-        int drawnCount = 0;
-        int totalCount = summary.size();
+        if (summary.isEmpty()) {
+            g.setFont(new Font("SansSerif", Font.PLAIN, 13));
+            g.drawString("なし", x + 20, y + 50);
+            return;
+        }
+
+        int startY = y + 50;
+        int usableHeight = h - 60;
+        int fontSize = 12;
+        int lineHeight = fontSize + 6;
+        int maxRows = Math.max(1, usableHeight / lineHeight + 1);
+
+        if (summary.size() > maxRows * 2) {
+            fontSize = 9;
+            lineHeight = fontSize + 5;
+            maxRows = Math.max(1, usableHeight / lineHeight + 1);
+        } else if (summary.size() > maxRows) {
+            fontSize = 10;
+            lineHeight = fontSize + 5;
+            maxRows = Math.max(1, usableHeight / lineHeight + 1);
+        }
+
+        int columnCount = summary.size() > maxRows ? 2 : 1;
+        int columnWidth = (w - 40) / columnCount;
+        int index = 0;
 
         for (Map.Entry<String, Integer> entry : summary.entrySet()) {
 
-            if (drawnCount >= maxLines) {
+            int column = index / maxRows;
+            int row = index % maxRows;
+
+            if (column >= columnCount) {
                 break;
             }
 
-            boolean shouldReserveOverflowLine =
-                    totalCount > maxLines && drawnCount == maxLines - 1;
-
-            if (shouldReserveOverflowLine) {
-                int remainingCount = totalCount - drawnCount;
-
-                drawFittedString(
-                        g,
-                        "ほか " + remainingCount + " 件",
-                        x + 20,
-                        textY,
-                        w - 40);
-
-                break;
-            }
-
+            g.setFont(new Font("SansSerif", Font.PLAIN, fontSize));
             drawFittedString(
                     g,
                     entry.getKey() + " × " + entry.getValue(),
-                    x + 20,
-                    textY,
-                    w - 40);
+                    x + 20 + column * columnWidth,
+                    startY + row * lineHeight,
+                    columnWidth - 12);
 
-            textY += lineHeight;
-            drawnCount++;
+            index++;
         }
     }
 
@@ -324,9 +331,9 @@ public class SheetPreviewPanel extends JPanel{
             int pageH) {
 
         int x = pageX + 560;
-        int y = pageY + 560;
+        int y = pageY + 570;
         int w = 500;
-        int h = 140;
+        int h = 135;
 
         g.setColor(Color.BLACK);
         g.drawRect(x, y, w, h);
@@ -471,7 +478,7 @@ public class SheetPreviewPanel extends JPanel{
             return;
         }
 
-        int margin = 40;
+        int margin = 20;
 
         double scaleX =
                 (double) (areaW - margin * 2) / contentW;
@@ -625,14 +632,30 @@ public class SheetPreviewPanel extends JPanel{
             return new Rectangle(0, 0, width, height);
         }
 
+        if (PREVIEW_STAGE.equals(previewRangeMode)) {
+            Rectangle stageBounds = calculateStageBounds();
+
+            if (stageBounds != null) {
+                return addPreviewMargin(stageBounds);
+            }
+        }
+
+        if (PREVIEW_VENUE.equals(previewRangeMode)) {
+            Rectangle venueBounds = calculateVenueBounds();
+
+            if (venueBounds != null) {
+                return addPreviewMargin(venueBounds);
+            }
+        }
+
         if (PREVIEW_BACKGROUND.equals(previewRangeMode)
                 && backgroundMap != null
                 && backgroundMap.isVisible()) {
-            return new Rectangle(
+            return addPreviewMargin(new Rectangle(
                     backgroundMap.getX(),
                     backgroundMap.getY(),
                     Math.max(1, backgroundMap.getWidth()),
-                    Math.max(1, backgroundMap.getHeight()));
+                    Math.max(1, backgroundMap.getHeight())));
         }
 
         Rectangle contentBounds = calculateContentBounds();
@@ -658,10 +681,6 @@ public class SheetPreviewPanel extends JPanel{
 
         Rectangle bounds = null;
 
-        if (roomTemplate != null) {
-            bounds = union(bounds, new Rectangle(0, 0, roomTemplate.getWidth(), roomTemplate.getHeight()));
-        }
-
         if (items != null) {
             for (LayoutItem item : items) {
                 bounds =
@@ -672,19 +691,6 @@ public class SheetPreviewPanel extends JPanel{
                                         item.getY(),
                                         item.getWidth(),
                                         item.getHeight()));
-            }
-        }
-
-        if (customRoomObjects != null) {
-            for (RoomObject object : customRoomObjects) {
-                bounds =
-                        union(
-                                bounds,
-                                new Rectangle(
-                                        object.getX(),
-                                        object.getY(),
-                                        object.getWidth(),
-                                        object.getHeight()));
             }
         }
 
@@ -720,6 +726,99 @@ public class SheetPreviewPanel extends JPanel{
         }
 
         return bounds;
+    }
+
+    private Rectangle calculateVenueBounds() {
+
+        Rectangle bounds = null;
+
+        if (roomTemplate != null) {
+            bounds = union(bounds, new Rectangle(0, 0, roomTemplate.getWidth(), roomTemplate.getHeight()));
+        }
+
+        if (customRoomObjects != null) {
+            for (RoomObject object : customRoomObjects) {
+                bounds =
+                        union(
+                                bounds,
+                                new Rectangle(
+                                        object.getX(),
+                                        object.getY(),
+                                        object.getWidth(),
+                                        object.getHeight()));
+            }
+        }
+
+        if (backgroundMap != null && backgroundMap.isVisible()) {
+            bounds =
+                    union(
+                            bounds,
+                            new Rectangle(
+                                    backgroundMap.getX(),
+                                    backgroundMap.getY(),
+                                    backgroundMap.getWidth(),
+                                    backgroundMap.getHeight()));
+        }
+
+        return bounds;
+    }
+
+    private Rectangle calculateStageBounds() {
+
+        Rectangle bounds = null;
+
+        if (roomTemplate != null) {
+            for (RoomObject object : roomTemplate.getObjects()) {
+                if (isStageObject(object)) {
+                    bounds =
+                            union(
+                                    bounds,
+                                    new Rectangle(
+                                            object.getX(),
+                                            object.getY(),
+                                            object.getWidth(),
+                                            object.getHeight()));
+                }
+            }
+        }
+
+        if (customRoomObjects != null) {
+            for (RoomObject object : customRoomObjects) {
+                if (isStageObject(object)) {
+                    bounds =
+                            union(
+                                    bounds,
+                                    new Rectangle(
+                                            object.getX(),
+                                            object.getY(),
+                                            object.getWidth(),
+                                            object.getHeight()));
+                }
+            }
+        }
+
+        Rectangle contentBounds = calculateContentBounds();
+
+        if (contentBounds != null) {
+            bounds = union(bounds, contentBounds);
+        }
+
+        return bounds;
+    }
+
+    private boolean hasStageBounds() {
+
+        return calculateStageBounds() != null;
+    }
+
+    private boolean isStageObject(RoomObject object) {
+
+        if (object == null || object.getName() == null) {
+            return false;
+        }
+
+        return object.getName().contains("ステージ")
+                || object.getName().contains("舞台");
     }
 
     private Rectangle union(Rectangle current, Rectangle next) {
