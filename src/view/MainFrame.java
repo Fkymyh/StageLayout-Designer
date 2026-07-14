@@ -574,6 +574,7 @@ public class MainFrame extends JFrame {
         selectButton.setSelected(true);
         
         JCheckBox gridCheckBox = new JCheckBox("グリッド", true);
+        JCheckBox snapToGridCheckBox = new JCheckBox("吸着", true);
         JCheckBox nameCheckBox = new JCheckBox("名前", true);
         JCheckBox equipmentPanelCheckBox = new JCheckBox("機材パレット", true);
         JCheckBox propertyPanelCheckBox = new JCheckBox("詳細", true);
@@ -584,6 +585,7 @@ public class MainFrame extends JFrame {
                 "線の長さをメートルで表示します");
 
         gridCheckBox.setToolTipText("グリッドの表示を切り替えます");
+        snapToGridCheckBox.setToolTipText("機材や会場パーツをグリッドに吸着させるか切り替えます");
         nameCheckBox.setToolTipText("機材名・表示名の表示を切り替えます");
         equipmentPanelCheckBox.setToolTipText("左側の機材パレットの表示を切り替えます");
         propertyPanelCheckBox.setToolTipText("右側の選択中アイテム欄の表示を切り替えます");
@@ -716,6 +718,19 @@ public class MainFrame extends JFrame {
                 statusLabel.setText("グリッド: ON");
             } else {
                 statusLabel.setText("グリッド: OFF");
+            }
+        });
+
+        snapToGridCheckBox.addActionListener(e -> {
+
+            boolean selected = snapToGridCheckBox.isSelected();
+
+            canvasPanel.setSnapToGrid(selected);
+
+            if (selected) {
+                statusLabel.setText("グリッド吸着: ON");
+            } else {
+                statusLabel.setText("グリッド吸着: OFF / 細かく配置できます");
             }
         });
 
@@ -854,6 +869,8 @@ public class MainFrame extends JFrame {
         subToolsPanel.add(rotateButton);
         subToolsPanel.add(enlargeButton);
         subToolsPanel.add(shrinkButton);
+        subToolsPanel.add(new JLabel("  配置:"));
+        subToolsPanel.add(snapToGridCheckBox);
         subToolsPanel.add(new JLabel("  線:"));
         subToolsPanel.add(new JLabel("色"));
         subToolsPanel.add(colorComboBox);

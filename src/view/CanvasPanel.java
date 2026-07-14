@@ -2537,6 +2537,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public void setSnapToGrid(boolean snapToGrid) {
 
 	    this.snapToGrid = snapToGrid;
+        repaint();
 	}
 	
 	private int snapValue(int value) {
