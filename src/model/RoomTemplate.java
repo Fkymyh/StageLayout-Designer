@@ -3,6 +3,8 @@ package model;
 import java.util.ArrayList;
 import java.util.List;
 
+// コード側で用意した標準会場テンプレート。
+// 今後はユーザー保存テンプレートも同じ「会場の土台」として扱う方針。
 public class RoomTemplate {
 	
 	private String name;

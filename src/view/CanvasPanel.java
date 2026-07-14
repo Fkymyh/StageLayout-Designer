@@ -11,12 +11,16 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Rectangle;
+import java.awt.Shape;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.RoundRectangle2D;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -64,6 +68,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private LayoutItem selectedItem;
 
     private TextBoxItem selectedTextBox;
+
+    private TextBoxItem hoveredTextBox;
 
     private boolean textMode = false;
 	
@@ -197,11 +203,14 @@ public class CanvasPanel extends JPanel implements MouseListener,
     }
 	
 	private int toCanvasX(MouseEvent e) {
+        // 画面上のマウス位置を、ルーラー余白、ズーム、作業シート余白を除いた座標に戻す。
+        // 以降の選択、移動、保存はこのキャンバス座標を基準にする。
 	    return (int) Math.round((e.getX() - LEFT_RULER_WIDTH) / zoom)
 	            - SHEET_MARGIN;
 	}
 
 	private int toCanvasY(MouseEvent e) {
+        // X座標と同じ考え方で、表示上のY座標を作業シート内のY座標へ変換する。
 	    return (int) Math.round((e.getY() - TOP_RULER_HEIGHT) / zoom)
 	            - SHEET_MARGIN;
 	}
@@ -490,6 +499,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		super.paintComponent(g);
 		
+        // ルーラーはズーム対象の作業シートとは別物として先に描く。
+        // その後、ズームと余白を適用した座標系でシート本体を重ねていく。
 		Graphics2D rulerG = (Graphics2D) g.create();
 		
 		 	drawRulers(rulerG);
@@ -510,8 +521,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
             g2.translate(SHEET_MARGIN, SHEET_MARGIN);
 
-		
-		//グリッド線の色
+        // 作業シート上の描画順をここでまとめて管理する。
+        // 背景図面を下絵にし、グリッド、会場パーツ、線、機材、文字を上に重ねる。
         drawBackgroundMap(g2);
 
         if (showGrid) {
@@ -734,7 +745,12 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         for (TextBoxItem textBox : textBoxes) {
 
-            if (textBox.isShowBackground()) {
+            boolean selected = textBox == selectedTextBox;
+            boolean hovered = textBox == hoveredTextBox;
+
+            // テキストは注釈として使うことが多いので、通常時は文字だけにする。
+            // 選択中だけ背景、枠、リサイズハンドルを出して編集対象だと分かるようにする。
+            if (selected && textBox.isShowBackground()) {
                 g2.setColor(textBox.getBackgroundColor());
                 g2.fillRect(
                         textBox.getX(),
@@ -743,7 +759,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
                         textBox.getHeight());
             }
 
-            if (textBox.isShowBorder()) {
+            if (selected && textBox.isShowBorder()) {
                 g2.setColor(new Color(80, 80, 80));
                 g2.drawRect(
                         textBox.getX(),
@@ -756,7 +772,17 @@ public class CanvasPanel extends JPanel implements MouseListener,
             g2.setColor(textBox.getTextColor());
             drawTextBoxLines(g2, textBox);
 
-            if (textBox == selectedTextBox) {
+            if (hovered && !selected) {
+                g2.setColor(new Color(120, 150, 190, 140));
+                g2.setStroke(new BasicStroke(1));
+                g2.drawRect(
+                        textBox.getX() - 2,
+                        textBox.getY() - 2,
+                        textBox.getWidth() + 4,
+                        textBox.getHeight() + 4);
+            }
+
+            if (selected) {
                 g2.setColor(Color.RED);
                 g2.setStroke(new BasicStroke(2));
                 g2.drawRect(
@@ -1288,6 +1314,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		int canvasX = toCanvasX(e);
 		int canvasY = toCanvasY(e);
 
+        // クリック時は現在の編集モードを最初に見る。
+        // 文字、会場パーツ追加、線描画、通常選択が同時に動かないように上から分岐する。
         if (textMode
                 && e.getClickCount() >= 2
                 && findTextBox(canvasX, canvasY) == null) {
@@ -1560,6 +1588,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    int canvasX = toCanvasX(e);
 	    int canvasY = toCanvasY(e);
 
+        // 右クリックは削除や編集用の入口。
+        // 線描画中でも既存の線を右クリックできるよう、線の判定を先に行う。
 	    if (e.isPopupTrigger() || e.getButton() == MouseEvent.BUTTON3) {
 
 	        if (drawLineMode) {
@@ -1656,7 +1686,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 
-	    // 先に機材を探す
+	    // 重なっている時は、当日配置する機材を最優先で選ぶ。
+        // その後、会場パーツ、線、テキスト、背景図面の順で編集対象を探す。
 	    selectedItem = findItem(canvasX, canvasY);
 
 	    if (selectedItem != null) {
@@ -1996,6 +2027,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public void mouseMoved(MouseEvent e) {
 		
 		if (!isInDrawingArea(e)) {
+            if (hoveredTextBox != null) {
+                hoveredTextBox = null;
+                repaint();
+            }
 	        setCursor(Cursor.getDefaultCursor());
 	        return;
 	    }
@@ -2086,6 +2121,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
         }
 
         TextBoxItem textBox = findTextBox(mouseX, mouseY);
+
+        if (hoveredTextBox != textBox) {
+            hoveredTextBox = textBox;
+            repaint();
+        }
 
         if (textBox != null) {
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -2648,6 +2688,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	//変更通知用メソッド
 	private void notifyChanged() {
 
+        // 変更通知は保存ボタンの有効化だけでなく、undo/redo用の履歴記録も兼ねる。
+        // 操作を追加した時は、原則ここを通すようにする。
         recordHistory();
 
 	    if (changeCallback != null) {
@@ -2701,6 +2743,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
     private LayoutSnapshot createSnapshot() {
 
+        // 履歴は現在のリストをそのまま持つと後続操作で変わってしまう。
+        // そのため、機材、会場パーツ、線、背景、文字をコピーして保存する。
         return new LayoutSnapshot(
                 copyItems(items),
                 copyRoomObjects(customRoomObjects),
@@ -2817,6 +2861,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         if (RoomObject.TYPE_CIRCLE.equals(object.getType())) {
             return RoomObject.createCircle(
+                    object.getName(),
+                    object.getX(),
+                    object.getY(),
+                    object.getWidth(),
+                    object.getHeight());
+        }
+
+        if (isShapeRoomObject(object)) {
+            return RoomObject.createShape(
+                    object.getType(),
                     object.getName(),
                     object.getX(),
                     object.getY(),
@@ -3452,6 +3506,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
             double[] actualSizeMeters = askBackgroundActualSizeMeters(image);
 
+            // 実寸幅が分かる場合はメートルからピクセルへ変換し、
+            // 分からない場合は作業シート幅に合わせて扱いやすい初期サイズにする。
             if (actualSizeMeters == null) {
                 fitBackgroundToSheetWidth();
             } else {
@@ -4081,6 +4137,50 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    repaint();
 	}
 
+    public void addRoomShapeFromMeters(
+            String shapeType,
+            String name,
+            double widthMeters,
+            double heightMeters) {
+
+        if (stageLocked) {
+            return;
+        }
+
+        int width = Math.max(GRID_SIZE, metersToCurrentGridPixels(widthMeters));
+        int height = Math.max(GRID_SIZE, metersToCurrentGridPixels(heightMeters));
+
+        // 図形テンプレートは作成直後に見失わないよう、作業シートの中央へ置く。
+        // その後は通常の会場パーツと同じ移動・リサイズ処理で調整する。
+        int x = Math.max(0, (sheetWidth - width) / 2);
+        int y = Math.max(0, (sheetHeight - height) / 2);
+
+        if (snapToGrid) {
+            x = snapValue(x);
+            y = snapValue(y);
+        }
+
+        RoomObject object =
+                RoomObject.createShape(
+                        shapeType,
+                        name,
+                        x,
+                        y,
+                        width,
+                        height);
+
+        clearAllModes();
+        customRoomObjects.add(object);
+        selectedRoomObject = object;
+
+        notifyChanged();
+        repaint();
+    }
+
+    private int metersToCurrentGridPixels(double meters) {
+        return (int) Math.round((meters / metersPerGrid) * GRID_SIZE);
+    }
+
 	private void addRoomImageObject(
 	        EquipmentDefinition definition,
 	        int x,
@@ -4157,6 +4257,19 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	                    object.getY(),
 	                    object.getWidth(),
 	                    object.getHeight());
+
+	        } else if (isShapeRoomObject(object)) {
+
+                Shape shape = createRoomObjectShape(object);
+
+	            g2.setColor(fillColor);
+	            g2.fill(shape);
+
+	            g2.setColor(selected
+	                    ? new Color(80, 130, 255)
+	                    : ROOM_OBJECT_BORDER_COLOR);
+	            g2.setStroke(new BasicStroke(selected ? 3 : 1));
+	            g2.draw(shape);
 
 	        } else {
 
@@ -4239,6 +4352,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return COLUMN_FILL_COLOR;
 	    }
 
+        if (isShapeRoomObject(object)) {
+            return new Color(226, 234, 240);
+        }
+
 	    String name = object.getName();
 
 	    if (name != null
@@ -4248,6 +4365,51 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    return STAGE_FILL_COLOR;
 	}
+
+    private boolean isShapeRoomObject(RoomObject object) {
+
+        if (object == null) {
+            return false;
+        }
+
+        String type = object.getType();
+
+        return RoomObject.TYPE_OVAL.equals(type)
+                || RoomObject.TYPE_TRACK.equals(type)
+                || RoomObject.TYPE_FRONT_ARC.equals(type)
+                || RoomObject.TYPE_ROUNDED_RECT.equals(type);
+    }
+
+    private Shape createRoomObjectShape(RoomObject object) {
+
+        int x = object.getX();
+        int y = object.getY();
+        int w = Math.max(1, object.getWidth());
+        int h = Math.max(1, object.getHeight());
+
+        if (RoomObject.TYPE_OVAL.equals(object.getType())) {
+            return new Ellipse2D.Double(x, y, w, h);
+        }
+
+        if (RoomObject.TYPE_TRACK.equals(object.getType())) {
+            return new RoundRectangle2D.Double(x, y, w, h, h, h);
+        }
+
+        if (RoomObject.TYPE_FRONT_ARC.equals(object.getType())) {
+            Path2D path = new Path2D.Double();
+            double arcHeight = Math.max(12, h * 0.35);
+
+            path.moveTo(x, y);
+            path.lineTo(x + w, y);
+            path.lineTo(x + w, y + h - arcHeight);
+            path.quadTo(x + w / 2.0, y + h, x, y + h - arcHeight);
+            path.closePath();
+
+            return path;
+        }
+
+        return new RoundRectangle2D.Double(x, y, w, h, Math.min(w, h) / 3.0, Math.min(w, h) / 3.0);
+    }
 
 	private void drawCenteredRoomObjectName(Graphics2D g2, RoomObject object) {
 

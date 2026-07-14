@@ -9,6 +9,8 @@ import model.ProjectInfo;
 import model.RoomObject;
 import model.TextBoxItem;
 
+// .stageファイルを読み込んだ結果をまとめてMainFrameへ返すための入れ物。
+// 画面側はこのデータから機材、会場、線、背景、文字を復元する。
 public class LayoutData {
 
     private ProjectInfo projectInfo;

@@ -13,6 +13,9 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.image.BufferedImage;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.RoundRectangle2D;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -138,7 +141,8 @@ public class SheetPreviewPanel extends JPanel{
 	    int pageX = Math.max(20, (scaledPanelW - pageW) / 2);
 	    int pageY = 30;
 		
-		//用紙背景
+        // プレビューは作業画面ではなく提出用の1ページとして描く。
+        // ヘッダー、レイアウト図、必要機材一覧、メモ欄を固定の用紙上に配置する。
 		g2.setColor(Color.WHITE);
 		g2.fillRect(pageX, pageY, pageW, pageH);
 		
@@ -282,23 +286,44 @@ public class SheetPreviewPanel extends JPanel{
             return;
         }
 
+        // 必要機材一覧は提出時の確認用なので「ほか○件」で省略しない。
+        // 件数が多い場合は列数と文字サイズを調整して、できるだけ全件を同じ紙面に収める。
         int startY = y + 50;
         int usableHeight = h - 60;
         int fontSize = 12;
-        int lineHeight = fontSize + 6;
+        int lineHeight = fontSize + 5;
+        int columnCount = 1;
         int maxRows = Math.max(1, usableHeight / lineHeight + 1);
 
-        if (summary.size() > maxRows * 2) {
-            fontSize = 9;
-            lineHeight = fontSize + 5;
-            maxRows = Math.max(1, usableHeight / lineHeight + 1);
-        } else if (summary.size() > maxRows) {
-            fontSize = 10;
-            lineHeight = fontSize + 5;
-            maxRows = Math.max(1, usableHeight / lineHeight + 1);
+        for (int candidateColumns = 1; candidateColumns <= 3; candidateColumns++) {
+            boolean fits = false;
+
+            for (int candidateFontSize = 12; candidateFontSize >= 7; candidateFontSize--) {
+                int candidateLineHeight = candidateFontSize + 5;
+                int candidateRows = Math.max(1, usableHeight / candidateLineHeight + 1);
+
+                if (summary.size() <= candidateRows * candidateColumns) {
+                    columnCount = candidateColumns;
+                    fontSize = candidateFontSize;
+                    lineHeight = candidateLineHeight;
+                    maxRows = candidateRows;
+                    fits = true;
+                    break;
+                }
+            }
+
+            if (fits) {
+                break;
+            }
         }
 
-        int columnCount = summary.size() > maxRows ? 2 : 1;
+        if (summary.size() > maxRows * columnCount) {
+            columnCount = 3;
+            fontSize = 7;
+            lineHeight = 11;
+            maxRows = Math.max(1, (int) Math.ceil(summary.size() / (double) columnCount));
+        }
+
         int columnWidth = (w - 40) / columnCount;
         int index = 0;
 
@@ -306,10 +331,6 @@ public class SheetPreviewPanel extends JPanel{
 
             int column = index / maxRows;
             int row = index % maxRows;
-
-            if (column >= columnCount) {
-                break;
-            }
 
             g.setFont(new Font("SansSerif", Font.PLAIN, fontSize));
             drawFittedString(
@@ -467,6 +488,8 @@ public class SheetPreviewPanel extends JPanel{
             return;
         }
 
+        // 作業画面の広い余白をそのまま縮小すると見づらい。
+        // 選択されたプレビュー範囲に合わせて、会場や配置物が読める大きさになるようにする。
         Rectangle bounds = calculatePreviewBounds();
 
         int minX = bounds.x;
@@ -626,6 +649,8 @@ public class SheetPreviewPanel extends JPanel{
 
     private Rectangle calculatePreviewBounds() {
 
+        // プレビュー範囲は用途で切り替える。
+        // 会場全体を見たい時、配置物だけを大きく見たい時、背景図面を確認したい時を分ける。
         if (PREVIEW_SHEET.equals(previewRangeMode)) {
             int width = sheetWidth > 0 ? sheetWidth : 1;
             int height = sheetHeight > 0 ? sheetHeight : 1;
@@ -1068,16 +1093,7 @@ public class SheetPreviewPanel extends JPanel{
             int w = Math.max(8, (int) (textBox.getWidth() * scale));
             int h = Math.max(8, (int) (textBox.getHeight() * scale));
 
-            if (textBox.isShowBackground()) {
-                g2.setColor(textBox.getBackgroundColor());
-                g2.fillRect(x, y, w, h);
-            }
-
-            if (textBox.isShowBorder()) {
-                g2.setColor(Color.BLACK);
-                g2.drawRect(x, y, w, h);
-            }
-
+            // 提出用プレビューでは注釈として読みやすくするため、枠や背景は描かず文字だけ表示する。
             g2.setColor(textBox.getTextColor());
             g2.setFont(
                     new Font(
@@ -1132,6 +1148,16 @@ public class SheetPreviewPanel extends JPanel{
                 g2.setColor(Color.BLACK);
                 g2.drawOval(x, y, w, h);
 
+            } else if (isShapeRoomObject(object)) {
+
+                Shape shape = createPreviewRoomObjectShape(object, x, y, w, h);
+
+                g2.setColor(new Color(226, 234, 240));
+                g2.fill(shape);
+
+                g2.setColor(Color.BLACK);
+                g2.draw(shape);
+
             } else {
 
                 g2.setColor(new Color(232, 235, 238));
@@ -1149,6 +1175,57 @@ public class SheetPreviewPanel extends JPanel{
                 g2.drawString(object.getName(), x + 4, y + 14);
             }
         }
+    }
+
+    private boolean isShapeRoomObject(RoomObject object) {
+
+        if (object == null) {
+            return false;
+        }
+
+        String type = object.getType();
+
+        return RoomObject.TYPE_OVAL.equals(type)
+                || RoomObject.TYPE_TRACK.equals(type)
+                || RoomObject.TYPE_FRONT_ARC.equals(type)
+                || RoomObject.TYPE_ROUNDED_RECT.equals(type);
+    }
+
+    private Shape createPreviewRoomObjectShape(
+            RoomObject object,
+            int x,
+            int y,
+            int w,
+            int h) {
+
+        if (RoomObject.TYPE_OVAL.equals(object.getType())) {
+            return new Ellipse2D.Double(x, y, w, h);
+        }
+
+        if (RoomObject.TYPE_TRACK.equals(object.getType())) {
+            return new RoundRectangle2D.Double(x, y, w, h, h, h);
+        }
+
+        if (RoomObject.TYPE_FRONT_ARC.equals(object.getType())) {
+            Path2D path = new Path2D.Double();
+            double arcHeight = Math.max(6, h * 0.35);
+
+            path.moveTo(x, y);
+            path.lineTo(x + w, y);
+            path.lineTo(x + w, y + h - arcHeight);
+            path.quadTo(x + w / 2.0, y + h, x, y + h - arcHeight);
+            path.closePath();
+
+            return path;
+        }
+
+        return new RoundRectangle2D.Double(
+                x,
+                y,
+                w,
+                h,
+                Math.min(w, h) / 3.0,
+                Math.min(w, h) / 3.0);
     }
 
     private void drawPreviewLines(

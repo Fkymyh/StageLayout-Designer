@@ -2,6 +2,8 @@ package model;
 
 import java.awt.Color;
 
+// キャンバス上に引いた線を表す。
+// 通常線は長さ表示に使い、BAMIRI線は赤テープ位置として長さ表示を出さない。
 public class DrawLine {
 
     public static final String TYPE_NORMAL = "NORMAL";

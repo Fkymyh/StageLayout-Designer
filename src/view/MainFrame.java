@@ -34,10 +34,20 @@ import io.LayoutData;
 import io.LayoutFileManager;
 import model.BackgroundMap;
 import model.ProjectInfo;
+import model.RoomObject;
 import model.RoomTemplate;
 import model.RoomTemplateFactory;
 
 public class MainFrame extends JFrame {
+
+    public enum EditMode {
+        SELECT,
+        ITEM,
+        TEXT,
+        LINE,
+        BAMIRI,
+        ROOM_OBJECT
+    }
 
     private EquipmentPanel equipmentPanel;
     private PropertyPanel propertyPanel;
@@ -63,6 +73,14 @@ public class MainFrame extends JFrame {
 
     private JCheckBox stageLockCheckBox;
 
+    private JToggleButton selectButton;
+
+    private JToggleButton lineButton;
+
+    private JToggleButton bamiriLineButton;
+
+    private JToggleButton textButton;
+
     public MainFrame() {
 
         setTitle("Stage Layout Designer");
@@ -78,13 +96,11 @@ public class MainFrame extends JFrame {
             String selectedEquipment = equipmentPanel.getSelectedEquipment();
 
             if ("バミリ 自由線".equals(selectedEquipment)) {
-                canvasPanel.setBamiriFreeLineMode();
-                statusLabel.setText("モード: バミリ自由線");
+                switchEditMode(EditMode.BAMIRI);
                 return;
             }
 
-            canvasPanel.switchToItemPlacementMode();
-            statusLabel.setText("モード: 機材配置");
+            switchEditMode(EditMode.ITEM);
         });
         canvasPanel.setStageLocked(false);
         
@@ -95,6 +111,8 @@ public class MainFrame extends JFrame {
 
         setLayout(new BorderLayout());
 
+        // 画面全体は、上のツールバー、左の機材パレット、中央のキャンバス、
+        // 右の詳細パネル、下の状態表示で構成する。
         setJMenuBar(createMenuBar());
 
         Component workArea = createWorkArea();
@@ -396,6 +414,12 @@ public class MainFrame extends JFrame {
                 new JMenuItem("登録済みPDF/画像テンプレートを読み込み");
         loadRegisteredTemplateItem.addActionListener(e -> loadRegisteredBackgroundTemplate());
 
+        JMenuItem createShapeTemplateItem =
+                new JMenuItem("図形テンプレートを作成");
+        createShapeTemplateItem.addActionListener(e -> createShapeTemplate());
+
+        // 既存のコード製テンプレート、保存済み会場、PDF/画像背景テンプレートを、
+        // 利用者からは同じ「会場テンプレート」の入口として見せる。
         JMenu chooseTemplateMenu = new JMenu("テンプレートを選択");
         chooseTemplateMenu.add(classroomItem);
         chooseTemplateMenu.add(outdoorStageItem);
@@ -404,6 +428,7 @@ public class MainFrame extends JFrame {
 
         templateMenu.add(chooseTemplateMenu);
         templateMenu.add(saveVenueTemplateItem);
+        templateMenu.add(createShapeTemplateItem);
         templateMenu.add(createTemplateFromBackgroundItem);
         templateMenu.addSeparator();
         templateMenu.add(clearTemplateItem);
@@ -507,10 +532,12 @@ public class MainFrame extends JFrame {
 
     private Component createToolBar() {
 
-        JToggleButton selectButton = new JToggleButton("機材を動かす");
-        JToggleButton lineButton = new JToggleButton("線を引く");
-        JToggleButton bamiriLineButton = new JToggleButton("バミリ線");
-        JToggleButton textButton = new JToggleButton("文字");
+        // よく使う操作はツールバーに置く。
+        // ファイル管理やテンプレート管理はメニューに寄せ、ツールバーは作業中の手元操作を優先する。
+        selectButton = new JToggleButton("機材を動かす");
+        lineButton = new JToggleButton("線を引く");
+        bamiriLineButton = new JToggleButton("バミリ線");
+        textButton = new JToggleButton("文字");
         JButton backgroundButton = new JButton("背景読込");
         JButton deleteButton = new JButton("削除");
         JButton rotateButton = new JButton("回転");
@@ -587,25 +614,21 @@ public class MainFrame extends JFrame {
         zoomComboBox.setPreferredSize(new Dimension(80, 28));
 
         selectButton.addActionListener(e -> {
-        		canvasPanel.setSelectMode();;
-            statusLabel.setText("モード: 機材を動かす");
+            switchEditMode(EditMode.SELECT);
         });
 
         lineButton.addActionListener(e -> {
-            canvasPanel.setDrawLineMode(true);
-            statusLabel.setText("モード: 線描画");
+            switchEditMode(EditMode.LINE);
         });
 
         bamiriLineButton.addActionListener(e -> {
-            canvasPanel.setBamiriFreeLineMode();
             colorComboBox.setSelectedItem("赤");
             strokeComboBox.setSelectedItem(5);
-            statusLabel.setText("モード: バミリ線");
+            switchEditMode(EditMode.BAMIRI);
         });
 
         textButton.addActionListener(e -> {
-            canvasPanel.setTextMode(true);
-            statusLabel.setText("モード: 文字");
+            switchEditMode(EditMode.TEXT);
         });
 
         backgroundButton.addActionListener(e -> loadBackgroundMap());
@@ -854,6 +877,67 @@ public class MainFrame extends JFrame {
         }
     }
 
+    private void switchEditMode(EditMode mode) {
+
+        if (mode == null) {
+            mode = EditMode.SELECT;
+        }
+
+        // CanvasPanel側の状態とツールバーの押下表示を同じ場所で更新する。
+        // 文字モード中に機材パレットを押した時など、表示だけ古いモードに残るのを防ぐ。
+        if (selectButton != null) {
+            selectButton.setSelected(
+                    mode == EditMode.SELECT
+                    || mode == EditMode.ITEM
+                    || mode == EditMode.ROOM_OBJECT);
+        }
+
+        if (lineButton != null) {
+            lineButton.setSelected(mode == EditMode.LINE);
+        }
+
+        if (bamiriLineButton != null) {
+            bamiriLineButton.setSelected(mode == EditMode.BAMIRI);
+        }
+
+        if (textButton != null) {
+            textButton.setSelected(mode == EditMode.TEXT);
+        }
+
+        switch (mode) {
+
+            case LINE:
+                canvasPanel.setDrawLineMode(true);
+                statusLabel.setText("モード: 線描画");
+                break;
+
+            case BAMIRI:
+                canvasPanel.setBamiriFreeLineMode();
+                statusLabel.setText("モード: バミリ線");
+                break;
+
+            case TEXT:
+                canvasPanel.setTextMode(true);
+                statusLabel.setText("モード: 文字");
+                break;
+
+            case ROOM_OBJECT:
+                statusLabel.setText("モード: 会場パーツ");
+                break;
+
+            case ITEM:
+                canvasPanel.switchToItemPlacementMode();
+                statusLabel.setText("モード: 機材配置");
+                break;
+
+            case SELECT:
+            default:
+                canvasPanel.setSelectMode();
+                statusLabel.setText("モード: 機材を動かす");
+                break;
+        }
+    }
+
     private void saveCurrentFile() {
 
         if (currentFileName == null || currentFileName.isBlank()) {
@@ -912,6 +996,112 @@ public class MainFrame extends JFrame {
         }
     }
 
+    private void createShapeTemplate() {
+
+        // コードを書かずに会場の土台を作れるよう、サイズ入力から会場パーツを生成する。
+        // 生成後はCanvasPanel上の通常の会場パーツとして扱う。
+        JComboBox<String> shapeComboBox =
+                new JComboBox<>(
+                        new String[] {
+                                "長方形ステージ",
+                                "半円前面ステージ",
+                                "楕円形",
+                                "陸上トラック風",
+                                "半円付き長方形"
+                        });
+
+        javax.swing.JTextField widthField = new javax.swing.JTextField("13.0", 8);
+        javax.swing.JTextField heightField = new javax.swing.JTextField("4.0", 8);
+        javax.swing.JTextField nameField = new javax.swing.JTextField("ステージ", 12);
+
+        shapeComboBox.addActionListener(e -> {
+
+            String selected = String.valueOf(shapeComboBox.getSelectedItem());
+
+            if ("陸上トラック風".equals(selected)) {
+                nameField.setText("トラック風ステージ");
+                widthField.setText("20.0");
+                heightField.setText("10.0");
+            } else if ("楕円形".equals(selected)) {
+                nameField.setText("楕円エリア");
+                widthField.setText("10.0");
+                heightField.setText("6.0");
+            } else if ("半円前面ステージ".equals(selected)) {
+                nameField.setText("半円前面ステージ");
+                widthField.setText("13.0");
+                heightField.setText("5.0");
+            } else {
+                nameField.setText("ステージ");
+                widthField.setText("13.0");
+                heightField.setText("4.0");
+            }
+        });
+
+        JPanel panel = new JPanel(new java.awt.GridLayout(0, 2, 8, 8));
+
+        panel.add(new JLabel("形状"));
+        panel.add(shapeComboBox);
+        panel.add(new JLabel("名前"));
+        panel.add(nameField);
+        panel.add(new JLabel("横幅 m"));
+        panel.add(widthField);
+        panel.add(new JLabel("縦幅 m"));
+        panel.add(heightField);
+
+        int result =
+                JOptionPane.showConfirmDialog(
+                        this,
+                        panel,
+                        "図形テンプレートを作成",
+                        JOptionPane.OK_CANCEL_OPTION,
+                        JOptionPane.PLAIN_MESSAGE);
+
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        try {
+            String shapeName = String.valueOf(shapeComboBox.getSelectedItem());
+            String type = roomShapeType(shapeName);
+            String label = nameField.getText().trim();
+            double widthMeters = Double.parseDouble(widthField.getText().trim());
+            double heightMeters = Double.parseDouble(heightField.getText().trim());
+
+            if (label.isBlank()) {
+                label = shapeName;
+            }
+
+            canvasPanel.addRoomShapeFromMeters(type, label, widthMeters, heightMeters);
+            switchEditMode(EditMode.ROOM_OBJECT);
+            statusLabel.setText("図形テンプレートを追加しました: " + label);
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "横幅と縦幅は数字で入力してください。");
+            createShapeTemplate();
+        }
+    }
+
+    private String roomShapeType(String shapeName) {
+
+        if ("楕円形".equals(shapeName)) {
+            return RoomObject.TYPE_OVAL;
+        }
+
+        if ("陸上トラック風".equals(shapeName)) {
+            return RoomObject.TYPE_TRACK;
+        }
+
+        if ("半円前面ステージ".equals(shapeName)) {
+            return RoomObject.TYPE_FRONT_ARC;
+        }
+
+        if ("半円付き長方形".equals(shapeName)) {
+            return RoomObject.TYPE_ROUNDED_RECT;
+        }
+
+        return RoomObject.TYPE_RECT;
+    }
+
     private void loadBackgroundMap() {
 
         JFileChooser fileChooser = new JFileChooser();
@@ -960,6 +1150,8 @@ public class MainFrame extends JFrame {
 
         try {
 
+            // 背景テンプレートは元PDF/画像を user-templates にコピーしてから保存する。
+            // 利用者ごとのローカル素材なので、GitHubへは追加しない前提にしている。
             File templateFolder = getBackgroundTemplateFolder();
             Files.createDirectories(templateFolder.toPath());
 

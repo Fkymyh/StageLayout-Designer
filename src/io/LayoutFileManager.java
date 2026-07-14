@@ -101,6 +101,8 @@ public class LayoutFileManager {
         writer.write("#BACKGROUND\n");
 
         if (backgroundMap != null) {
+            // 背景図面はPDF/画像そのものを.stageへ埋め込まず、元ファイルのパスと表示情報を保存する。
+            // 将来トリミングやプレビュー範囲を増やせるよう、実寸やcrop系の値も一緒に保持する。
             writer.write(
                     escape(backgroundMap.getImagePath()) + "," +
                     backgroundMap.getX() + "," +
@@ -126,6 +128,8 @@ public class LayoutFileManager {
         writer.write("#TEXT_BOXES\n");
 
         for (TextBoxItem textBox : textBoxes) {
+            // テキストボックスは作業画面で編集できる枠や背景情報も保存する。
+            // プレビューでは文字だけ表示するが、編集時に戻せるよう設定値は残しておく。
             writer.write(
                     escape(textBox.getText()) + "," +
                     textBox.getX() + "," +
@@ -378,6 +382,8 @@ public class LayoutFileManager {
 
                 RoomObject object;
 
+                // 会場パーツはtypeで形を分ける。
+                // 新しい図形タイプを増やしても、既存のRECT/CIRCLE/IMAGE形式はそのまま読めるようにする。
                 if (RoomObject.TYPE_IMAGE.equals(type)) {
 
                     String imagePath = "";
@@ -399,6 +405,20 @@ public class LayoutFileManager {
 
                     object =
                             RoomObject.createCircle(
+                                    name,
+                                    x,
+                                    y,
+                                    width,
+                                    height);
+
+                } else if (RoomObject.TYPE_OVAL.equals(type)
+                        || RoomObject.TYPE_TRACK.equals(type)
+                        || RoomObject.TYPE_FRONT_ARC.equals(type)
+                        || RoomObject.TYPE_ROUNDED_RECT.equals(type)) {
+
+                    object =
+                            RoomObject.createShape(
+                                    type,
                                     name,
                                     x,
                                     y,
@@ -444,6 +464,8 @@ public class LayoutFileManager {
                 boolean showLength = true;
                 String lineType = DrawLine.TYPE_NORMAL;
 
+                // 古い.stageファイルでは線種やラベル表示列が存在しない。
+                // その場合は通常線、長さ表示あり、ラベル表示ありとして復元する。
                 if (data.length >= 10) {
                     showLength = Boolean.parseBoolean(data[9]);
                 }
@@ -482,6 +504,8 @@ public class LayoutFileManager {
                 String[] data = splitEscapedCsv(line);
 
                 if (data.length >= 9) {
+                    // 背景図面は段階的に保存項目が増えている。
+                    // 列数を見ながら読み、古いファイルでも最低限の背景表示を復元する。
                     backgroundMap = new BackgroundMap();
                     backgroundMap.setImagePath(unescape(data[0]));
                     backgroundMap.setX(Integer.parseInt(data[1]));
@@ -522,6 +546,7 @@ public class LayoutFileManager {
                 String[] data = splitEscapedCsv(line);
 
                 if (data.length >= 10) {
+                    // テキストボックスは比較的新しい機能なので、必要な列が揃っている時だけ復元する。
                     TextBoxItem textBox =
                             new TextBoxItem(
                                     unescape(data[0]),

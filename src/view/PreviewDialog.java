@@ -251,6 +251,8 @@ public class PreviewDialog extends JDialog{
 	        SheetPreviewPanel previewPanel,
 	        ProjectInfo projectInfo) {
 
+        // PNG保存はプレビュー画面と同じ描画を画像化する。
+        // ファイル名はイベント名や日付から作り、提出用ファイルとして探しやすくする。
 	    JFileChooser fileChooser = new JFileChooser();
 
 	    fileChooser.setSelectedFile(
@@ -292,6 +294,8 @@ public class PreviewDialog extends JDialog{
             SheetPreviewPanel previewPanel,
             ProjectInfo projectInfo) {
 
+        // PDF保存もプレビュー画像を1ページPDFに貼り付ける方式にしている。
+        // 画面表示、PNG保存、PDF保存で見た目がずれないようにするため。
         JFileChooser fileChooser = new JFileChooser();
 
         fileChooser.setSelectedFile(

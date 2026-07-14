@@ -1,10 +1,16 @@
 package model;
 
+// 会場テンプレートや会場パーツを構成する図形データ。
+// 四角、円、画像、トラック風図形などを同じリストで扱うためtypeで描き分ける。
 public class RoomObject {
 	
 	public static final String TYPE_LINE = "LINE";
 	public static final String TYPE_RECT = "RECT";
 	public static final String TYPE_CIRCLE = "CIRCLE";
+	public static final String TYPE_OVAL = "OVAL";
+	public static final String TYPE_TRACK = "TRACK";
+	public static final String TYPE_FRONT_ARC = "FRONT_ARC";
+	public static final String TYPE_ROUNDED_RECT = "ROUNDED_RECT";
 	public static final String TYPE_ARC = "ARC";
 	public static final String TYPE_TEXT = "TEXT";
 	public static final String TYPE_IMAGE = "IMAGE";
@@ -70,6 +76,22 @@ public class RoomObject {
 	            new RoomObject(name, x, y, width, height);
 
 	    object.type = TYPE_CIRCLE;
+
+	    return object;
+	}
+
+	public static RoomObject createShape(
+	        String type,
+	        String name,
+	        int x,
+	        int y,
+	        int width,
+	        int height) {
+
+	    RoomObject object =
+	            new RoomObject(name, x, y, width, height);
+
+	    object.type = type == null || type.isBlank() ? TYPE_RECT : type;
 
 	    return object;
 	}

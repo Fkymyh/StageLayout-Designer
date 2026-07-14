@@ -1,5 +1,6 @@
 package model;
 
+// イベント名、日付、会場、担当者、メモなど、提出用プレビューにも使う基本情報。
 public class ProjectInfo {
 
     private String title = "";

@@ -2,6 +2,8 @@ package model;
 
 import java.awt.Color;
 
+// 機材に紐づかない自由テキスト。
+// 注意書き、場所名、音響卓などの注釈を図面上に置くために使う。
 public class TextBoxItem {
 
     private String text;

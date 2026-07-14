@@ -1,5 +1,7 @@
 package model;
 
+// キャンバス上に配置された1つの機材や人物を表す。
+// Equipmentは機材の種類、LayoutItemは実際に置かれた位置やサイズを持つ個体。
 public class LayoutItem {
 
     private Equipment equipment;

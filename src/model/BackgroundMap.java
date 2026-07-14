@@ -1,5 +1,7 @@
 package model;
 
+// PDFや画像から読み込んだ会場図面を背景として保持するデータ。
+// 元ファイルの場所、表示サイズ、実寸、プレビュー範囲などを保存する。
 public class BackgroundMap {
 
     private String imagePath = "";
