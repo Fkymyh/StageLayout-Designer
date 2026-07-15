@@ -7,6 +7,8 @@ import java.awt.Color;
 public class DrawLine {
 
     public static final String TYPE_NORMAL = "NORMAL";
+    public static final String TYPE_CABLE = "CABLE";
+    public static final String TYPE_FLOW = "FLOW";
     public static final String TYPE_BAMIRI = "BAMIRI";
 
     private int startX;

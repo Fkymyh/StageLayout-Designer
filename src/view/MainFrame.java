@@ -33,6 +33,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import io.LayoutData;
 import io.LayoutFileManager;
 import model.BackgroundMap;
+import model.DrawLine;
 import model.ProjectInfo;
 import model.RoomObject;
 import model.RoomTemplate;
@@ -601,6 +602,9 @@ public class MainFrame extends JFrame {
         JComboBox<String> colorComboBox =
                 new JComboBox<>(new String[] {"赤", "黒", "青", "緑"});
 
+        JComboBox<String> lineTypeComboBox =
+                new JComboBox<>(new String[] {"通常線", "ケーブル線", "導線"});
+
         JComboBox<Integer> strokeComboBox =
                 new JComboBox<>(new Integer[] {1, 2, 3, 4, 5, 6, 8, 10});
 
@@ -608,6 +612,9 @@ public class MainFrame extends JFrame {
         
         colorComboBox.setMaximumSize(new Dimension(80, 28));
         colorComboBox.setPreferredSize(new Dimension(80, 28));
+
+        lineTypeComboBox.setMaximumSize(new Dimension(90, 28));
+        lineTypeComboBox.setPreferredSize(new Dimension(90, 28));
 
         strokeComboBox.setMaximumSize(new Dimension(60, 28));
         strokeComboBox.setPreferredSize(new Dimension(60, 28));
@@ -625,11 +632,20 @@ public class MainFrame extends JFrame {
 
         lineButton.addActionListener(e -> {
             switchEditMode(EditMode.LINE);
+            int selectedLineIndex = lineTypeComboBox.getSelectedIndex();
+            if (selectedLineIndex == 1) {
+                canvasPanel.setCurrentLineType(DrawLine.TYPE_CABLE);
+            } else if (selectedLineIndex == 2) {
+                canvasPanel.setCurrentLineType(DrawLine.TYPE_FLOW);
+            } else {
+                canvasPanel.setCurrentLineType(DrawLine.TYPE_NORMAL);
+            }
         });
 
         bamiriLineButton.addActionListener(e -> {
             colorComboBox.setSelectedItem("赤");
             strokeComboBox.setSelectedItem(5);
+            lineTypeComboBox.setSelectedItem("通常線");
             switchEditMode(EditMode.BAMIRI);
         });
 
@@ -820,6 +836,24 @@ public class MainFrame extends JFrame {
             statusLabel.setText("線の色: " + colorName);
         });
 
+        lineTypeComboBox.addActionListener(e -> {
+
+            String lineTypeName = (String) lineTypeComboBox.getSelectedItem();
+
+            if ("ケーブル線".equals(lineTypeName)) {
+                canvasPanel.setCurrentLineType(DrawLine.TYPE_CABLE);
+                colorComboBox.setSelectedItem("黒");
+                statusLabel.setText("線種: ケーブル線");
+            } else if ("導線".equals(lineTypeName)) {
+                canvasPanel.setCurrentLineType(DrawLine.TYPE_FLOW);
+                colorComboBox.setSelectedItem("青");
+                statusLabel.setText("線種: 導線");
+            } else {
+                canvasPanel.setCurrentLineType(DrawLine.TYPE_NORMAL);
+                statusLabel.setText("線種: 通常線");
+            }
+        });
+
         strokeComboBox.addActionListener(e -> {
 
             Integer strokeWidth =
@@ -890,6 +924,8 @@ public class MainFrame extends JFrame {
         subToolsPanel.add(snapToGridCheckBox);
         subToolsPanel.add(alignmentGuideCheckBox);
         subToolsPanel.add(new JLabel("  線:"));
+        subToolsPanel.add(new JLabel("種類"));
+        subToolsPanel.add(lineTypeComboBox);
         subToolsPanel.add(new JLabel("色"));
         subToolsPanel.add(colorComboBox);
         subToolsPanel.add(new JLabel("太さ"));

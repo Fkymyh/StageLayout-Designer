@@ -88,6 +88,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private int currentLineStrokeWidth = 5;
 
     private String currentLineLabel = "";
+
+    private String currentLineType = DrawLine.TYPE_NORMAL;
 	
 	private LayoutItem copiedItem;
 
@@ -1328,13 +1330,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    for (DrawLine line : drawLines) {
 
-	        g2.setColor(line.getColor());
-
-	        g2.setStroke(
-	                new BasicStroke(
-	                        line.getStrokeWidth(),
-	                        BasicStroke.CAP_ROUND,
-	                        BasicStroke.JOIN_ROUND));
+	        g2.setColor(lineColorForType(line));
+	        g2.setStroke(createStrokeForLine(line));
 
 	        g2.drawLine(
 	                line.getStartX(),
@@ -1382,6 +1379,53 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    g2.dispose();
 	}
+
+    private Color lineColorForType(DrawLine line) {
+
+        if (line == null) {
+            return Color.BLACK;
+        }
+
+        if (DrawLine.TYPE_CABLE.equals(line.getLineType())) {
+            return Color.BLACK;
+        }
+
+        if (DrawLine.TYPE_FLOW.equals(line.getLineType())) {
+            return new Color(40, 110, 210);
+        }
+
+        return line.getColor();
+    }
+
+    private BasicStroke createStrokeForLine(DrawLine line) {
+
+        int width = line == null ? 2 : line.getStrokeWidth();
+
+        if (line != null && DrawLine.TYPE_CABLE.equals(line.getLineType())) {
+            return new BasicStroke(
+                    width,
+                    BasicStroke.CAP_ROUND,
+                    BasicStroke.JOIN_ROUND,
+                    10f,
+                    new float[] {10f, 7f},
+                    0f);
+        }
+
+        if (line != null && DrawLine.TYPE_FLOW.equals(line.getLineType())) {
+            return new BasicStroke(
+                    width,
+                    BasicStroke.CAP_ROUND,
+                    BasicStroke.JOIN_ROUND,
+                    10f,
+                    new float[] {16f, 8f},
+                    0f);
+        }
+
+        return new BasicStroke(
+                width,
+                BasicStroke.CAP_ROUND,
+                BasicStroke.JOIN_ROUND);
+    }
 
     private boolean isBamiriLine(DrawLine line) {
 
@@ -1509,14 +1553,6 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    Graphics2D g2 = (Graphics2D) g.create();
 
-	    g2.setColor(currentLineColor);
-	    
-	    g2.setStroke(
-	            new BasicStroke(
-	                    currentLineStrokeWidth,
-	                    BasicStroke.CAP_ROUND,
-	                    BasicStroke.JOIN_ROUND));
-
 	    int previewX = mouseX;
 	    int previewY = mouseY;
 
@@ -1524,6 +1560,20 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    previewX = adjusted[0];
 	    previewY = adjusted[1];
+
+        DrawLine previewLine =
+                new DrawLine(lineStartX, lineStartY, previewX, previewY);
+
+        previewLine.setColor(currentLineColor);
+        previewLine.setStrokeWidth(currentLineStrokeWidth);
+        previewLine.setLineType(currentLineType);
+
+        if (isCurrentBamiriLineMode()) {
+            previewLine.setLineType(DrawLine.TYPE_BAMIRI);
+        }
+
+	    g2.setColor(lineColorForType(previewLine));
+	    g2.setStroke(createStrokeForLine(previewLine));
 
 	    g2.drawLine(
 	            lineStartX,
@@ -1821,6 +1871,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    line.setColor(currentLineColor);
 	    line.setStrokeWidth(currentLineStrokeWidth);
         line.setLabel(currentLineLabel);
+        line.setLineType(currentLineType);
         if (isCurrentBamiriLineMode()) {
             line.setLineType(DrawLine.TYPE_BAMIRI);
             line.setShowLength(false);
@@ -4435,6 +4486,34 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    repaint();
 	}
 
+    public void setCurrentLineType(String lineType) {
+
+        if (lineType == null || lineType.isBlank()) {
+            lineType = DrawLine.TYPE_NORMAL;
+        }
+
+        this.currentLineType = lineType;
+
+        if (DrawLine.TYPE_CABLE.equals(lineType)) {
+            currentLineColor = Color.BLACK;
+            currentLineLabel = "ケーブル";
+        } else if (DrawLine.TYPE_FLOW.equals(lineType)) {
+            currentLineColor = new Color(40, 110, 210);
+            currentLineLabel = "導線";
+        } else if (DrawLine.TYPE_NORMAL.equals(lineType)) {
+            currentLineLabel = "";
+        }
+
+        if (selectedLine != null) {
+            selectedLine.setLineType(lineType);
+            selectedLine.setLabel(currentLineLabel);
+            selectedLine.setShowLength(!DrawLine.TYPE_BAMIRI.equals(lineType));
+            notifyChanged();
+        }
+
+        repaint();
+    }
+
 	public void increaseLineStrokeWidth() {
 
 	    currentLineStrokeWidth++;
@@ -4503,6 +4582,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         currentLineColor = Color.RED;
         currentLineStrokeWidth = 5;
         currentLineLabel = "バミリ";
+        currentLineType = DrawLine.TYPE_BAMIRI;
 
         refreshPanels();
 
@@ -4516,6 +4596,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         currentLineColor = Color.RED;
         currentLineStrokeWidth = 5;
         currentLineLabel = "バミリ";
+        currentLineType = DrawLine.TYPE_BAMIRI;
 
         refreshPanels();
         repaint();

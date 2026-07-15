@@ -1245,10 +1245,8 @@ public class SheetPreviewPanel extends JPanel{
             int x2 = offsetX + (int) (line.getEndX() * scale);
             int y2 = offsetY + (int) (line.getEndY() * scale);
 
-            g2.setColor(line.getColor());
-            g2.setStroke(
-                    new BasicStroke(
-                            Math.max(1, (float) (line.getStrokeWidth() * scale))));
+            g2.setColor(lineColorForType(line));
+            g2.setStroke(createStrokeForLine(line, scale));
 
             g2.drawLine(x1, y1, x2, y2);
 
@@ -1275,6 +1273,53 @@ public class SheetPreviewPanel extends JPanel{
         }
 
         g2.setStroke(new BasicStroke(1));
+    }
+
+    private Color lineColorForType(DrawLine line) {
+
+        if (line == null) {
+            return Color.BLACK;
+        }
+
+        if (DrawLine.TYPE_CABLE.equals(line.getLineType())) {
+            return Color.BLACK;
+        }
+
+        if (DrawLine.TYPE_FLOW.equals(line.getLineType())) {
+            return new Color(40, 110, 210);
+        }
+
+        return line.getColor();
+    }
+
+    private BasicStroke createStrokeForLine(DrawLine line, double scale) {
+
+        float width =
+                Math.max(
+                        1f,
+                        (float) ((line == null ? 2 : line.getStrokeWidth()) * scale));
+
+        if (line != null && DrawLine.TYPE_CABLE.equals(line.getLineType())) {
+            return new BasicStroke(
+                    width,
+                    BasicStroke.CAP_ROUND,
+                    BasicStroke.JOIN_ROUND,
+                    10f,
+                    new float[] {10f, 7f},
+                    0f);
+        }
+
+        if (line != null && DrawLine.TYPE_FLOW.equals(line.getLineType())) {
+            return new BasicStroke(
+                    width,
+                    BasicStroke.CAP_ROUND,
+                    BasicStroke.JOIN_ROUND,
+                    10f,
+                    new float[] {16f, 8f},
+                    0f);
+        }
+
+        return new BasicStroke(width);
     }
 
     private boolean isBamiriLine(DrawLine line) {
