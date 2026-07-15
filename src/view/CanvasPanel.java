@@ -1026,7 +1026,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
             }
 
             if (selected && textBox.isShowBorder()) {
-                g2.setColor(new Color(80, 80, 80));
+                g2.setColor(new Color(130, 145, 160));
                 g2.drawRect(
                         textBox.getX(),
                         textBox.getY(),
@@ -1049,7 +1049,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
             }
 
             if (selected) {
-                g2.setColor(Color.RED);
+                g2.setColor(SELECTION_COLOR);
                 g2.setStroke(new BasicStroke(2));
                 g2.drawRect(
                         textBox.getX() - 3,
@@ -1067,10 +1067,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         Rectangle handle = getTextBoxResizeHandle(textBox);
 
-        g2.setColor(Color.WHITE);
-        g2.fillRect(handle.x, handle.y, handle.width, handle.height);
-        g2.setColor(Color.RED);
-        g2.drawRect(handle.x, handle.y, handle.width, handle.height);
+        drawResizeHandle(g2, handle.x, handle.y);
     }
 
     private void drawTextBoxLines(Graphics2D g2, TextBoxItem textBox) {
