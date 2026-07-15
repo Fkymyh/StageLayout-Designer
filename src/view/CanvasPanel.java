@@ -424,7 +424,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         selectTargetForPopup(toCanvasX(e), toCanvasY(e));
 
-	    JPopupMenu menu = new JPopupMenu();
+        JPopupMenu menu = new JPopupMenu();
 
         if (selectedItem != null) {
             JMenuItem editLabelItem = new JMenuItem("表示名を変更");
@@ -564,9 +564,15 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
     private void selectTargetForPopup(int canvasX, int canvasY) {
 
-        selectedItem = findItem(canvasX, canvasY);
+        LayoutItem clickedItem = findItem(canvasX, canvasY);
 
-        if (selectedItem != null) {
+        if (clickedItem != null) {
+            if (selectedItems.contains(clickedItem)) {
+                selectedItem = clickedItem;
+            } else {
+                selectSingleItem(clickedItem);
+            }
+
             selectedRoomObject = null;
             selectedLine = null;
             selectedTextBox = null;
@@ -579,6 +585,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         selectedRoomObject = findEditableRoomObject(canvasX, canvasY);
 
         if (selectedRoomObject != null) {
+            clearItemSelection();
             selectedLine = null;
             selectedTextBox = null;
             backgroundSelected = false;
@@ -590,6 +597,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         selectedLine = findLine(canvasX, canvasY);
 
         if (selectedLine != null) {
+            clearItemSelection();
             selectedTextBox = null;
             backgroundSelected = false;
             refreshPanels();
@@ -600,6 +608,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         selectedTextBox = findTextBox(canvasX, canvasY);
 
         if (selectedTextBox != null) {
+            clearItemSelection();
             backgroundSelected = false;
             refreshPanels();
             repaint();
@@ -607,13 +616,14 @@ public class CanvasPanel extends JPanel implements MouseListener,
         }
 
         if (isBackgroundAt(canvasX, canvasY)) {
+            clearItemSelection();
             backgroundSelected = true;
             refreshPanels();
             repaint();
             return;
         }
 
-        selectedItem = null;
+        clearItemSelection();
         selectedRoomObject = null;
         selectedLine = null;
         selectedTextBox = null;
@@ -1939,6 +1949,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 
+        if (e.isShiftDown()) {
+            return;
+        }
+
 	    String name = equipmentPanel.getSelectedEquipment();
 
 	    if (name == null) {
@@ -2207,12 +2221,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
             if (e.isShiftDown()) {
                 toggleItemSelection(clickedItem);
-
-                if (!isItemSelected(clickedItem)) {
-                    refreshPanels();
-                    repaint();
-                    return;
-                }
+                refreshPanels();
+                repaint();
+                return;
             } else if (!isItemSelected(clickedItem)) {
                 selectSingleItem(clickedItem);
             } else {
@@ -3135,9 +3146,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         selectedItems.clear();
         selectedItem = null;
     }
-	
-	
-	
+
 	public void deleteSelectedItem() {
 
         if (selectedTextBox != null) {
