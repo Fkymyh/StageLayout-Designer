@@ -91,6 +91,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
     private String currentLineLabel = "";
 
     private String currentLineType = DrawLine.TYPE_NORMAL;
+
+    private int nextLineGroupNumber = 1;
+
+    private String activeLineGroupId = "";
 	
 	private LayoutItem copiedItem;
 
@@ -386,6 +390,12 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
     private boolean draggingLineEnd = false;
 
+    private boolean draggingLineGroup = false;
+
+    private int lastLineDragX;
+
+    private int lastLineDragY;
+
     private BackgroundMap backgroundMap;
 
     private BufferedImage backgroundImage;
@@ -481,6 +491,25 @@ public class CanvasPanel extends JPanel implements MouseListener,
             menu.add(backRoomItem);
 
             menu.addSeparator();
+        } else if (selectedLine != null) {
+            JMenuItem normalLineItem = new JMenuItem("通常線にする");
+            normalLineItem.addActionListener(event -> changeSelectedLineType(DrawLine.TYPE_NORMAL));
+            menu.add(normalLineItem);
+
+            JMenuItem cableLineItem = new JMenuItem("ケーブル線にする");
+            cableLineItem.addActionListener(event -> changeSelectedLineType(DrawLine.TYPE_CABLE));
+            menu.add(cableLineItem);
+
+            JMenuItem flowLineItem = new JMenuItem("導線にする");
+            flowLineItem.addActionListener(event -> changeSelectedLineType(DrawLine.TYPE_FLOW));
+            menu.add(flowLineItem);
+
+            JMenuItem bamiriLineItem = new JMenuItem("バミリ線にする");
+            bamiriLineItem.addActionListener(event -> changeSelectedLineType(DrawLine.TYPE_BAMIRI));
+            menu.add(bamiriLineItem);
+
+            menu.addSeparator();
+
         } else if (backgroundSelected && backgroundMap != null) {
             JMenuItem toggleLockItem =
                     new JMenuItem(backgroundMap.isLocked() ? "固定を解除" : "固定する");
@@ -1343,7 +1372,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
             drawFlowArrowHeadIfNeeded(g2, line);
 
             if (line == selectedLine) {
-                drawSelectedLineHandles(g2, line);
+                drawSelectedLineHighlight(g2, line);
             }
 	        
 	        int labelX =
@@ -1478,13 +1507,42 @@ public class CanvasPanel extends JPanel implements MouseListener,
                 && currentLineLabel.contains("バミリ");
     }
 
-    private void drawSelectedLineHandles(Graphics2D g2, DrawLine line) {
+    private void drawSelectedLineHighlight(Graphics2D g2, DrawLine line) {
 
-        g2.setColor(Color.RED);
-        g2.setStroke(new BasicStroke(1));
+        if (line == null) {
+            return;
+        }
 
-        g2.fillOval(line.getStartX() - 5, line.getStartY() - 5, 10, 10);
-        g2.fillOval(line.getEndX() - 5, line.getEndY() - 5, 10, 10);
+        Color oldColor = g2.getColor();
+        Stroke oldStroke = g2.getStroke();
+
+        g2.setColor(new Color(35, 120, 220, 120));
+        g2.setStroke(
+                new BasicStroke(
+                        Math.max(8, line.getStrokeWidth() + 6),
+                        BasicStroke.CAP_ROUND,
+                        BasicStroke.JOIN_ROUND));
+        g2.drawLine(
+                line.getStartX(),
+                line.getStartY(),
+                line.getEndX(),
+                line.getEndY());
+
+        drawSelectedLineHandle(g2, line.getStartX(), line.getStartY());
+        drawSelectedLineHandle(g2, line.getEndX(), line.getEndY());
+
+        g2.setColor(oldColor);
+        g2.setStroke(oldStroke);
+    }
+
+    private void drawSelectedLineHandle(Graphics2D g2, int x, int y) {
+
+        g2.setColor(Color.WHITE);
+        g2.fillOval(x - 6, y - 6, 12, 12);
+
+        g2.setColor(new Color(20, 100, 210));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawOval(x - 6, y - 6, 12, 12);
     }
 	
 	private void drawBamiri(Graphics g, LayoutItem item) {
@@ -1717,7 +1775,37 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    		if(e.getButton() != MouseEvent.BUTTON1) {
 	    			return;
 	    		}
-	    		
+
+            if (lineStartX == null || lineStartY == null) {
+                selectedLine = findLine(canvasX, canvasY);
+
+                if (selectedLine != null) {
+                    selectedItem = null;
+                    selectedRoomObject = null;
+                    selectedTextBox = null;
+                    backgroundSelected = false;
+                    refreshPanels();
+                    repaint();
+                    return;
+                }
+
+                if (e.getClickCount() < 2) {
+                    selectedItem = null;
+                    selectedRoomObject = null;
+                    selectedLine = null;
+                    selectedTextBox = null;
+                    backgroundSelected = false;
+                    refreshPanels();
+                    repaint();
+                    return;
+                }
+
+                selectedItem = null;
+                selectedRoomObject = null;
+                selectedLine = null;
+                selectedTextBox = null;
+                backgroundSelected = false;
+            }
 
 	        handleDrawLineClick(
 	        		canvasX, 
@@ -1889,6 +1977,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    // 1回目クリック：始点を保存
 	    if (lineStartX == null || lineStartY == null) {
 
+            if (activeLineGroupId == null || activeLineGroupId.isBlank()) {
+                activeLineGroupId =
+                        "line-" + System.nanoTime() + "-" + nextLineGroupNumber++;
+            }
+
 	        lineStartX = x;
 	        lineStartY = y;
 
@@ -1898,6 +1991,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 
 	    // 2回目クリック：線を追加
+        if (lineStartX == x && lineStartY == y) {
+            return;
+        }
+
 	    DrawLine line =
 	            new DrawLine(
 	                    lineStartX,
@@ -1909,6 +2006,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    line.setStrokeWidth(currentLineStrokeWidth);
         line.setLabel(currentLineLabel);
         line.setLineType(currentLineType);
+        line.setGroupId(activeLineGroupId);
         if (isCurrentBamiriLineMode()) {
             line.setLineType(DrawLine.TYPE_BAMIRI);
             line.setShowLength(false);
@@ -1944,20 +2042,6 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    if (e.isPopupTrigger() || e.getButton() == MouseEvent.BUTTON3) {
 
 	        if (drawLineMode) {
-                DrawLine line = findLine(canvasX, canvasY);
-
-                if (line != null) {
-                    selectedLine = line;
-                    selectedItem = null;
-                    selectedRoomObject = null;
-                    selectedTextBox = null;
-                    backgroundSelected = false;
-                    popupShownOnPress = true;
-                    showPopupMenu(e);
-                    repaint();
-                    return;
-                }
-
                 finishCurrentLine();
                 return;
 	        }
@@ -1967,8 +2051,22 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 
-	    if (drawLineMode) {
-	        return;
+	    if (drawLineMode && selectedLine == null) {
+            if (lineStartX != null || lineStartY != null) {
+                return;
+            }
+
+            selectedLine = findLine(canvasX, canvasY);
+
+            if (selectedLine == null) {
+                return;
+            }
+
+            selectedItem = null;
+            selectedRoomObject = null;
+            selectedTextBox = null;
+            backgroundSelected = false;
+            refreshPanels();
 	    }
 
         if (selectedItem != null
@@ -2011,6 +2109,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
         if (selectedLine != null && isNearLineEnd(selectedLine, canvasX, canvasY)) {
 
             draggingLineEnd = true;
+            repaint();
+            return;
+        }
+
+        if (selectedLine != null
+                && distanceToLineSegment(selectedLine, canvasX, canvasY) <= 8.0) {
+
+            draggingLineGroup = true;
+            lastLineDragX = canvasX;
+            lastLineDragY = canvasY;
             repaint();
             return;
         }
@@ -2165,7 +2273,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 			return;
 		}
 		
-		if(drawLineMode) {
+		if(drawLineMode && !draggingLineGroup) {
 			return;
 		}
 		
@@ -2185,7 +2293,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		    notifyChanged();
 		}
 
-        if (draggingLineStart || draggingLineEnd) {
+        if (draggingLineStart || draggingLineEnd || draggingLineGroup) {
             notifyChanged();
         }
 
@@ -2205,6 +2313,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         draggingLineStart = false;
         draggingLineEnd = false;
+        draggingLineGroup = false;
         draggingTextBox = false;
         resizingTextBox = false;
         draggingBackground = false;
@@ -2222,7 +2331,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 		
-		if(drawLineMode) {
+		if(drawLineMode && !draggingLineGroup) {
 			return;
 		}
 		
@@ -2283,6 +2392,22 @@ public class CanvasPanel extends JPanel implements MouseListener,
         if (draggingBackground && backgroundMap != null) {
             backgroundMap.setX(canvasX - backgroundDragOffsetX);
             backgroundMap.setY(canvasY - backgroundDragOffsetY);
+
+            repaint();
+
+            return;
+        }
+
+        if (draggingLineGroup && selectedLine != null) {
+
+            int dx = canvasX - lastLineDragX;
+            int dy = canvasY - lastLineDragY;
+
+            if (dx != 0 || dy != 0) {
+                moveSelectedLineGroup(dx, dy, false);
+                lastLineDragX = canvasX;
+                lastLineDragY = canvasY;
+            }
 
             repaint();
 
@@ -2702,6 +2827,30 @@ public class CanvasPanel extends JPanel implements MouseListener,
             return;
         }
 
+        int moveAmount = e.isShiftDown() ? 1 : (snapToGrid ? GRID_SIZE : 5);
+
+        if (selectedLine != null) {
+            if (e.getKeyCode() == KeyEvent.VK_UP) {
+                moveSelectedLineGroup(0, -moveAmount);
+                return;
+            }
+
+            if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                moveSelectedLineGroup(0, moveAmount);
+                return;
+            }
+
+            if (e.getKeyCode() == KeyEvent.VK_LEFT) {
+                moveSelectedLineGroup(-moveAmount, 0);
+                return;
+            }
+
+            if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
+                moveSelectedLineGroup(moveAmount, 0);
+                return;
+            }
+        }
+
 	    if (drawLineMode) {
 
 	        if (e.getKeyCode() == KeyEvent.VK_1) {
@@ -2754,8 +2903,6 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	        return;
 	    }
-
-	    int moveAmount = snapToGrid ? GRID_SIZE : 5;
 
 	    if (e.getKeyCode() == KeyEvent.VK_UP) {
 
@@ -2896,6 +3043,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
             selectedLine = null;
             draggingLineStart = false;
             draggingLineEnd = false;
+            draggingLineGroup = false;
 
             notifyChanged();
 
@@ -3561,6 +3709,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         resizingRoomObject = false;
         draggingLineStart = false;
         draggingLineEnd = false;
+        draggingLineGroup = false;
         draggingTextBox = false;
         resizingTextBox = false;
         draggingBackground = false;
@@ -4109,6 +4258,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         rotatingItem = false;
         draggingLineStart = false;
         draggingLineEnd = false;
+        draggingLineGroup = false;
         draggingTextBox = false;
         resizingTextBox = false;
         draggingBackground = false;
@@ -4551,6 +4701,100 @@ public class CanvasPanel extends JPanel implements MouseListener,
         repaint();
     }
 
+    private void changeSelectedLineType(String lineType) {
+
+        if (selectedLine == null) {
+            return;
+        }
+
+        if (lineType == null || lineType.isBlank()) {
+            lineType = DrawLine.TYPE_NORMAL;
+        }
+
+        for (DrawLine line : getConnectedLines(selectedLine, false)) {
+            line.setLineType(lineType);
+
+            if (DrawLine.TYPE_CABLE.equals(lineType)) {
+                line.setColor(Color.BLACK);
+                line.setLabel("ケーブル");
+                line.setShowLength(true);
+            } else if (DrawLine.TYPE_FLOW.equals(lineType)) {
+                line.setColor(new Color(40, 110, 210));
+                line.setLabel("導線");
+                line.setShowLength(true);
+            } else if (DrawLine.TYPE_BAMIRI.equals(lineType)) {
+                line.setColor(Color.RED);
+                line.setLabel("バミリ");
+                line.setShowLength(false);
+            } else {
+                line.setLabel("");
+                line.setShowLength(true);
+            }
+        }
+
+        currentLineType = lineType;
+        notifyChanged();
+        repaint();
+    }
+
+    private void moveSelectedLineGroup(int dx, int dy) {
+
+        moveSelectedLineGroup(dx, dy, true);
+    }
+
+    private void moveSelectedLineGroup(int dx, int dy, boolean recordChange) {
+
+        if (selectedLine == null) {
+            return;
+        }
+
+        for (DrawLine line : getConnectedLines(selectedLine, true)) {
+            line.setStart(
+                    line.getStartX() + dx,
+                    line.getStartY() + dy);
+            line.setEnd(
+                    line.getEndX() + dx,
+                    line.getEndY() + dy);
+        }
+
+        if (recordChange) {
+            notifyChanged();
+        }
+
+        repaint();
+    }
+
+    private List<DrawLine> getConnectedLines(DrawLine source, boolean sameTypeOnly) {
+
+        List<DrawLine> connected = new ArrayList<>();
+
+        if (source == null) {
+            return connected;
+        }
+
+        String groupId = source.getGroupId();
+
+        if (groupId == null || groupId.isBlank()) {
+            connected.add(source);
+            return connected;
+        }
+
+        for (DrawLine candidate : drawLines) {
+            if (!groupId.equals(candidate.getGroupId())) {
+                continue;
+            }
+
+            if (sameTypeOnly
+                    && !source.getLineType().equals(candidate.getLineType())) {
+                continue;
+            }
+
+            connected.add(candidate);
+        }
+
+        return connected;
+    }
+
 	public void increaseLineStrokeWidth() {
 
 	    currentLineStrokeWidth++;
@@ -4573,6 +4817,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    lineStartX = null;
 	    lineStartY = null;
+        activeLineGroupId = "";
 
 	    repaint();
 	}
@@ -4581,6 +4826,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    lineStartX = null;
 	    lineStartY = null;
+        activeLineGroupId = "";
 
 	    repaint();
 	}
@@ -5372,6 +5618,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         selectedLine = null;
         draggingLineStart = false;
         draggingLineEnd = false;
+        draggingLineGroup = false;
 
 	    repaint();
 	}

@@ -29,6 +29,8 @@ public class DrawLine {
 
     private boolean showLabel = true;
 
+    private String groupId = "";
+
     public DrawLine(int startX, int startY, int endX, int endY) {
 
         this.startX = startX;
@@ -106,6 +108,19 @@ public class DrawLine {
 
     public void setShowLabel(boolean showLabel) {
         this.showLabel = showLabel;
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        if (groupId == null) {
+            this.groupId = "";
+            return;
+        }
+
+        this.groupId = groupId;
     }
     
     public int getStrokeWidth() {

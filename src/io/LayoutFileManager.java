@@ -93,7 +93,8 @@ public class LayoutFileManager {
                     escape(line.getLabel()) + "," +
                     line.isShowLength() + "," +
                     escape(line.getLineType()) + "," +
-                    line.isShowLabel());
+                    line.isShowLabel() + "," +
+                    escape(line.getGroupId()));
 
             writer.write("\n");
         }
@@ -480,6 +481,12 @@ public class LayoutFileManager {
                     showLabel = Boolean.parseBoolean(data[11]);
                 }
 
+                String groupId = "";
+
+                if (data.length >= 13) {
+                    groupId = unescape(data[12]);
+                }
+
                 DrawLine drawLine =
                         new DrawLine(
                                 startX,
@@ -493,6 +500,7 @@ public class LayoutFileManager {
                 drawLine.setShowLength(showLength);
                 drawLine.setLineType(lineType);
                 drawLine.setShowLabel(showLabel);
+                drawLine.setGroupId(groupId);
 
                 drawLines.add(drawLine);
 
