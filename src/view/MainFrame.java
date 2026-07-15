@@ -577,6 +577,7 @@ public class MainFrame extends JFrame {
         
         JCheckBox gridCheckBox = new JCheckBox("グリッド", true);
         JCheckBox snapToGridCheckBox = new JCheckBox("吸着", true);
+        JCheckBox alignmentGuideCheckBox = new JCheckBox("整列ガイド", false);
         JCheckBox nameCheckBox = new JCheckBox("名前", true);
         JCheckBox equipmentPanelCheckBox = new JCheckBox("機材パレット", true);
         JCheckBox propertyPanelCheckBox = new JCheckBox("詳細", true);
@@ -588,6 +589,7 @@ public class MainFrame extends JFrame {
 
         gridCheckBox.setToolTipText("グリッドの表示を切り替えます");
         snapToGridCheckBox.setToolTipText("機材や会場パーツをグリッドに吸着させるか切り替えます");
+        alignmentGuideCheckBox.setToolTipText("機材を動かす時、ほかの機材の中心線や端の線に近づくと吸着します");
         nameCheckBox.setToolTipText("機材名・表示名の表示を切り替えます");
         equipmentPanelCheckBox.setToolTipText("左側の機材パレットの表示を切り替えます");
         propertyPanelCheckBox.setToolTipText("右側の選択中アイテム欄の表示を切り替えます");
@@ -736,6 +738,19 @@ public class MainFrame extends JFrame {
             }
         });
 
+        alignmentGuideCheckBox.addActionListener(e -> {
+
+            boolean selected = alignmentGuideCheckBox.isSelected();
+
+            canvasPanel.setAlignmentGuideEnabled(selected);
+
+            if (selected) {
+                statusLabel.setText("整列ガイド: ON / ほかの機材の中心線や端に近づくと吸着します");
+            } else {
+                statusLabel.setText("整列ガイド: OFF");
+            }
+        });
+
         nameCheckBox.addActionListener(e -> {
 
             boolean selected = nameCheckBox.isSelected();
@@ -873,6 +888,7 @@ public class MainFrame extends JFrame {
         subToolsPanel.add(shrinkButton);
         subToolsPanel.add(new JLabel("  配置:"));
         subToolsPanel.add(snapToGridCheckBox);
+        subToolsPanel.add(alignmentGuideCheckBox);
         subToolsPanel.add(new JLabel("  線:"));
         subToolsPanel.add(new JLabel("色"));
         subToolsPanel.add(colorComboBox);

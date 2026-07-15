@@ -89,8 +89,22 @@ public class CanvasPanel extends JPanel implements MouseListener,
     private String currentLineLabel = "";
 	
 	private LayoutItem copiedItem;
+
+    private TextBoxItem copiedTextBox;
+
+    private RoomObject copiedRoomObject;
 	
 	private boolean dragging = false;
+
+    private boolean alignmentGuideEnabled = false;
+
+    private Integer activeAlignmentGuideX = null;
+
+    private Integer activeAlignmentGuideY = null;
+
+    private static final int ALIGNMENT_GUIDE_THRESHOLD = 8;
+
+    private boolean popupShownOnPress = false;
 	
 	private PropertyPanel propertyPanel;	
 	
@@ -322,13 +336,109 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private void showPopupMenu(MouseEvent e){
 
+        selectTargetForPopup(toCanvasX(e), toCanvasY(e));
+
 	    JPopupMenu menu = new JPopupMenu();
+
+        if (selectedItem != null) {
+            JMenuItem editLabelItem = new JMenuItem("表示名を変更");
+            editLabelItem.addActionListener(event -> editSelectedItemLabel());
+            menu.add(editLabelItem);
+
+            JMenuItem toggleLabelItem =
+                    new JMenuItem(
+                            selectedItem.isShowLabel()
+                                    ? "ラベルを非表示"
+                                    : "ラベルを表示");
+            toggleLabelItem.addActionListener(event -> toggleSelectedItemLabel());
+            menu.add(toggleLabelItem);
+
+            menu.addSeparator();
+
+            JMenuItem copyItem = new JMenuItem("コピー");
+            copyItem.addActionListener(event -> copySelectedItem());
+            menu.add(copyItem);
+
+            JMenuItem pasteItem = new JMenuItem("貼り付け");
+            pasteItem.setEnabled(copiedItem != null);
+            pasteItem.addActionListener(event -> pasteCopiedItem());
+            menu.add(pasteItem);
+
+            menu.addSeparator();
+
+            JMenuItem frontItem = new JMenuItem("前面へ");
+            frontItem.addActionListener(event -> bringSelectedItemToFront());
+            menu.add(frontItem);
+
+            JMenuItem backItem = new JMenuItem("背面へ");
+            backItem.addActionListener(event -> sendSelectedItemToBack());
+            menu.add(backItem);
+
+            menu.addSeparator();
+        } else if (selectedTextBox != null) {
+            JMenuItem editTextItem = new JMenuItem("文字を編集");
+            editTextItem.addActionListener(event -> editSelectedTextBox());
+            menu.add(editTextItem);
+
+            JMenuItem copyTextItem = new JMenuItem("コピー");
+            copyTextItem.addActionListener(event -> copySelectedTextBox());
+            menu.add(copyTextItem);
+
+            JMenuItem pasteTextItem = new JMenuItem("貼り付け");
+            pasteTextItem.setEnabled(copiedTextBox != null);
+            pasteTextItem.addActionListener(event -> pasteCopiedTextBox());
+            menu.add(pasteTextItem);
+
+            menu.addSeparator();
+        } else if (selectedRoomObject != null) {
+            JMenuItem copyRoomItem = new JMenuItem("コピー");
+            copyRoomItem.addActionListener(event -> copySelectedRoomObject());
+            menu.add(copyRoomItem);
+
+            JMenuItem pasteRoomItem = new JMenuItem("貼り付け");
+            pasteRoomItem.setEnabled(copiedRoomObject != null);
+            pasteRoomItem.addActionListener(event -> pasteCopiedRoomObject());
+            menu.add(pasteRoomItem);
+
+            menu.addSeparator();
+
+            JMenuItem frontRoomItem = new JMenuItem("前面へ");
+            frontRoomItem.addActionListener(event -> bringSelectedRoomObjectToFront());
+            menu.add(frontRoomItem);
+
+            JMenuItem backRoomItem = new JMenuItem("背面へ");
+            backRoomItem.addActionListener(event -> sendSelectedRoomObjectToBack());
+            menu.add(backRoomItem);
+
+            menu.addSeparator();
+        } else if (backgroundSelected && backgroundMap != null) {
+            JMenuItem toggleLockItem =
+                    new JMenuItem(backgroundMap.isLocked() ? "固定を解除" : "固定する");
+            toggleLockItem.addActionListener(event -> toggleBackgroundLocked());
+            menu.add(toggleLockItem);
+
+            JMenuItem toggleVisibleItem =
+                    new JMenuItem(backgroundMap.isVisible() ? "非表示にする" : "表示する");
+            toggleVisibleItem.addActionListener(event -> toggleBackgroundVisible());
+            menu.add(toggleVisibleItem);
+
+            menu.addSeparator();
+        } else if (copiedItem != null || copiedTextBox != null || copiedRoomObject != null) {
+            JMenuItem pasteItem = new JMenuItem("貼り付け");
+            pasteItem.addActionListener(event -> pasteBestCopiedObjectAt(toCanvasX(e), toCanvasY(e)));
+            menu.add(pasteItem);
+            menu.addSeparator();
+        }
 
 	    JMenuItem deleteItem = new JMenuItem("削除");
 
 	    deleteItem.addActionListener(event -> {
 
-            if (selectedItem != null || selectedRoomObject != null || selectedLine != null) {
+            if (selectedItem != null
+                    || selectedRoomObject != null
+                    || selectedLine != null
+                    || selectedTextBox != null
+                    || backgroundSelected) {
 	            deleteSelectedItem();
 	        }
 
@@ -336,9 +446,76 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    menu.add(deleteItem);
 
+        deleteItem.setEnabled(
+                selectedItem != null
+                        || selectedRoomObject != null
+                        || selectedLine != null
+                        || selectedTextBox != null
+                        || backgroundSelected);
+
 	    menu.show(this,e.getX(),e.getY());
 
 	}
+
+    private void selectTargetForPopup(int canvasX, int canvasY) {
+
+        selectedItem = findItem(canvasX, canvasY);
+
+        if (selectedItem != null) {
+            selectedRoomObject = null;
+            selectedLine = null;
+            selectedTextBox = null;
+            backgroundSelected = false;
+            refreshPanels();
+            repaint();
+            return;
+        }
+
+        selectedRoomObject = findEditableRoomObject(canvasX, canvasY);
+
+        if (selectedRoomObject != null) {
+            selectedLine = null;
+            selectedTextBox = null;
+            backgroundSelected = false;
+            refreshPanels();
+            repaint();
+            return;
+        }
+
+        selectedLine = findLine(canvasX, canvasY);
+
+        if (selectedLine != null) {
+            selectedTextBox = null;
+            backgroundSelected = false;
+            refreshPanels();
+            repaint();
+            return;
+        }
+
+        selectedTextBox = findTextBox(canvasX, canvasY);
+
+        if (selectedTextBox != null) {
+            backgroundSelected = false;
+            refreshPanels();
+            repaint();
+            return;
+        }
+
+        if (isBackgroundAt(canvasX, canvasY)) {
+            backgroundSelected = true;
+            refreshPanels();
+            repaint();
+            return;
+        }
+
+        selectedItem = null;
+        selectedRoomObject = null;
+        selectedLine = null;
+        selectedTextBox = null;
+        backgroundSelected = false;
+        refreshPanels();
+        repaint();
+    }
 	
 	//グリッド
 	public CanvasPanel(EquipmentPanel equipmentPanel,
@@ -541,6 +718,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		drawItems(g2);
 
+        drawAlignmentGuides(g2);
+
         drawTextBoxes(g2);
 
 	    g2.dispose();
@@ -715,6 +894,44 @@ public class CanvasPanel extends JPanel implements MouseListener,
         
 	}
 	
+    private void drawAlignmentGuides(Graphics2D g2) {
+
+        if (!alignmentGuideEnabled
+                || activeAlignmentGuideX == null && activeAlignmentGuideY == null) {
+            return;
+        }
+
+        Graphics2D guideG = (Graphics2D) g2.create();
+
+        guideG.setColor(new Color(40, 140, 255, 180));
+        guideG.setStroke(
+                new BasicStroke(
+                        1.5f,
+                        BasicStroke.CAP_BUTT,
+                        BasicStroke.JOIN_MITER,
+                        10f,
+                        new float[] {7f, 5f},
+                        0f));
+
+        if (activeAlignmentGuideX != null) {
+            guideG.drawLine(
+                    activeAlignmentGuideX,
+                    0,
+                    activeAlignmentGuideX,
+                    getSheetContentHeight());
+        }
+
+        if (activeAlignmentGuideY != null) {
+            guideG.drawLine(
+                    0,
+                    activeAlignmentGuideY,
+                    getSheetContentWidth(),
+                    activeAlignmentGuideY);
+        }
+
+        guideG.dispose();
+    }
+
 	private void drawLineStartPoint(Graphics g) {
 
 	    if (!drawLineMode) {
@@ -1601,6 +1818,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
                     selectedRoomObject = null;
                     selectedTextBox = null;
                     backgroundSelected = false;
+                    popupShownOnPress = true;
                     showPopupMenu(e);
                     repaint();
                     return;
@@ -1610,6 +1828,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
                 return;
 	        }
 
+            popupShownOnPress = true;
 	        showPopupMenu(e);
 	        return;
 	    }
@@ -1787,6 +2006,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public void mouseReleased(MouseEvent e) {
 		
 		if (e.isPopupTrigger() || e.getButton() == MouseEvent.BUTTON3){
+
+            if (popupShownOnPress) {
+                popupShownOnPress = false;
+                return;
+            }
 			
 			if(drawLineMode) {
 				finishCurrentLine();
@@ -1831,6 +2055,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		resizingItem = false;
 
 		dragging = false;
+        clearAlignmentGuides();
 
         draggingLineStart = false;
         draggingLineEnd = false;
@@ -2012,6 +2237,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 			    x = snapValue(x);
 			    y = snapValue(y);
 			}
+
+            int[] aligned = applyAlignmentGuide(selectedItem, x, y);
+            x = aligned[0];
+            y = aligned[1];
 			
 
 			selectedItem.setX(x);
@@ -2021,6 +2250,112 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 		}
 	}
+
+    private int[] applyAlignmentGuide(LayoutItem item, int x, int y) {
+
+        activeAlignmentGuideX = null;
+        activeAlignmentGuideY = null;
+
+        if (!alignmentGuideEnabled || item == null) {
+            return new int[] {x, y};
+        }
+
+        int bestDiffX = ALIGNMENT_GUIDE_THRESHOLD + 1;
+        int bestDiffY = ALIGNMENT_GUIDE_THRESHOLD + 1;
+        Integer guideX = null;
+        Integer guideY = null;
+        int adjustedX = x;
+        int adjustedY = y;
+
+        for (LayoutItem other : items) {
+
+            if (other == item) {
+                continue;
+            }
+
+            int[] movingAnchorsX =
+                    new int[] {
+                            x,
+                            x + item.getWidth() / 2,
+                            x + item.getWidth()
+                    };
+            int[] movingAnchorOffsetsX =
+                    new int[] {
+                            0,
+                            item.getWidth() / 2,
+                            item.getWidth()
+                    };
+            int[] targetAnchorsX =
+                    new int[] {
+                            other.getX(),
+                            other.getX() + other.getWidth() / 2,
+                            other.getX() + other.getWidth()
+                    };
+
+            for (int movingIndex = 0;
+                    movingIndex < movingAnchorsX.length;
+                    movingIndex++) {
+
+                for (int targetX : targetAnchorsX) {
+
+                    int diffX = Math.abs(movingAnchorsX[movingIndex] - targetX);
+
+                    if (diffX < bestDiffX) {
+                        bestDiffX = diffX;
+                        guideX = targetX;
+                        adjustedX = targetX - movingAnchorOffsetsX[movingIndex];
+                    }
+                }
+            }
+
+            int[] movingAnchorsY =
+                    new int[] {
+                            y,
+                            y + item.getHeight() / 2,
+                            y + item.getHeight()
+                    };
+            int[] movingAnchorOffsetsY =
+                    new int[] {
+                            0,
+                            item.getHeight() / 2,
+                            item.getHeight()
+                    };
+            int[] targetAnchorsY =
+                    new int[] {
+                            other.getY(),
+                            other.getY() + other.getHeight() / 2,
+                            other.getY() + other.getHeight()
+                    };
+
+            for (int movingIndex = 0;
+                    movingIndex < movingAnchorsY.length;
+                    movingIndex++) {
+
+                for (int targetY : targetAnchorsY) {
+
+                    int diffY = Math.abs(movingAnchorsY[movingIndex] - targetY);
+
+                    if (diffY < bestDiffY) {
+                        bestDiffY = diffY;
+                        guideY = targetY;
+                        adjustedY = targetY - movingAnchorOffsetsY[movingIndex];
+                    }
+                }
+            }
+        }
+
+        if (guideX != null) {
+            x = adjustedX;
+            activeAlignmentGuideX = guideX;
+        }
+
+        if (guideY != null) {
+            y = adjustedY;
+            activeAlignmentGuideY = guideY;
+        }
+
+        return new int[] {x, y};
+    }
 	
 	
 	@Override
@@ -2424,7 +2759,18 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		if (copiedItem == null) {
 			return;
 		}
-		
+
+        pasteCopiedItemAt(
+                copiedItem.getX() + 30,
+                copiedItem.getY() + 30);
+	}
+
+    private void pasteCopiedItemAt(int x, int y) {
+
+        if (copiedItem == null) {
+            return;
+        }
+
 		Equipment equipment =
 				EquipmentFactory.create(
 						copiedItem.getEquipment().getName());
@@ -2432,8 +2778,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		LayoutItem item =
 				new LayoutItem(
 						equipment,
-						copiedItem.getX() + 30,
-						copiedItem.getY() + 30);
+						x,
+						y);
 		
 		item.setSize(
 		        copiedItem.getWidth(),
@@ -2459,6 +2805,212 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
 		repaint();
 	}
+
+    private void editSelectedItemLabel() {
+
+        if (selectedItem == null) {
+            return;
+        }
+
+        String currentLabel = selectedItem.getLabel();
+
+        if (currentLabel == null || currentLabel.isBlank()) {
+            currentLabel = selectedItem.getEquipment().getName();
+        }
+
+        String label =
+                JOptionPane.showInputDialog(
+                        this,
+                        "表示名を入力してください",
+                        currentLabel);
+
+        if (label == null) {
+            return;
+        }
+
+        selectedItem.setLabel(label.trim());
+        refreshPanels();
+        notifyChanged();
+        repaint();
+    }
+
+    private void toggleSelectedItemLabel() {
+
+        if (selectedItem == null) {
+            return;
+        }
+
+        selectedItem.setShowLabel(!selectedItem.isShowLabel());
+        refreshPanels();
+        notifyChanged();
+        repaint();
+    }
+
+    private void bringSelectedItemToFront() {
+
+        if (selectedItem == null || !items.remove(selectedItem)) {
+            return;
+        }
+
+        items.add(selectedItem);
+        notifyChanged();
+        repaint();
+    }
+
+    private void sendSelectedItemToBack() {
+
+        if (selectedItem == null || !items.remove(selectedItem)) {
+            return;
+        }
+
+        items.add(0, selectedItem);
+        notifyChanged();
+        repaint();
+    }
+
+    private void copySelectedTextBox() {
+
+        if (selectedTextBox == null) {
+            return;
+        }
+
+        copiedTextBox = copyTextBox(selectedTextBox);
+    }
+
+    private void pasteCopiedTextBox() {
+
+        if (copiedTextBox == null) {
+            return;
+        }
+
+        pasteCopiedTextBoxAt(copiedTextBox.getX() + 30, copiedTextBox.getY() + 30);
+    }
+
+    private void pasteCopiedTextBoxAt(int x, int y) {
+
+        if (copiedTextBox == null) {
+            return;
+        }
+
+        TextBoxItem textBox = copyTextBox(copiedTextBox);
+
+        textBox.setX(x);
+        textBox.setY(y);
+        textBoxes.add(textBox);
+        selectedTextBox = textBox;
+        selectedItem = null;
+        selectedRoomObject = null;
+        selectedLine = null;
+        backgroundSelected = false;
+
+        notifyChanged();
+        repaint();
+    }
+
+    private TextBoxItem copyTextBox(TextBoxItem source) {
+
+        TextBoxItem copy = new TextBoxItem(
+                source.getText(),
+                source.getX(),
+                source.getY());
+
+        copy.setWidth(source.getWidth());
+        copy.setHeight(source.getHeight());
+        copy.setFontSize(source.getFontSize());
+        copy.setTextColor(source.getTextColor());
+        copy.setBackgroundColor(source.getBackgroundColor());
+        copy.setShowBackground(source.isShowBackground());
+        copy.setShowBorder(source.isShowBorder());
+
+        return copy;
+    }
+
+    private void copySelectedRoomObject() {
+
+        if (selectedRoomObject == null) {
+            return;
+        }
+
+        copiedRoomObject = copyRoomObject(selectedRoomObject);
+    }
+
+    private void pasteCopiedRoomObject() {
+
+        if (copiedRoomObject == null) {
+            return;
+        }
+
+        pasteCopiedRoomObjectAt(
+                copiedRoomObject.getX() + 30,
+                copiedRoomObject.getY() + 30);
+    }
+
+    private void pasteCopiedRoomObjectAt(int x, int y) {
+
+        if (copiedRoomObject == null) {
+            return;
+        }
+
+        RoomObject object = copyRoomObject(copiedRoomObject);
+        int dx = x - object.getX();
+        int dy = y - object.getY();
+
+        object.setX(object.getX() + dx);
+        object.setY(object.getY() + dy);
+
+        customRoomObjects.add(object);
+        selectedRoomObject = object;
+        selectedItem = null;
+        selectedLine = null;
+        selectedTextBox = null;
+        backgroundSelected = false;
+
+        notifyChanged();
+        repaint();
+    }
+
+    private void bringSelectedRoomObjectToFront() {
+
+        if (selectedRoomObject == null
+                || isLockedRoomObject(selectedRoomObject)
+                || !customRoomObjects.remove(selectedRoomObject)) {
+            return;
+        }
+
+        customRoomObjects.add(selectedRoomObject);
+        notifyChanged();
+        repaint();
+    }
+
+    private void sendSelectedRoomObjectToBack() {
+
+        if (selectedRoomObject == null
+                || isLockedRoomObject(selectedRoomObject)
+                || !customRoomObjects.remove(selectedRoomObject)) {
+            return;
+        }
+
+        customRoomObjects.add(0, selectedRoomObject);
+        notifyChanged();
+        repaint();
+    }
+
+    private void pasteBestCopiedObjectAt(int x, int y) {
+
+        if (copiedItem != null) {
+            pasteCopiedItemAt(x, y);
+            return;
+        }
+
+        if (copiedTextBox != null) {
+            pasteCopiedTextBoxAt(x, y);
+            return;
+        }
+
+        if (copiedRoomObject != null) {
+            pasteCopiedRoomObjectAt(x, y);
+        }
+    }
 	public List<LayoutItem> getItems(){
 
 	    return items;
@@ -2539,6 +3091,24 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    this.snapToGrid = snapToGrid;
         repaint();
 	}
+
+    public void setAlignmentGuideEnabled(boolean alignmentGuideEnabled) {
+
+        this.alignmentGuideEnabled = alignmentGuideEnabled;
+        clearAlignmentGuides();
+        repaint();
+    }
+
+    public boolean isAlignmentGuideEnabled() {
+
+        return alignmentGuideEnabled;
+    }
+
+    private void clearAlignmentGuides() {
+
+        activeAlignmentGuideX = null;
+        activeAlignmentGuideY = null;
+    }
 	
 	private int snapValue(int value) {
 
@@ -2669,6 +3239,17 @@ public class CanvasPanel extends JPanel implements MouseListener,
                 || backgroundImage == null
                 || !backgroundMap.isVisible()
                 || backgroundMap.isLocked()) {
+            return false;
+        }
+
+        return isBackgroundAt(x, y);
+    }
+
+    private boolean isBackgroundAt(int x, int y) {
+
+        if (backgroundMap == null
+                || backgroundImage == null
+                || !backgroundMap.isVisible()) {
             return false;
         }
 
@@ -3340,6 +3921,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         draggingTextBox = false;
         resizingTextBox = false;
         draggingBackground = false;
+        clearAlignmentGuides();
     }
 
     private void addTextBoxAt(int x, int y) {
