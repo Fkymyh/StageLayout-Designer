@@ -12,6 +12,7 @@ import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.Shape;
+import java.awt.Stroke;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -1339,6 +1340,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	                line.getEndX(),
 	                line.getEndY());
 
+            drawFlowArrowHeadIfNeeded(g2, line);
+
             if (line == selectedLine) {
                 drawSelectedLineHandles(g2, line);
             }
@@ -1401,30 +1404,61 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
         int width = line == null ? 2 : line.getStrokeWidth();
 
-        if (line != null && DrawLine.TYPE_CABLE.equals(line.getLineType())) {
-            return new BasicStroke(
-                    width,
-                    BasicStroke.CAP_ROUND,
-                    BasicStroke.JOIN_ROUND,
-                    10f,
-                    new float[] {10f, 7f},
-                    0f);
-        }
-
-        if (line != null && DrawLine.TYPE_FLOW.equals(line.getLineType())) {
-            return new BasicStroke(
-                    width,
-                    BasicStroke.CAP_ROUND,
-                    BasicStroke.JOIN_ROUND,
-                    10f,
-                    new float[] {16f, 8f},
-                    0f);
-        }
-
         return new BasicStroke(
                 width,
                 BasicStroke.CAP_ROUND,
                 BasicStroke.JOIN_ROUND);
+    }
+
+    private void drawFlowArrowHeadIfNeeded(Graphics2D g2, DrawLine line) {
+
+        if (line == null || !DrawLine.TYPE_FLOW.equals(line.getLineType())) {
+            return;
+        }
+
+        drawArrowHead(
+                g2,
+                line.getStartX(),
+                line.getStartY(),
+                line.getEndX(),
+                line.getEndY(),
+                Math.max(10, line.getStrokeWidth() * 3));
+    }
+
+    private void drawArrowHead(
+            Graphics2D g2,
+            int startX,
+            int startY,
+            int endX,
+            int endY,
+            int size) {
+
+        double angle = Math.atan2(endY - startY, endX - startX);
+
+        if (Double.isNaN(angle)) {
+            return;
+        }
+
+        int leftX = (int) Math.round(endX - size * Math.cos(angle - Math.PI / 6));
+        int leftY = (int) Math.round(endY - size * Math.sin(angle - Math.PI / 6));
+        int rightX = (int) Math.round(endX - size * Math.cos(angle + Math.PI / 6));
+        int rightY = (int) Math.round(endY - size * Math.sin(angle + Math.PI / 6));
+
+        Color oldColor = g2.getColor();
+        Stroke oldStroke = g2.getStroke();
+
+        g2.setColor(new Color(40, 110, 210));
+        g2.setStroke(
+                new BasicStroke(
+                        Math.max(2, size / 5),
+                        BasicStroke.CAP_ROUND,
+                        BasicStroke.JOIN_ROUND));
+
+        g2.drawLine(endX, endY, leftX, leftY);
+        g2.drawLine(endX, endY, rightX, rightY);
+
+        g2.setColor(oldColor);
+        g2.setStroke(oldStroke);
     }
 
     private boolean isBamiriLine(DrawLine line) {
@@ -1580,6 +1614,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	            lineStartY,
 	            previewX,
 	            previewY);
+
+        drawFlowArrowHeadIfNeeded(g2, previewLine);
+
 	    if (showLineLength && !isCurrentBamiriLineMode()) {
 
 	        double meters = calculatePreviewLineLengthMeters(previewX, previewY);

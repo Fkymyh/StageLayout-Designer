@@ -12,6 +12,7 @@ import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Shape;
+import java.awt.Stroke;
 import java.awt.image.BufferedImage;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
@@ -1249,6 +1250,7 @@ public class SheetPreviewPanel extends JPanel{
             g2.setStroke(createStrokeForLine(line, scale));
 
             g2.drawLine(x1, y1, x2, y2);
+            drawFlowArrowHeadIfNeeded(g2, line, x1, y1, x2, y2, scale);
 
             if (line.isShowLength() && !isBamiriLine(line)) {
                 g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
@@ -1299,27 +1301,54 @@ public class SheetPreviewPanel extends JPanel{
                         1f,
                         (float) ((line == null ? 2 : line.getStrokeWidth()) * scale));
 
-        if (line != null && DrawLine.TYPE_CABLE.equals(line.getLineType())) {
-            return new BasicStroke(
-                    width,
-                    BasicStroke.CAP_ROUND,
-                    BasicStroke.JOIN_ROUND,
-                    10f,
-                    new float[] {10f, 7f},
-                    0f);
-        }
-
-        if (line != null && DrawLine.TYPE_FLOW.equals(line.getLineType())) {
-            return new BasicStroke(
-                    width,
-                    BasicStroke.CAP_ROUND,
-                    BasicStroke.JOIN_ROUND,
-                    10f,
-                    new float[] {16f, 8f},
-                    0f);
-        }
-
         return new BasicStroke(width);
+    }
+
+    private void drawFlowArrowHeadIfNeeded(
+            Graphics2D g2,
+            DrawLine line,
+            int x1,
+            int y1,
+            int x2,
+            int y2,
+            double scale) {
+
+        if (line == null || !DrawLine.TYPE_FLOW.equals(line.getLineType())) {
+            return;
+        }
+
+        int size =
+                Math.max(
+                        8,
+                        (int) Math.round(
+                                Math.max(10, line.getStrokeWidth() * 3) * scale));
+
+        double angle = Math.atan2(y2 - y1, x2 - x1);
+
+        if (Double.isNaN(angle)) {
+            return;
+        }
+
+        int leftX = (int) Math.round(x2 - size * Math.cos(angle - Math.PI / 6));
+        int leftY = (int) Math.round(y2 - size * Math.sin(angle - Math.PI / 6));
+        int rightX = (int) Math.round(x2 - size * Math.cos(angle + Math.PI / 6));
+        int rightY = (int) Math.round(y2 - size * Math.sin(angle + Math.PI / 6));
+
+        Color oldColor = g2.getColor();
+        Stroke oldStroke = g2.getStroke();
+
+        g2.setColor(new Color(40, 110, 210));
+        g2.setStroke(
+                new BasicStroke(
+                        Math.max(1f, (float) (line.getStrokeWidth() * scale)),
+                        BasicStroke.CAP_ROUND,
+                        BasicStroke.JOIN_ROUND));
+
+        g2.drawLine(x2, y2, leftX, leftY);
+        g2.drawLine(x2, y2, rightX, rightY);
+
+        g2.setColor(oldColor);
+        g2.setStroke(oldStroke);
     }
 
     private boolean isBamiriLine(DrawLine line) {
