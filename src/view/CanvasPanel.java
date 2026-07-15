@@ -69,6 +69,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private LayoutItem selectedItem;
 
+    private List<LayoutItem> selectedItems = new ArrayList<>();
+
     private TextBoxItem selectedTextBox;
 
     private TextBoxItem hoveredTextBox;
@@ -135,6 +137,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	private int dragOffsetX;
 	
 	private int dragOffsetY;
+
+    private int groupDragLastX;
+
+    private int groupDragLastY;
 	
 	private boolean controlDown = false;
 	
@@ -754,6 +760,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 
+        if (selectedItems.size() > 1) {
+            moveSelectedItemsBy(dx, dy, true);
+            return;
+        }
+
 	    if (selectedItem == null) {
 	        return;
 	    }
@@ -768,6 +779,24 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    repaint();
 	}
+
+    private void moveSelectedItemsBy(int dx, int dy, boolean recordChange) {
+
+        if (selectedItems.isEmpty()) {
+            return;
+        }
+
+        for (LayoutItem item : selectedItems) {
+            item.setX(item.getX() + dx);
+            item.setY(item.getY() + dy);
+        }
+
+        if (recordChange) {
+            notifyChanged();
+        }
+
+        repaint();
+    }
 	
 	
 	@Override
@@ -888,6 +917,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
      // 機材描画
 	private void drawItems(Graphics g) {
 		
+        sanitizeItemSelection();
+
         g.setColor(Color.BLACK);
 
         for(LayoutItem item : items){
@@ -941,7 +972,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         					item.getHeight());
         		}
         		
-        		if (item == selectedItem) {
+        		if (isItemSelected(item)) {
         			
         			g2.setColor(SELECTION_COLOR);
         			g2.setStroke(new BasicStroke(2.5f));
@@ -952,9 +983,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
         					item.getWidth(),
         					item.getHeight());
 
-                    drawItemRotateHandle(g2, item);
-        			
-        			drawItemResizeHandle(g2, item);
+                    if (item == selectedItem) {
+                        drawItemRotateHandle(g2, item);
+        			    drawItemResizeHandle(g2, item);
+                    }
         			
         		}
         		
@@ -1835,15 +1867,19 @@ public class CanvasPanel extends JPanel implements MouseListener,
         }
 
 		// 機材選択を先にする
-	    selectedItem = findItem(canvasX, canvasY);
+	    LayoutItem clickedItem = findItem(canvasX, canvasY);
 
 
-	    if (selectedItem != null) {
+	    if (clickedItem != null) {
 	    	
 	    		selectedRoomObject = null;
                 selectedLine = null;
                 selectedTextBox = null;
                 backgroundSelected = false;
+
+                if (!e.isShiftDown()) {
+                    selectSingleItem(clickedItem);
+                }
 	    		
 	    		refreshPanels();
 
@@ -2160,17 +2196,33 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    // 重なっている時は、当日配置する機材を最優先で選ぶ。
         // その後、会場パーツ、線、テキスト、背景図面の順で編集対象を探す。
-	    selectedItem = findItem(canvasX, canvasY);
+	    LayoutItem clickedItem = findItem(canvasX, canvasY);
 
-	    if (selectedItem != null) {
+	    if (clickedItem != null) {
 
 	        selectedRoomObject = null;
             selectedLine = null;
             selectedTextBox = null;
             backgroundSelected = false;
 
-	        dragOffsetX = canvasX - selectedItem.getX();
-	        dragOffsetY = canvasY - selectedItem.getY();
+            if (e.isShiftDown()) {
+                toggleItemSelection(clickedItem);
+
+                if (!isItemSelected(clickedItem)) {
+                    refreshPanels();
+                    repaint();
+                    return;
+                }
+            } else if (!isItemSelected(clickedItem)) {
+                selectSingleItem(clickedItem);
+            } else {
+                selectedItem = clickedItem;
+            }
+
+	        dragOffsetX = canvasX - clickedItem.getX();
+	        dragOffsetY = canvasY - clickedItem.getY();
+            groupDragLastX = canvasX;
+            groupDragLastY = canvasY;
 
 	        dragging = true;
 
@@ -2512,6 +2564,25 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		}
 		
 		if(selectedItem != null && dragging) {
+
+            if (selectedItems.size() > 1) {
+                int dx = canvasX - groupDragLastX;
+                int dy = canvasY - groupDragLastY;
+
+                if (snapToGrid) {
+                    dx = snapValue(selectedItem.getX() + dx) - selectedItem.getX();
+                    dy = snapValue(selectedItem.getY() + dy) - selectedItem.getY();
+                }
+
+                if (dx != 0 || dy != 0) {
+                    moveSelectedItemsBy(dx, dy, false);
+                    groupDragLastX = canvasX;
+                    groupDragLastY = canvasY;
+                }
+
+                repaint();
+                return;
+            }
 			
 			
 			int x = canvasX - dragOffsetX;
@@ -3002,10 +3073,68 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private void refreshPanels() {
 
+        sanitizeItemSelection();
+
 		propertyPanel.displayItem(selectedItem);
 
 	    propertyPanel.displaySummary(items);
 	}
+
+    private void sanitizeItemSelection() {
+
+        selectedItems.removeIf(item -> !items.contains(item));
+
+        if (selectedItem != null && !items.contains(selectedItem)) {
+            selectedItem = null;
+        }
+
+        if (selectedItem == null) {
+            selectedItems.clear();
+        }
+    }
+
+    private boolean isItemSelected(LayoutItem item) {
+
+        return item != null
+                && (item == selectedItem || selectedItems.contains(item));
+    }
+
+    private void selectSingleItem(LayoutItem item) {
+
+        selectedItems.clear();
+        selectedItem = item;
+
+        if (item != null) {
+            selectedItems.add(item);
+        }
+    }
+
+    private void toggleItemSelection(LayoutItem item) {
+
+        if (item == null) {
+            return;
+        }
+
+        if (selectedItems.contains(item)) {
+            selectedItems.remove(item);
+
+            if (selectedItem == item) {
+                selectedItem =
+                        selectedItems.isEmpty()
+                                ? null
+                                : selectedItems.get(selectedItems.size() - 1);
+            }
+        } else {
+            selectedItems.add(item);
+            selectedItem = item;
+        }
+    }
+
+    private void clearItemSelection() {
+
+        selectedItems.clear();
+        selectedItem = null;
+    }
 	
 	
 	
@@ -3072,9 +3201,14 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		if (selectedItem == null) {
 			return;
 		}
-		items.remove(selectedItem);
-		
-		selectedItem = null;
+
+        if (selectedItems.size() > 1) {
+            items.removeAll(new ArrayList<>(selectedItems));
+        } else {
+		    items.remove(selectedItem);
+        }
+
+		clearItemSelection();
 		
 		refreshPanels();
 		
