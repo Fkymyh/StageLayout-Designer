@@ -18,6 +18,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.RoundRectangle2D;
@@ -105,6 +106,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
     private static final int ALIGNMENT_GUIDE_THRESHOLD = 8;
 
     private boolean popupShownOnPress = false;
+
+    private static final Color SELECTION_COLOR = new Color(40, 120, 220);
+
+    private static final Color SELECTION_HANDLE_BORDER_COLOR = new Color(25, 95, 190);
 	
 	private PropertyPanel propertyPanel;	
 	
@@ -162,6 +167,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private boolean resizingItem = false;
 
+    private boolean rotatingItem = false;
+
 	private int itemResizeStartMouseX;
 
 	private int itemResizeStartMouseY;
@@ -181,6 +188,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
     private int textBoxResizeStartHeight;
 
 	private static final int RESIZE_HANDLE_SIZE = 12;
+
+    private static final int ROTATE_HANDLE_SIZE = 12;
+
+    private static final int ROTATE_HANDLE_DISTANCE = 24;
 
     private static final int SHEET_MARGIN = 40;
 	
@@ -275,21 +286,77 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return false;
 	    }
 
-	    int handleX =
-	            item.getX() + item.getWidth() - RESIZE_HANDLE_SIZE / 2;
-
-	    int handleY =
-	            item.getY() + item.getHeight() - RESIZE_HANDLE_SIZE / 2;
-
-	    Rectangle handleRect =
-	            new Rectangle(
-	                    handleX,
-	                    handleY,
-	                    RESIZE_HANDLE_SIZE,
-	                    RESIZE_HANDLE_SIZE);
-
-	    return handleRect.contains(x, y);
+        return isPointOnRotatedItemShape(
+                item,
+                getItemResizeHandle(item),
+                x,
+                y);
 	}
+
+    private boolean isOnItemRotateHandle(LayoutItem item, int x, int y) {
+
+        if (item == null) {
+            return false;
+        }
+
+        return isPointOnRotatedItemShape(
+                item,
+                getItemRotateHandle(item),
+                x,
+                y);
+    }
+
+    private Rectangle getItemResizeHandle(LayoutItem item) {
+
+        int handleX =
+                item.getX() + item.getWidth() - RESIZE_HANDLE_SIZE / 2;
+
+        int handleY =
+                item.getY() + item.getHeight() - RESIZE_HANDLE_SIZE / 2;
+
+        return new Rectangle(
+                handleX,
+                handleY,
+                RESIZE_HANDLE_SIZE,
+                RESIZE_HANDLE_SIZE);
+    }
+
+    private boolean isPointOnRotatedItemShape(
+            LayoutItem item,
+            Shape shape,
+            int x,
+            int y) {
+
+        double centerX = item.getX() + item.getWidth() / 2.0;
+        double centerY = item.getY() + item.getHeight() / 2.0;
+
+        AffineTransform transform =
+                AffineTransform.getRotateInstance(
+                        Math.toRadians(item.getRotation()),
+                        centerX,
+                        centerY);
+
+        return transform.createTransformedShape(shape).contains(x, y);
+    }
+
+    private Rectangle getItemRotateHandle(LayoutItem item) {
+
+        int handleX =
+                item.getX()
+                + item.getWidth() / 2
+                - ROTATE_HANDLE_SIZE / 2;
+
+        int handleY =
+                item.getY()
+                - ROTATE_HANDLE_DISTANCE
+                - ROTATE_HANDLE_SIZE / 2;
+
+        return new Rectangle(
+                handleX,
+                handleY,
+                ROTATE_HANDLE_SIZE,
+                ROTATE_HANDLE_SIZE);
+    }
 	
 	private double calculatePreviewLineLengthMeters(int previewX,
 												   int previewY) {
@@ -760,7 +827,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         imageG.dispose();
 
         if (backgroundSelected) {
-            g2.setColor(Color.RED);
+            g2.setColor(SELECTION_COLOR);
             g2.setStroke(new BasicStroke(2));
             g2.drawRect(
                     backgroundMap.getX(),
@@ -810,11 +877,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         	    continue;
         	}
         	
-        		if(item == selectedItem) {
-        			g.setColor(Color.RED);
-        		}else {
-        			g.setColor(item.getEquipment().getColor());
-        		}
+        		g.setColor(item.getEquipment().getColor());
         		
                 // 画像付き機材は画像だけを見せる。通常時の黒い四角枠は描かない。
         		Equipment equipment = item.getEquipment();
@@ -848,14 +911,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
         		
         		if (item == selectedItem) {
         			
-        			g2.setColor(Color.RED);
-        			g2.setStroke(new BasicStroke(3));
+        			g2.setColor(SELECTION_COLOR);
+        			g2.setStroke(new BasicStroke(2.5f));
         			
         			g2.drawRect(
         					item.getX(),
         					item.getY(),
         					item.getWidth(),
         					item.getHeight());
+
+                    drawItemRotateHandle(g2, item);
         			
         			drawItemResizeHandle(g2, item);
         			
@@ -864,22 +929,6 @@ public class CanvasPanel extends JPanel implements MouseListener,
         		
         		
         		g2.dispose();
-        		
-        		if(item == selectedItem) {
-        			
-        			g.setColor(Color.RED);
-        			
-        			int labelY = item.getY() - 5;
-        			
-        			if (labelY < 15) {
-        				labelY = item.getY() + item.getHeight() + 15;
-        			}
-        			
-        			g.drawString(
-        					"選択中",
-        					item.getX(),
-        					labelY);
-        		}
         		
         		g.setColor(Color.BLACK);
         	
@@ -1836,6 +1885,17 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    if (drawLineMode) {
 	        return;
 	    }
+
+        if (selectedItem != null
+                && isOnItemRotateHandle(
+                        selectedItem,
+                        canvasX,
+                        canvasY)) {
+
+            rotatingItem = true;
+            repaint();
+            return;
+        }
 	    
 	    if (selectedItem != null
 	            && isOnItemResizeHandle(
@@ -2036,7 +2096,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		    notifyChanged();
 		}
 		
-		if (resizingItem) {
+		if (resizingItem || rotatingItem) {
 		    notifyChanged();
 		}
 
@@ -2053,6 +2113,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		resizingRoomObject = false;
 		
 		resizingItem = false;
+        rotatingItem = false;
 
 		dragging = false;
         clearAlignmentGuides();
@@ -2082,6 +2143,20 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		
         int canvasX = toCanvasX(e);
         int canvasY = toCanvasY(e);
+
+        if (rotatingItem && selectedItem != null) {
+
+            int rotation = calculateRotationFromMouse(selectedItem, canvasX, canvasY);
+
+            if (e.isShiftDown()) {
+                rotation = Math.round(rotation / 15f) * 15;
+            }
+
+            selectedItem.setRotation(normalizeRotation(rotation));
+            refreshPanels();
+            repaint();
+            return;
+        }
 
         if (resizingTextBox && selectedTextBox != null) {
 
@@ -2251,6 +2326,26 @@ public class CanvasPanel extends JPanel implements MouseListener,
 		}
 	}
 
+    private int calculateRotationFromMouse(LayoutItem item, int mouseX, int mouseY) {
+
+        double centerX = item.getX() + item.getWidth() / 2.0;
+        double centerY = item.getY() + item.getHeight() / 2.0;
+        double angle = Math.toDegrees(Math.atan2(mouseY - centerY, mouseX - centerX));
+
+        return (int) Math.round(angle + 90);
+    }
+
+    private int normalizeRotation(int rotation) {
+
+        rotation = rotation % 360;
+
+        if (rotation < 0) {
+            rotation += 360;
+        }
+
+        return rotation;
+    }
+
     private int[] applyAlignmentGuide(LayoutItem item, int x, int y) {
 
         activeAlignmentGuideX = null;
@@ -2381,6 +2476,16 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 	    
+        if (selectedItem != null
+                && isOnItemRotateHandle(
+                        selectedItem,
+                        mouseX,
+                        mouseY)) {
+
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            return;
+        }
+
 		if (selectedItem != null
 		        && isOnItemResizeHandle(
 		                selectedItem,
@@ -3916,6 +4021,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
         draggingRoomObject = false;
         resizingRoomObject = false;
         resizingItem = false;
+        rotatingItem = false;
         draggingLineStart = false;
         draggingLineEnd = false;
         draggingTextBox = false;
@@ -4832,9 +4938,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	                    object.getHeight());
 
 	            g2.setColor(selected
-	                    ? new Color(80, 130, 255)
+	                    ? SELECTION_COLOR
 	                    : getRoomObjectBorderColor(object));
-	            g2.setStroke(new BasicStroke(selected ? 3 : 1));
+	            g2.setStroke(new BasicStroke(selected ? 2.5f : 1));
 	            g2.drawOval(
 	                    object.getX(),
 	                    object.getY(),
@@ -4849,9 +4955,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	            g2.fill(shape);
 
 	            g2.setColor(selected
-	                    ? new Color(80, 130, 255)
+	                    ? SELECTION_COLOR
 	                    : getRoomObjectBorderColor(object));
-	            g2.setStroke(new BasicStroke(selected ? 3 : 1));
+	            g2.setStroke(new BasicStroke(selected ? 2.5f : 1));
 	            g2.draw(shape);
 
 	        } else {
@@ -4864,9 +4970,9 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	                    object.getHeight());
 
 	            g2.setColor(selected
-	                    ? new Color(80, 130, 255)
+	                    ? SELECTION_COLOR
 	                    : getRoomObjectBorderColor(object));
-	            g2.setStroke(new BasicStroke(selected ? 3 : 1));
+	            g2.setStroke(new BasicStroke(selected ? 2.5f : 1));
 	            g2.drawRect(
 	                    object.getX(),
 	                    object.getY(),
@@ -4903,8 +5009,8 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    }
 
 	    if (selected) {
-	        g2.setColor(new Color(80, 130, 255));
-	        g2.setStroke(new BasicStroke(3));
+	        g2.setColor(SELECTION_COLOR);
+	        g2.setStroke(new BasicStroke(2.5f));
 	        g2.drawRect(
 	                object.getX(),
 	                object.getY(),
@@ -5033,21 +5139,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    int handleY =
 	            object.getY() + object.getHeight() - RESIZE_HANDLE_SIZE / 2;
 
-	    g2.setColor(Color.WHITE);
-
-	    g2.fillRect(
-	            handleX,
-	            handleY,
-	            RESIZE_HANDLE_SIZE,
-	            RESIZE_HANDLE_SIZE);
-
-	    g2.setColor(Color.BLACK);
-
-	    g2.drawRect(
-	            handleX,
-	            handleY,
-	            RESIZE_HANDLE_SIZE,
-	            RESIZE_HANDLE_SIZE);
+	    drawResizeHandle(g2, handleX, handleY);
 	}
 	
 	
@@ -5171,27 +5263,39 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	
 	private void drawItemResizeHandle(Graphics2D g2, LayoutItem item) {
 
-	    int handleX =
-	            item.getX() + item.getWidth() - RESIZE_HANDLE_SIZE / 2;
+        Rectangle handle = getItemResizeHandle(item);
 
-	    int handleY =
-	            item.getY() + item.getHeight() - RESIZE_HANDLE_SIZE / 2;
-
-	    g2.setColor(Color.WHITE);
-
-	    g2.fillRect(
-	            handleX,
-	            handleY,
-	            RESIZE_HANDLE_SIZE,
-	            RESIZE_HANDLE_SIZE);
-
-	    g2.setColor(Color.BLACK);
-
-	    g2.drawRect(
-	            handleX,
-	            handleY,
-	            RESIZE_HANDLE_SIZE,
-	            RESIZE_HANDLE_SIZE);
+	    drawResizeHandle(g2, handle.x, handle.y);
 	}
+
+    private void drawItemRotateHandle(Graphics2D g2, LayoutItem item) {
+
+        Rectangle handle = getItemRotateHandle(item);
+        int centerX = item.getX() + item.getWidth() / 2;
+        int itemTopY = item.getY();
+        int handleCenterX = handle.x + handle.width / 2;
+        int handleCenterY = handle.y + handle.height / 2;
+
+        g2.setColor(SELECTION_COLOR);
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawLine(centerX, itemTopY, handleCenterX, handleCenterY);
+
+        g2.setColor(Color.WHITE);
+        g2.fillOval(handle.x, handle.y, handle.width, handle.height);
+
+        g2.setColor(SELECTION_HANDLE_BORDER_COLOR);
+        g2.setStroke(new BasicStroke(2f));
+        g2.drawOval(handle.x, handle.y, handle.width, handle.height);
+    }
+
+    private void drawResizeHandle(Graphics2D g2, int x, int y) {
+
+        g2.setColor(Color.WHITE);
+        g2.fillRect(x, y, RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE);
+
+        g2.setColor(SELECTION_HANDLE_BORDER_COLOR);
+        g2.setStroke(new BasicStroke(2f));
+        g2.drawRect(x, y, RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE);
+    }
 
 }
