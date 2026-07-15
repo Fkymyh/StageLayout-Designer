@@ -101,6 +101,8 @@ public class MainFrame extends JFrame {
             }
 
             switchEditMode(EditMode.ITEM);
+            statusLabel.setText(
+                    "機材配置: キャンバスをダブルクリックで配置 / 配置後はドラッグ・右クリックで編集");
         });
         canvasPanel.setStageLocked(false);
         
@@ -549,7 +551,7 @@ public class MainFrame extends JFrame {
         JButton undoButton = new JButton("戻る");
         JButton redoButton = new JButton("やり直し");
         
-        selectButton.setToolTipText("配置済みの機材を選択・移動します");
+        selectButton.setToolTipText("配置済みの機材を選択・移動します。右クリックで編集、右下ハンドルでサイズ変更できます");
         lineButton.setToolTipText("線モードに切り替えます。別のモードへ切り替えると線は終了します");
         bamiriLineButton.setToolTipText("バミリ横を選択します。キャンバスをダブルクリックして配置します");
         textButton.setToolTipText("キャンバスをダブルクリックして文字を追加します");
@@ -944,13 +946,13 @@ public class MainFrame extends JFrame {
 
             case ITEM:
                 canvasPanel.switchToItemPlacementMode();
-                statusLabel.setText("モード: 機材配置");
+                statusLabel.setText("モード: 機材配置 / キャンバスをダブルクリックで置けます");
                 break;
 
             case SELECT:
             default:
                 canvasPanel.setSelectMode();
-                statusLabel.setText("モード: 機材を動かす");
+                statusLabel.setText("モード: 機材を動かす / ドラッグで移動、右クリックで編集できます");
                 break;
         }
     }
@@ -1030,10 +1032,17 @@ public class MainFrame extends JFrame {
         javax.swing.JTextField widthField = new javax.swing.JTextField("13.0", 8);
         javax.swing.JTextField heightField = new javax.swing.JTextField("4.0", 8);
         javax.swing.JTextField nameField = new javax.swing.JTextField("ステージ", 12);
+        ShapeTemplatePreviewPanel previewPanel =
+                new ShapeTemplatePreviewPanel(
+                        roomShapeType(String.valueOf(shapeComboBox.getSelectedItem())));
+
+        previewPanel.setBorder(
+                javax.swing.BorderFactory.createTitledBorder("形の目安"));
 
         shapeComboBox.addActionListener(e -> {
 
             String selected = String.valueOf(shapeComboBox.getSelectedItem());
+            previewPanel.setShapeType(roomShapeType(selected));
 
             if ("陸上トラック風".equals(selected)) {
                 nameField.setText("トラック風ステージ");
@@ -1064,6 +1073,8 @@ public class MainFrame extends JFrame {
         panel.add(widthField);
         panel.add(new JLabel("縦幅 m"));
         panel.add(heightField);
+        panel.add(new JLabel("プレビュー"));
+        panel.add(previewPanel);
 
         int result =
                 JOptionPane.showConfirmDialog(
@@ -1117,6 +1128,95 @@ public class MainFrame extends JFrame {
         }
 
         return RoomObject.TYPE_RECT;
+    }
+
+    private static class ShapeTemplatePreviewPanel extends JPanel {
+
+        private String shapeType;
+
+        ShapeTemplatePreviewPanel(String shapeType) {
+            this.shapeType = shapeType;
+            setPreferredSize(new Dimension(180, 110));
+            setMinimumSize(new Dimension(160, 100));
+            setBackground(Color.WHITE);
+        }
+
+        void setShapeType(String shapeType) {
+            this.shapeType = shapeType;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics graphics) {
+            super.paintComponent(graphics);
+
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) graphics.create();
+
+            g2.setRenderingHint(
+                    java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int marginX = 24;
+            int marginY = 24;
+            int x = marginX;
+            int y = marginY;
+            int w = Math.max(40, getWidth() - marginX * 2);
+            int h = Math.max(28, getHeight() - marginY * 2 - 6);
+            java.awt.Shape shape = createPreviewShape(shapeType, x, y, w, h);
+
+            g2.setColor(new Color(226, 234, 240));
+            g2.fill(shape);
+            g2.setColor(new Color(120, 134, 148));
+            g2.setStroke(new java.awt.BasicStroke(2f));
+            g2.draw(shape);
+
+            g2.setColor(new Color(180, 190, 198));
+            g2.setStroke(new java.awt.BasicStroke(1f));
+            g2.drawLine(x, y + h / 2, x + w, y + h / 2);
+
+            g2.dispose();
+        }
+
+        private java.awt.Shape createPreviewShape(
+                String type,
+                int x,
+                int y,
+                int w,
+                int h) {
+
+            if (RoomObject.TYPE_OVAL.equals(type)) {
+                return new java.awt.geom.Ellipse2D.Double(x, y, w, h);
+            }
+
+            if (RoomObject.TYPE_TRACK.equals(type)) {
+                return new java.awt.geom.RoundRectangle2D.Double(x, y, w, h, h, h);
+            }
+
+            if (RoomObject.TYPE_FRONT_ARC.equals(type)) {
+                java.awt.geom.Path2D path = new java.awt.geom.Path2D.Double();
+                double arcHeight = Math.max(10, h * 0.35);
+
+                path.moveTo(x, y);
+                path.lineTo(x + w, y);
+                path.lineTo(x + w, y + h - arcHeight);
+                path.quadTo(x + w / 2.0, y + h, x, y + h - arcHeight);
+                path.closePath();
+
+                return path;
+            }
+
+            if (RoomObject.TYPE_ROUNDED_RECT.equals(type)) {
+                return new java.awt.geom.RoundRectangle2D.Double(
+                        x,
+                        y,
+                        w,
+                        h,
+                        Math.min(w, h) / 3.0,
+                        Math.min(w, h) / 3.0);
+            }
+
+            return new java.awt.Rectangle(x, y, w, h);
+        }
     }
 
     private void loadBackgroundMap() {

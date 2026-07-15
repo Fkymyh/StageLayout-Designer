@@ -166,7 +166,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
     private int textBoxResizeStartHeight;
 
-	private static final int RESIZE_HANDLE_SIZE = 8;
+	private static final int RESIZE_HANDLE_SIZE = 12;
 
     private static final int SHEET_MARGIN = 40;
 	
@@ -4251,7 +4251,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	            g2.setColor(selected
 	                    ? new Color(80, 130, 255)
-	                    : ROOM_OBJECT_BORDER_COLOR);
+	                    : getRoomObjectBorderColor(object));
 	            g2.setStroke(new BasicStroke(selected ? 3 : 1));
 	            g2.drawOval(
 	                    object.getX(),
@@ -4268,7 +4268,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	            g2.setColor(selected
 	                    ? new Color(80, 130, 255)
-	                    : ROOM_OBJECT_BORDER_COLOR);
+	                    : getRoomObjectBorderColor(object));
 	            g2.setStroke(new BasicStroke(selected ? 3 : 1));
 	            g2.draw(shape);
 
@@ -4283,7 +4283,7 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	            g2.setColor(selected
 	                    ? new Color(80, 130, 255)
-	                    : ROOM_OBJECT_BORDER_COLOR);
+	                    : getRoomObjectBorderColor(object));
 	            g2.setStroke(new BasicStroke(selected ? 3 : 1));
 	            g2.drawRect(
 	                    object.getX(),
@@ -4366,6 +4366,15 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    return STAGE_FILL_COLOR;
 	}
+
+    private Color getRoomObjectBorderColor(RoomObject object) {
+
+        if (isShapeRoomObject(object)) {
+            return new Color(158, 170, 180);
+        }
+
+        return ROOM_OBJECT_BORDER_COLOR;
+    }
 
     private boolean isShapeRoomObject(RoomObject object) {
 

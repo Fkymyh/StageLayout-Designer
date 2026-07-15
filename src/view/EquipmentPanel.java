@@ -62,9 +62,9 @@ public class EquipmentPanel extends JPanel {
 
     private static final String DEFAULT_TYPE_NAME = "すべて";
 
-    private static final String FAVORITE_GENRE_NAME = "お気に入り";
+    private static final String FAVORITE_GENRE_NAME = "マイリスト";
 
-    private static final String FAVORITE_TYPE_NAME = "登録済み";
+    private static final String FAVORITE_TYPE_NAME = "よく使う機材";
 
     private JPanel genreButtonPanel;
 
@@ -123,8 +123,30 @@ public class EquipmentPanel extends JPanel {
         renderGenreButtons();
 
         if (!categoryMap.isEmpty()) {
-            selectGenre(categoryMap.keySet().iterator().next());
+            selectGenre(firstGenreWithEquipment());
         }
+    }
+
+    private String firstGenreWithEquipment() {
+
+        for (Map.Entry<String, Map<String, List<String>>> entry :
+                categoryMap.entrySet()) {
+
+            Map<String, List<String>> typeMap = entry.getValue();
+
+            if (typeMap == null) {
+                continue;
+            }
+
+            for (List<String> equipmentNames : typeMap.values()) {
+
+                if (equipmentNames != null && !equipmentNames.isEmpty()) {
+                    return entry.getKey();
+                }
+            }
+        }
+
+        return categoryMap.keySet().iterator().next();
     }
 
     private JPanel createGenreRailPanel() {
@@ -440,7 +462,7 @@ public class EquipmentPanel extends JPanel {
 
             if (FAVORITE_GENRE_NAME.equals(selectedGenreName)) {
                 JLabel emptyLabel =
-                        new JLabel("<html>右クリックで<br>お気に入りに追加できます</html>");
+                        new JLabel("<html>機材ボタンを右クリックして<br>マイリストに追加できます</html>");
 
                 emptyLabel.setBorder(BorderFactory.createEmptyBorder(10, 4, 4, 4));
                 equipmentListPanel.add(emptyLabel);
@@ -497,7 +519,8 @@ public class EquipmentPanel extends JPanel {
         JButton button = new JButton();
 
         button.setText(createEquipmentButtonText(name, false));
-        button.setToolTipText(name);
+        button.setToolTipText(
+                name + "を選択します。キャンバスをダブルクリックで配置できます。");
         button.setVerticalTextPosition(JButton.BOTTOM);
         button.setHorizontalTextPosition(JButton.CENTER);
         button.setPreferredSize(
@@ -546,10 +569,10 @@ public class EquipmentPanel extends JPanel {
         JMenuItem favoriteItem;
 
         if (favoriteNames.contains(name)) {
-            favoriteItem = new JMenuItem("お気に入りから外す");
+            favoriteItem = new JMenuItem("マイリストから外す");
             favoriteItem.addActionListener(e -> removeFavorite(name));
         } else {
-            favoriteItem = new JMenuItem("お気に入りに追加");
+            favoriteItem = new JMenuItem("マイリストに追加");
             favoriteItem.addActionListener(e -> addFavorite(name));
         }
 
@@ -648,7 +671,7 @@ public class EquipmentPanel extends JPanel {
         } catch (IOException ex) {
 
             System.out.println(
-                    "お気に入り一覧の読み込みに失敗しました: "
+                    "マイリストの読み込みに失敗しました: "
                     + ex.getMessage());
         }
     }
@@ -667,7 +690,7 @@ public class EquipmentPanel extends JPanel {
         } catch (IOException ex) {
 
             System.out.println(
-                    "お気に入り一覧の保存に失敗しました: "
+                    "マイリストの保存に失敗しました: "
                     + ex.getMessage());
         }
     }

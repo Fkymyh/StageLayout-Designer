@@ -28,40 +28,48 @@ public class EquipmentFactory {
                 "マイク",
                 "音響 > マイク・スタンド",
                 Color.BLUE,
-                30,
-                15,
+                44,
+                22,
                 "/resources/images/mic_A.png");
 
         register(
                 "スピーカー",
                 "音響 > スピーカー",
                 Color.BLUE,
-                35,
-                35,
+                46,
+                46,
                 "/resources/images/speaker_E_G.png");
 
         register(
                 "ミキサー",
                 "音響 > その他音響",
                 Color.BLUE,
-                45,
-                30,
+                60,
+                40,
                 "/resources/images/mixer_A.png");
         
         register(
                 "ブームスタンド",
                 "音響 > マイク・スタンド",
                 Color.BLUE,
-                45,
-                20,
+                58,
+                26,
                 "/resources/images/boom_stand.png");
+
+        register(
+                "ワイヤレスマイク発信機",
+                "音響 > マイク・スタンド",
+                Color.BLUE,
+                38,
+                26,
+                "/resources/images/hand_mic.png");
 
         register(
                 "CD_Player",
                 "音響 > その他音響",
                 Color.BLUE,
-                45,
-                30,
+                56,
+                36,
                 "/resources/images/CD_player.png");
 
         register(
@@ -212,8 +220,8 @@ public class EquipmentFactory {
                 "長机",
                 "舞台",
                 Color.LIGHT_GRAY,
-                60,
-                20,
+                76,
+                28,
                 "/resources/images/desk.png");
         
         
@@ -223,24 +231,24 @@ public class EquipmentFactory {
                 "人間A 上",
                 "人物",
                 Color.GREEN,
-                25,
-                40,
+                34,
+                48,
                 "/resources/images/humanA_up.png");
 
         register(
                 "人間A 横",
                 "人物",
                 Color.GREEN,
-                25,
-                40,
+                34,
+                48,
                 "/resources/images/humanA_side.png");
 
         register(
                 "人間A 正面",
                 "人物",
                 Color.GREEN,
-                25,
-                40,
+                34,
+                48,
                 "/resources/images/humanA_front.png");
 
         loadStageSymbols();

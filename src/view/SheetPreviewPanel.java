@@ -1145,7 +1145,7 @@ public class SheetPreviewPanel extends JPanel{
                 g2.setColor(new Color(130, 136, 142));
                 g2.fillOval(x, y, w, h);
 
-                g2.setColor(Color.BLACK);
+                g2.setColor(new Color(150, 158, 166));
                 g2.drawOval(x, y, w, h);
 
             } else if (isShapeRoomObject(object)) {
@@ -1155,7 +1155,7 @@ public class SheetPreviewPanel extends JPanel{
                 g2.setColor(new Color(226, 234, 240));
                 g2.fill(shape);
 
-                g2.setColor(Color.BLACK);
+                g2.setColor(new Color(150, 158, 166));
                 g2.draw(shape);
 
             } else {
@@ -1163,7 +1163,7 @@ public class SheetPreviewPanel extends JPanel{
                 g2.setColor(new Color(232, 235, 238));
                 g2.fillRect(x, y, w, h);
 
-                g2.setColor(Color.BLACK);
+                g2.setColor(new Color(150, 158, 166));
                 g2.drawRect(x, y, w, h);
             }
 
