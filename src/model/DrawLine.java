@@ -74,6 +74,10 @@ public class DrawLine {
     }
 
     public void setColor(Color color) {
+        if (color == null) {
+            return;
+        }
+
         this.color = color;
     }
 

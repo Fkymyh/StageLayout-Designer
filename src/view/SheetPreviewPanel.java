@@ -63,6 +63,8 @@ public class SheetPreviewPanel extends JPanel{
 
     private boolean showNames;
 
+    private boolean showLineLength = false;
+
     private String previewRangeMode = PREVIEW_CONTENT;
 	
 	private String orientation;
@@ -119,6 +121,12 @@ public class SheetPreviewPanel extends JPanel{
             this.previewRangeMode = previewRangeMode;
         }
 
+        repaint();
+    }
+
+    public void setShowLineLength(boolean showLineLength) {
+
+        this.showLineLength = showLineLength;
         repaint();
     }
 	
@@ -1252,7 +1260,7 @@ public class SheetPreviewPanel extends JPanel{
             g2.drawLine(x1, y1, x2, y2);
             drawFlowArrowHeadIfNeeded(g2, line, x1, y1, x2, y2, scale);
 
-            if (line.isShowLength() && !isBamiriLine(line)) {
+            if (showLineLength && line.isShowLength() && !isBamiriLine(line)) {
                 g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
                 g2.setColor(Color.BLACK);
                 g2.drawString(
@@ -1283,15 +1291,19 @@ public class SheetPreviewPanel extends JPanel{
             return Color.BLACK;
         }
 
-        if (DrawLine.TYPE_CABLE.equals(line.getLineType())) {
-            return Color.BLACK;
+        if (line.getColor() != null) {
+            return line.getColor();
         }
 
         if (DrawLine.TYPE_FLOW.equals(line.getLineType())) {
             return new Color(40, 110, 210);
         }
 
-        return line.getColor();
+        if (DrawLine.TYPE_BAMIRI.equals(line.getLineType())) {
+            return Color.RED;
+        }
+
+        return Color.BLACK;
     }
 
     private BasicStroke createStrokeForLine(DrawLine line, double scale) {
@@ -1337,7 +1349,6 @@ public class SheetPreviewPanel extends JPanel{
         Color oldColor = g2.getColor();
         Stroke oldStroke = g2.getStroke();
 
-        g2.setColor(new Color(40, 110, 210));
         g2.setStroke(
                 new BasicStroke(
                         Math.max(1f, (float) (line.getStrokeWidth() * scale)),

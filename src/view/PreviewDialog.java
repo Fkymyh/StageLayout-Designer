@@ -13,6 +13,7 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
@@ -110,6 +111,12 @@ public class PreviewDialog extends JDialog{
             }
         });
 
+        JCheckBox lineLengthCheckBox = new JCheckBox("線の長さを表示");
+        lineLengthCheckBox.setSelected(false);
+        previewPanel.setShowLineLength(false);
+        lineLengthCheckBox.addActionListener(e ->
+                previewPanel.setShowLineLength(lineLengthCheckBox.isSelected()));
+
 		JButton exportButton = new JButton("PNG画像として保存");
         JButton exportPdfButton = new JButton("PDFとして保存");
         JButton printButton = new JButton("印刷");
@@ -122,6 +129,7 @@ public class PreviewDialog extends JDialog{
 
         buttonPanel.add(new JLabel("プレビュー範囲"));
         buttonPanel.add(previewRangeComboBox);
+        buttonPanel.add(lineLengthCheckBox);
 		buttonPanel.add(exportButton);
         buttonPanel.add(exportPdfButton);
         buttonPanel.add(printButton);

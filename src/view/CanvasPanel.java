@@ -1460,15 +1460,19 @@ public class CanvasPanel extends JPanel implements MouseListener,
             return Color.BLACK;
         }
 
-        if (DrawLine.TYPE_CABLE.equals(line.getLineType())) {
-            return Color.BLACK;
+        if (line.getColor() != null) {
+            return line.getColor();
         }
 
         if (DrawLine.TYPE_FLOW.equals(line.getLineType())) {
             return new Color(40, 110, 210);
         }
 
-        return line.getColor();
+        if (DrawLine.TYPE_BAMIRI.equals(line.getLineType())) {
+            return Color.RED;
+        }
+
+        return Color.BLACK;
     }
 
     private BasicStroke createStrokeForLine(DrawLine line) {
@@ -1518,7 +1522,6 @@ public class CanvasPanel extends JPanel implements MouseListener,
         Color oldColor = g2.getColor();
         Stroke oldStroke = g2.getStroke();
 
-        g2.setColor(new Color(40, 110, 210));
         g2.setStroke(
                 new BasicStroke(
                         Math.max(2, size / 5),
@@ -1819,6 +1822,13 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	    		}
 
             if (lineStartX == null || lineStartY == null) {
+                DrawLine endpointLine = findLineEndpoint(canvasX, canvasY);
+
+                if (endpointLine != null) {
+                    startLineFromExistingEndpoint(endpointLine, canvasX, canvasY);
+                    return;
+                }
+
                 selectedLine = findLine(canvasX, canvasY);
 
                 if (selectedLine != null) {
@@ -2074,6 +2084,45 @@ public class CanvasPanel extends JPanel implements MouseListener,
 
 	    repaint();
 	}
+
+    private void startLineFromExistingEndpoint(
+            DrawLine line,
+            int clickX,
+            int clickY) {
+
+        if (line == null) {
+            return;
+        }
+
+        if (isNearLineStart(line, clickX, clickY)) {
+            lineStartX = line.getStartX();
+            lineStartY = line.getStartY();
+        } else {
+            lineStartX = line.getEndX();
+            lineStartY = line.getEndY();
+        }
+
+        String groupId = line.getGroupId();
+
+        if (groupId == null || groupId.isBlank()) {
+            groupId = "line-" + System.nanoTime() + "-" + nextLineGroupNumber++;
+            line.setGroupId(groupId);
+        }
+
+        activeLineGroupId = groupId;
+        currentLineType = line.getLineType();
+        currentLineColor = line.getColor();
+        currentLineStrokeWidth = line.getStrokeWidth();
+        currentLineLabel = line.getLabel() == null ? "" : line.getLabel();
+        selectedLine = line;
+        selectedItem = null;
+        selectedRoomObject = null;
+        selectedTextBox = null;
+        backgroundSelected = false;
+
+        refreshPanels();
+        repaint();
+    }
 	
 	@Override
 	public void mousePressed(MouseEvent e) {
@@ -2101,22 +2150,11 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 
-	    if (drawLineMode && selectedLine == null) {
-            if (lineStartX != null || lineStartY != null) {
-                return;
-            }
-
-            selectedLine = findLine(canvasX, canvasY);
-
-            if (selectedLine == null) {
-                return;
-            }
-
-            selectedItem = null;
-            selectedRoomObject = null;
-            selectedTextBox = null;
-            backgroundSelected = false;
-            refreshPanels();
+	    if (drawLineMode
+                && selectedLine == null
+                && lineStartX == null
+                && lineStartY == null) {
+            return;
 	    }
 
         if (selectedItem != null
@@ -2273,6 +2311,17 @@ public class CanvasPanel extends JPanel implements MouseListener,
             selectedRoomObject = null;
             selectedTextBox = null;
             backgroundSelected = false;
+
+            if (isNearLineStart(selectedLine, canvasX, canvasY)) {
+                draggingLineStart = true;
+            } else if (isNearLineEnd(selectedLine, canvasX, canvasY)) {
+                draggingLineEnd = true;
+            } else {
+                draggingLineGroup = true;
+                lastLineDragX = canvasX;
+                lastLineDragY = canvasY;
+            }
+
             refreshPanels();
             repaint();
             return;
@@ -2336,7 +2385,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 			return;
 		}
 		
-		if(drawLineMode && !draggingLineGroup) {
+		if(drawLineMode
+                && !draggingLineGroup
+                && !draggingLineStart
+                && !draggingLineEnd) {
 			return;
 		}
 		
@@ -2394,7 +2446,10 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	        return;
 	    }
 		
-		if(drawLineMode && !draggingLineGroup) {
+		if(drawLineMode
+                && !draggingLineGroup
+                && !draggingLineStart
+                && !draggingLineEnd) {
 			return;
 		}
 		
@@ -3630,6 +3685,21 @@ public class CanvasPanel extends JPanel implements MouseListener,
         return null;
     }
 
+    private DrawLine findLineEndpoint(int x, int y) {
+
+        for (int i = drawLines.size() - 1; i >= 0; i--) {
+
+            DrawLine line = drawLines.get(i);
+
+            if (isNearLineStart(line, x, y)
+                    || isNearLineEnd(line, x, y)) {
+                return line;
+            }
+        }
+
+        return null;
+    }
+
     private boolean isNearLineStart(DrawLine line, int x, int y) {
 
         return distance(line.getStartX(), line.getStartY(), x, y) <= 8.0;
@@ -4812,6 +4882,14 @@ public class CanvasPanel extends JPanel implements MouseListener,
 	public void setCurrentLineColor(Color color) {
 
 	    this.currentLineColor = color;
+
+        if (selectedLine != null && color != null) {
+            for (DrawLine line : getConnectedLines(selectedLine, false)) {
+                line.setColor(color);
+            }
+
+            notifyChanged();
+        }
 
 	    repaint();
 	}

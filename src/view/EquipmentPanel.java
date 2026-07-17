@@ -62,9 +62,13 @@ public class EquipmentPanel extends JPanel {
 
     private static final String DEFAULT_TYPE_NAME = "すべて";
 
-    private static final String FAVORITE_GENRE_NAME = "マイリスト";
+    private static final String MODE_BROADCAST = "放送部";
 
-    private static final String FAVORITE_TYPE_NAME = "よく使う機材";
+    private static final String MODE_ALL = "すべて";
+
+    private static final String MODE_FAVORITES = "マイリスト";
+
+    private JPanel modeButtonPanel;
 
     private JPanel genreButtonPanel;
 
@@ -78,14 +82,23 @@ public class EquipmentPanel extends JPanel {
 
     private String selectedEquipmentName;
 
+    private String selectedModeName = MODE_BROADCAST;
+
     private int equipmentColumnCount = 2;
 
     private Map<String, Map<String, List<String>>> categoryMap =
             new LinkedHashMap<>();
 
+    private Map<String, Map<String, List<String>>> allCategoryMap =
+            new LinkedHashMap<>();
+
     private Map<String, JButton> buttons = new LinkedHashMap<>();
 
     private Map<String, JToggleButton> genreButtons = new LinkedHashMap<>();
+
+    private Map<String, JToggleButton> modeButtons = new LinkedHashMap<>();
+
+    private Set<String> broadcastNames = new LinkedHashSet<>();
 
     private Set<String> favoriteNames = new LinkedHashSet<>();
 
@@ -97,8 +110,9 @@ public class EquipmentPanel extends JPanel {
         setPreferredSize(new Dimension(PANEL_WIDTH, 0));
         setBorder(BorderFactory.createTitledBorder("機材パレット"));
 
-        loadFavorites();
+        loadEquipmentLists();
         buildCategoryMap();
+        refreshCategoryMapForMode();
 
         genreButtonPanel = new JPanel();
         genreButtonPanel.setLayout(new BoxLayout(genreButtonPanel, BoxLayout.Y_AXIS));
@@ -109,6 +123,7 @@ public class EquipmentPanel extends JPanel {
         equipmentListPanel = new JPanel();
         equipmentListPanel.setLayout(new BoxLayout(equipmentListPanel, BoxLayout.Y_AXIS));
 
+        add(createModeSwitchPanel(), BorderLayout.NORTH);
         add(createGenreRailPanel(), BorderLayout.WEST);
         add(createTypePanel(), BorderLayout.CENTER);
 
@@ -120,14 +135,94 @@ public class EquipmentPanel extends JPanel {
             }
         });
 
+        renderModeButtons();
         renderGenreButtons();
 
-        if (!categoryMap.isEmpty()) {
-            selectGenre(firstGenreWithEquipment());
+        String firstGenre = firstGenreWithEquipment();
+
+        if (firstGenre != null) {
+            selectGenre(firstGenre);
+        }
+    }
+
+    private JPanel createModeSwitchPanel() {
+
+        modeButtonPanel = new JPanel(new GridLayout(1, 3, 6, 0));
+        modeButtonPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 0, 4));
+
+        return modeButtonPanel;
+    }
+
+    private void renderModeButtons() {
+
+        modeButtons.clear();
+        modeButtonPanel.removeAll();
+
+        addModeButton(MODE_BROADCAST, "放送部用に登録した機材を表示します");
+        addModeButton(MODE_ALL, "登録されている機材をすべて表示します");
+        addModeButton(MODE_FAVORITES, "マイリストに追加した機材を表示します");
+
+        updateModeButtonSelection();
+
+        modeButtonPanel.revalidate();
+        modeButtonPanel.repaint();
+    }
+
+    private void addModeButton(String modeName, String toolTip) {
+
+        JToggleButton button = new JToggleButton(modeName);
+
+        button.setPreferredSize(new Dimension(86, 34));
+        button.setFont(button.getFont().deriveFont(Font.BOLD, 12f));
+        button.setFocusPainted(false);
+        button.setOpaque(true);
+        button.setToolTipText(toolTip);
+        button.addActionListener(e -> selectMode(modeName));
+
+        modeButtons.put(modeName, button);
+        modeButtonPanel.add(button);
+    }
+
+    private void selectMode(String modeName) {
+
+        if (modeName == null || modeName.equals(selectedModeName)) {
+            return;
+        }
+
+        selectedModeName = modeName;
+        selectedGenreName = null;
+        expandedTypeName = null;
+        selectedEquipmentName = null;
+
+        refreshCategoryMapForMode();
+        renderModeButtons();
+        renderGenreButtons();
+
+        String firstGenre = firstGenreWithEquipment();
+
+        if (firstGenre != null) {
+            selectGenre(firstGenre);
+        } else {
+            renderTypeBars();
+        }
+    }
+
+    private void updateModeButtonSelection() {
+
+        for (Map.Entry<String, JToggleButton> entry : modeButtons.entrySet()) {
+            JToggleButton button = entry.getValue();
+            boolean selected = entry.getKey().equals(selectedModeName);
+
+            button.setSelected(selected);
+            button.setBackground(selected ? new Color(170, 205, 245) : Color.WHITE);
         }
     }
 
     private String firstGenreWithEquipment() {
+
+        if (categoryMap.isEmpty()) {
+            return null;
+        }
 
         for (Map.Entry<String, Map<String, List<String>>> entry :
                 categoryMap.entrySet()) {
@@ -146,7 +241,7 @@ public class EquipmentPanel extends JPanel {
             }
         }
 
-        return categoryMap.keySet().iterator().next();
+        return null;
     }
 
     private JPanel createGenreRailPanel() {
@@ -198,9 +293,7 @@ public class EquipmentPanel extends JPanel {
 
     private void buildCategoryMap() {
 
-        categoryMap.clear();
-        categoryMap.put(FAVORITE_GENRE_NAME, new LinkedHashMap<>());
-        rebuildFavoriteCategory();
+        allCategoryMap.clear();
 
         Set<String> expandedParentCategories = new HashSet<>();
 
@@ -237,14 +330,71 @@ public class EquipmentPanel extends JPanel {
                 continue;
             }
 
-            categoryMap.putIfAbsent(parentCategory, new LinkedHashMap<>());
-            categoryMap.get(parentCategory).putIfAbsent(
+            allCategoryMap.putIfAbsent(parentCategory, new LinkedHashMap<>());
+            allCategoryMap.get(parentCategory).putIfAbsent(
                     childCategory,
                     new ArrayList<>());
-            categoryMap.get(parentCategory)
+            allCategoryMap.get(parentCategory)
                     .get(childCategory)
                     .add(definition.getName());
         }
+    }
+
+    private void refreshCategoryMapForMode() {
+
+        categoryMap.clear();
+
+        if (MODE_ALL.equals(selectedModeName)) {
+            copyCategoryMap(allCategoryMap, categoryMap);
+            return;
+        }
+
+        if (MODE_FAVORITES.equals(selectedModeName)) {
+            copyFilteredCategoryMap(
+                    allCategoryMap,
+                    categoryMap,
+                    name -> favoriteNames.contains(name));
+            return;
+        }
+
+        copyFilteredCategoryMap(
+                allCategoryMap,
+                categoryMap,
+                name -> broadcastNames.contains(name));
+    }
+
+    private void copyCategoryMap(
+            Map<String, Map<String, List<String>>> source,
+            Map<String, Map<String, List<String>>> target) {
+
+        copyFilteredCategoryMap(source, target, name -> true);
+    }
+
+    private void copyFilteredCategoryMap(
+            Map<String, Map<String, List<String>>> source,
+            Map<String, Map<String, List<String>>> target,
+            EquipmentNameFilter filter) {
+
+        for (Map.Entry<String, Map<String, List<String>>> genreEntry : source.entrySet()) {
+            for (Map.Entry<String, List<String>> typeEntry : genreEntry.getValue().entrySet()) {
+                for (String name : typeEntry.getValue()) {
+                    if (!filter.accept(name)) {
+                        continue;
+                    }
+
+                    target.putIfAbsent(genreEntry.getKey(), new LinkedHashMap<>());
+                    target.get(genreEntry.getKey()).putIfAbsent(
+                            typeEntry.getKey(),
+                            new ArrayList<>());
+                    target.get(genreEntry.getKey()).get(typeEntry.getKey()).add(name);
+                }
+            }
+        }
+    }
+
+    private interface EquipmentNameFilter {
+
+        boolean accept(String name);
     }
 
     private String normalizeCategory(String category) {
@@ -299,6 +449,15 @@ public class EquipmentPanel extends JPanel {
     }
 
     private void selectGenre(String genreName) {
+
+        if (genreName == null) {
+            selectedGenreName = null;
+            expandedTypeName = null;
+            selectedEquipmentName = null;
+            updateGenreButtonSelection();
+            renderTypeBars();
+            return;
+        }
 
         boolean changed = !genreName.equals(selectedGenreName);
 
@@ -460,9 +619,16 @@ public class EquipmentPanel extends JPanel {
 
         if (equipmentNames == null || equipmentNames.isEmpty()) {
 
-            if (FAVORITE_GENRE_NAME.equals(selectedGenreName)) {
+            if (MODE_BROADCAST.equals(selectedModeName)
+                    || MODE_FAVORITES.equals(selectedModeName)) {
+                String targetName =
+                        MODE_BROADCAST.equals(selectedModeName)
+                                ? "放送部"
+                                : "マイリスト";
                 JLabel emptyLabel =
-                        new JLabel("<html>機材ボタンを右クリックして<br>マイリストに追加できます</html>");
+                        new JLabel("<html>すべて から機材を右クリックして<br>"
+                                + targetName
+                                + "に追加できます</html>");
 
                 emptyLabel.setBorder(BorderFactory.createEmptyBorder(10, 4, 4, 4));
                 equipmentListPanel.add(emptyLabel);
@@ -566,7 +732,16 @@ public class EquipmentPanel extends JPanel {
     private JPopupMenu createEquipmentPopupMenu(String name) {
 
         JPopupMenu popupMenu = new JPopupMenu();
+        JMenuItem broadcastItem;
         JMenuItem favoriteItem;
+
+        if (broadcastNames.contains(name)) {
+            broadcastItem = new JMenuItem("放送部から外す");
+            broadcastItem.addActionListener(e -> removeBroadcast(name));
+        } else {
+            broadcastItem = new JMenuItem("放送部に追加");
+            broadcastItem.addActionListener(e -> addBroadcast(name));
+        }
 
         if (favoriteNames.contains(name)) {
             favoriteItem = new JMenuItem("マイリストから外す");
@@ -576,9 +751,28 @@ public class EquipmentPanel extends JPanel {
             favoriteItem.addActionListener(e -> addFavorite(name));
         }
 
+        popupMenu.add(broadcastItem);
         popupMenu.add(favoriteItem);
 
         return popupMenu;
+    }
+
+    private void addBroadcast(String name) {
+
+        if (name == null || !EquipmentFactory.getDefinitions().containsKey(name)) {
+            return;
+        }
+
+        broadcastNames.add(name);
+        saveEquipmentList(getBroadcastFilePath(), broadcastNames, "放送部");
+        refreshCurrentFilteredView();
+    }
+
+    private void removeBroadcast(String name) {
+
+        broadcastNames.remove(name);
+        saveEquipmentList(getBroadcastFilePath(), broadcastNames, "放送部");
+        refreshCurrentFilteredView();
     }
 
     private void addFavorite(String name) {
@@ -588,70 +782,51 @@ public class EquipmentPanel extends JPanel {
         }
 
         favoriteNames.add(name);
-        saveFavorites();
-        refreshFavoriteView();
+        saveEquipmentList(getFavoriteFilePath(), favoriteNames, "マイリスト");
+        refreshCurrentFilteredView();
     }
 
     private void removeFavorite(String name) {
 
         favoriteNames.remove(name);
-        saveFavorites();
-        refreshFavoriteView();
+        saveEquipmentList(getFavoriteFilePath(), favoriteNames, "マイリスト");
+        refreshCurrentFilteredView();
     }
 
-    private void refreshFavoriteView() {
+    private void refreshCurrentFilteredView() {
 
-        rebuildFavoriteCategory();
+        refreshCategoryMapForMode();
 
-        if (FAVORITE_GENRE_NAME.equals(selectedGenreName)) {
-
-            Map<String, List<String>> typeMap = categoryMap.get(selectedGenreName);
-
-            if (typeMap == null || !typeMap.containsKey(expandedTypeName)) {
-                expandedTypeName = firstTypeName(typeMap);
+        if (MODE_BROADCAST.equals(selectedModeName)
+                || MODE_FAVORITES.equals(selectedModeName)) {
+            if (selectedGenreName == null || !categoryMap.containsKey(selectedGenreName)) {
+                selectedGenreName = firstGenreWithEquipment();
             }
 
-            selectedEquipmentName = firstEquipmentName(
-                    typeMap == null ? null : typeMap.get(expandedTypeName));
-
-            renderTypeBars();
-
+            renderGenreButtons();
+            if (selectedGenreName != null) {
+                selectGenre(selectedGenreName);
+            } else {
+                expandedTypeName = null;
+                selectedEquipmentName = null;
+                renderTypeBars();
+            }
         } else {
-
             renderEquipmentList();
         }
     }
 
-    private void rebuildFavoriteCategory() {
+    private void loadEquipmentLists() {
 
-        Map<String, List<String>> typeMap = categoryMap.get(FAVORITE_GENRE_NAME);
-
-        if (typeMap == null) {
-            typeMap = new LinkedHashMap<>();
-            categoryMap.put(FAVORITE_GENRE_NAME, typeMap);
-        }
-
-        typeMap.clear();
-        typeMap.put(FAVORITE_TYPE_NAME, createFavoriteEquipmentList());
+        loadEquipmentList(getBroadcastFilePath(), broadcastNames, "放送部");
+        loadEquipmentList(getFavoriteFilePath(), favoriteNames, "マイリスト");
     }
 
-    private List<String> createFavoriteEquipmentList() {
+    private void loadEquipmentList(
+            Path path,
+            Set<String> targetNames,
+            String listName) {
 
-        List<String> equipmentNames = new ArrayList<>();
-
-        for (String name : favoriteNames) {
-
-            if (EquipmentFactory.getDefinitions().containsKey(name)) {
-                equipmentNames.add(name);
-            }
-        }
-
-        return equipmentNames;
-    }
-
-    private void loadFavorites() {
-
-        Path path = getFavoriteFilePath();
 
         if (!Files.exists(path)) {
             return;
@@ -663,36 +838,47 @@ public class EquipmentPanel extends JPanel {
 
                 String name = line.trim();
 
-                if (!name.isEmpty()) {
-                    favoriteNames.add(name);
+                if (!name.isEmpty()
+                        && EquipmentFactory.getDefinitions().containsKey(name)) {
+                    targetNames.add(name);
                 }
             }
 
         } catch (IOException ex) {
 
             System.out.println(
-                    "マイリストの読み込みに失敗しました: "
+                    listName
+                    + "の読み込みに失敗しました: "
                     + ex.getMessage());
         }
     }
 
-    private void saveFavorites() {
-
-        Path path = getFavoriteFilePath();
+    private void saveEquipmentList(
+            Path path,
+            Set<String> names,
+            String listName) {
 
         try {
 
             Files.write(
                     path,
-                    favoriteNames,
+                    names,
                     StandardCharsets.UTF_8);
 
         } catch (IOException ex) {
 
             System.out.println(
-                    "マイリストの保存に失敗しました: "
+                    listName
+                    + "の保存に失敗しました: "
                     + ex.getMessage());
         }
+    }
+
+    private Path getBroadcastFilePath() {
+
+        return Paths.get(
+                System.getProperty("user.home"),
+                ".stage-layout-designer-broadcast.txt");
     }
 
     private Path getFavoriteFilePath() {
